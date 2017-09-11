@@ -127,7 +127,6 @@ class Read:
         
     def to_con_data(self, adjacent_only):
         self.sort_segs()
-        print self.to_string()
         con_data = ConData()
         for i in range(self.num_segs() - 1):
             for j in range(i + 1, self.num_segs()):
@@ -219,6 +218,16 @@ class Leg:
 
     def get_ref_locus(self):
         return self.ref_locus
+        
+    def merge_with(self, other):
+        self.ref_locus = (self.ref_locus + other.ref_locus)/2
+        self.haplotype = update_haplotype(self.haplotype, other.haplotype)
+
+    def same_chr_with(self, other):
+        return self.ref_name == other.ref_name
+        
+    def separation_with(self, other):
+        return abs(self.ref_locus - other.ref_locus)
     
     def to_string(self):
         return ",".join([self.ref_name, str(self.ref_locus), "." if not is_known_haplotype(self.haplotype) else str(self.haplotype)])
@@ -244,10 +253,18 @@ class Con:
         return tuple([leg.get_ref_name() for leg in self.legs])
         
     def is_intra_chr(self):
-        return self.leg_1().get_ref_name() == self.leg_2().get_ref_name()
+        return self.leg_1().same_chr_with(self.leg_2())
     
     def separation(self):
         return self.leg_2().get_ref_locus() - self.leg_1().get_ref_locus()
+        
+    def merge_with(self, other):
+        for i in range(2):
+            self.legs[i].merge_with(other.legs[i])
+    
+    # different distance functions w. r. t. another contact, assuming same chromosome
+    def distance_with_inf(self, other): # L-inf norm (a square)
+        return max(self.leg_1().separation_with(other.leg_1()), self.leg_2().separation_with(other.leg_2()))
             
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
@@ -256,14 +273,41 @@ class Con:
 class ConList:
     def __init__(self):
         self.cons = []
+        self.is_sorted = True
+
+    def sort_cons(self):
+        self.cons.sort()
+        self.is_sorted = True
     
     def add_con(self, con):
         bisect.insort(self.cons, con)
         
+    def num_cons(self):
+        return(len(self.cons))
+    
+    def merge_with(self, other):
+        self.cons += other.cons
+        if other.num_cons() > 0:
+            self.is_sorted = False
+        
     # remove intra-chromosomal contacts with small separations
     def clean_separation(self, min_separation):
         self.cons[:] = [con for con in self.cons if not con.is_intra_chr() or con.separation() > min_separation]
-                
+
+    # simple dedup within a read, merging contacts that are within max_separation for both legs (L-inf norm), regardless of haplotypes
+    def dedup_within_read(self, max_distance):
+        while True:
+            merged = False
+            for i in range(len(self.cons)):
+                for j in range(i + 1, len(self.cons)):
+                    if self.cons[i].distance_with_inf(self.cons[j]) <= max_distance:
+                        self.cons[i].merge_with(self.cons[j])
+                        self.cons.pop(j)
+                        merged = True
+                        break
+            if merged == False:
+                break
+        
     def to_string(self):
         return "\n".join([con.to_string() for con in self.cons])
         
@@ -271,16 +315,42 @@ class ConList:
 class ConData:
     def __init__(self):
         self.con_lists = {}
+        self.is_sorted = True
+        
+    def num_cons(self):
+        num_cons = 0
+        for con_list in self.con_lists.values():
+            num_cons += con_list.num_cons()
+        return num_cons
     
     def add_con(self, con):
         if con.ref_names() not in self.con_lists:
             self.con_lists[con.ref_names()] = ConList()
         self.con_lists[con.ref_names()].add_con(con)
     
-    def clean_separation(self, min_separation):
+    def merge_with(self, other):
+        for ref_names in other.con_lists.keys():
+            if ref_names in self.con_lists:
+                self.con_lists[ref_names].merge_with(other.con_lists[ref_names])
+                if not self.con_lists[ref_names].is_sorted:
+                    self.is_sorted = False
+            else:
+                self.con_lists[ref_names] = other.con_lists[ref_names]
+        
+    # wrappers for all ConList operations
+    def sort_cons(self):
         for con_list in self.con_lists.values():
-            con_list.clean_separation(min_separation)
+            con_list.sort_cons()
+        self.is_sorted = True
+    def clean_separation(self, min_separation):
+        for ref_names in self.con_lists.keys():
+            self.con_lists[ref_names].clean_separation(min_separation)
+            if self.con_lists[ref_names].num_cons() == 0:
+                del self.con_lists[ref_names]
+    def dedup_within_read(self, max_distance):
+        for con_list in self.con_lists.values():
+            con_list.dedup_within_read(max_distance)
     
     def to_string(self): # no tailing new line
-        return "\n".join([con_list.to_string() for con_list in self.con_lists.values()])
+        return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(ref_names for ref_names in self.con_lists.keys())])
     
