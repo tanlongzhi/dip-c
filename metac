@@ -7,12 +7,16 @@ def main():
     if len(sys.argv) == 1:
         sys.stderr.write("Usage: metac <command> <arguments>\n")
         sys.stderr.write("Commands:\n")
-        sys.stderr.write("  seg      extract read segments from a BAM file\n")
+        sys.stderr.write("  seg      extract read segments (SEG) from a BAM file\n")
+        sys.stderr.write("  con      extract contacts (CON) from a SEG file\n")
         return 1
     start_time = time.time()
     if sys.argv[1] == "seg":
         import seg
         return_value = seg.seg(sys.argv[1:])
+    if sys.argv[1] == "con":
+        import con
+        return_value = con.con(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
