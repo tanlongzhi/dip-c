@@ -18,7 +18,7 @@ def main():
         return 1
     if return_value == 0:
         sys.stderr.write("[M::" + __name__ + "] command: " + " ".join(sys.argv) + "\n")
-        sys.stderr.write("[M::" + __name__ + "] finished in " + str(time.time() - start_time) + " sec\n")
+        sys.stderr.write("[M::" + __name__ + "] finished in " + str(round(time.time() - start_time, 1)) + " sec\n")
     return return_value
     
 if __name__ == "__main__":
