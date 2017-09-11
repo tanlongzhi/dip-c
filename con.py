@@ -1,7 +1,7 @@
 import sys
 import getopt
 import gzip
-from classes import Haplotypes, Seg, Read, SegData, string_to_read, Leg, Con, ConData
+from classes import Read, string_to_read, ConData
 
 def con(argv):
     # default parameters
@@ -52,7 +52,7 @@ def con(argv):
         con_data.merge_with(read_con_data)
     sys.stderr.write("[M::" + __name__ + "] read " + str(num_reads) + " candidate reads; sorting " + str(con_data.num_cons()) + " putative contacts\n")
     con_data.sort_cons()
-    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts\n")
+    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     sys.stdout.write(con_data.to_string()+"\n")
     
     return 0

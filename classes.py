@@ -218,6 +218,9 @@ class Leg:
 
     def get_ref_locus(self):
         return self.ref_locus
+    
+    def is_phased(self):
+        return is_known_haplotype(self.haplotype)
         
     def merge_with(self, other):
         self.ref_locus = (self.ref_locus + other.ref_locus)/2
@@ -242,9 +245,14 @@ class Con:
     
     def leg_1(self):
         return self.legs[0]
-
     def leg_2(self):
         return self.legs[1]
+        
+    def num_phased_legs(self):
+        num_phased_legs = 0
+        for i in range(2):
+            num_phased_legs += 1 if self.legs[i].is_phased() else 0
+        return num_phased_legs
    
     def sort_legs(self):
         self.legs.sort()
@@ -284,7 +292,13 @@ class ConList:
         
     def num_cons(self):
         return(len(self.cons))
-    
+        
+    def num_phased_legs(self):
+        num_phased_legs = 0
+        for con in self.cons:
+            num_phased_legs += con.num_phased_legs()
+        return num_phased_legs
+        
     def merge_with(self, other):
         self.cons += other.cons
         if other.num_cons() > 0:
@@ -316,12 +330,7 @@ class ConData:
     def __init__(self):
         self.con_lists = {}
         self.is_sorted = True
-        
-    def num_cons(self):
-        num_cons = 0
-        for con_list in self.con_lists.values():
-            num_cons += con_list.num_cons()
-        return num_cons
+
     
     def add_con(self, con):
         if con.ref_names() not in self.con_lists:
@@ -350,6 +359,16 @@ class ConData:
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
+    def num_cons(self):
+        num_cons = 0
+        for con_list in self.con_lists.values():
+            num_cons += con_list.num_cons()
+        return num_cons
+    def num_phased_legs(self):
+        num_phased_legs = 0
+        for con_list in self.con_lists.values():
+            num_phased_legs += con_list.num_phased_legs()
+        return num_phased_legs
     
     def to_string(self): # no tailing new line
         return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(ref_names for ref_names in self.con_lists.keys())])
