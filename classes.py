@@ -1,3 +1,5 @@
+import bisect
+
 # enum for haplotypes
 class Haplotypes:
     conflict = -2
@@ -19,14 +21,6 @@ def update_haplotype(haplotype_1, haplotype_2):
 
 # a read segment (alignment)
 class Seg:
-    is_read2 = False
-    query_start = -1
-    query_end = -1
-    ref_name = ""
-    ref_start = -1
-    ref_end = -1
-    is_reverse = False
-    haplotype = Haplotypes.unknown
     
     def __init__(self, is_read2, query_start, query_end, ref_name, ref_start, ref_end, is_reverse, haplotype = Haplotypes.unknown):
         self.is_read2 = is_read2
@@ -82,19 +76,9 @@ class Seg:
             self.ref_end = ref_right
         else:
             self.ref_start = ref_right
-                
-    # merge a read 1 with its adjacent read 2 (now query_end becomes undefined, set to -1), return True if worked
-    def merge_mate(self, other, max_merge_distance):
-        # only merge read 1 with read 2
-        if self.is_read2 or not other.is_read2:
-            return False
-        # skip bad pairs
-        if self.ref_name != other.ref_name or self.is_reverse == other.is_reverse or abs(self.ref_right() - other.ref_left()) > max_merge_distance:
-            return False
-        self.query_end = -1
-        self.set_ref_right(other.ref_right())
-        self.haplotype = update_haplotype(self.haplotype, other.haplotype) 
-        return True
+            
+    def to_con_with(self, other):
+        return Con(Leg(self.ref_name, self.ref_right(), self.haplotype), Leg(other.ref_name, other.ref_left(), other.haplotype))
     
     def to_string(self): # "m" is for mate, "." for all unphased haplotypes
         return ",".join(["m" if self.is_read2 else ".", str(self.query_start), str(self.query_end), self.ref_name, str(self.ref_start), str(self.ref_end), "-" if self.is_reverse else "+", str(self.haplotype) if is_known_haplotype(self.haplotype) else "."])
@@ -113,8 +97,6 @@ def string_to_seg(seg_string):
 
 # a read, containing all its segments
 class Read:
-    name = ""
-    segs = []
     
     def __init__(self, name):
         self.name = name
@@ -141,22 +123,18 @@ class Read:
             seg.update_haplotype(is_read2, ref_name, ref_locus, haplotype)
             
     def sort_segs(self):
-        self.segs = sorted(self.segs)
-            
-    # try to merge its segs (must be sorted)
-    def merge_mate(self, max_merge_distance):
-        for i in range(len(self.segs) - 1):
-            if self.segs[i].merge_mate(self.segs[i + 1], max_merge_distance):
-                self.segs.pop(i + 1)
-                return True
-                break
-        return False
+        self.segs.sort()
         
-    # keep merging until not possible (must be sorted)
-    def merge_mates(self, max_merge_distance):
-        while True:
-            if not self.merge_mate(max_merge_distance):
-                break
+    def to_con_data(self, adjacent_only):
+        self.sort_segs()
+        print self.to_string()
+        con_data = ConData()
+        for i in range(self.num_segs() - 1):
+            for j in range(i + 1, self.num_segs()):
+                if adjacent_only and j > i + 1:
+                    break
+                con_data.add_con(self.segs[i].to_con_with(self.segs[j]))
+        return con_data
     
     def to_string(self):
         return self.name + "\t" + "\t".join([seg.to_string() for seg in self.segs])
@@ -169,9 +147,8 @@ def string_to_read(read_string):
         read.add_seg(string_to_seg(seg_string))
     return read
 
-# a hash map of reads (a .seg file)
+# a hash map of reads (a SEG file)
 class SegData:
-    reads = {}
     
     def __init__(self):
         self.reads = {}
@@ -217,5 +194,93 @@ class SegData:
     def to_string(self): # no tailing new line
         return "\n".join(read.to_string() for read in self.reads.values())
 
-# a contact
-#class Con:
+# a leg
+class Leg:
+    
+    def __init__(self, ref_name, ref_locus, haplotype):
+        self.ref_name = ref_name
+        self.ref_locus = ref_locus
+        self.haplotype = haplotype
+        
+    def __lt__(self, other):
+        if self.ref_name < other.ref_name:
+            return True
+        if self.ref_name == other.ref_name and self.ref_locus < other.ref_locus:
+            return True
+        if self.ref_name == other.ref_name and self.ref_locus == other.ref_locus and self.haplotype < other.haplotype:
+            return True
+        return False
+        
+    def __eq__(self, other):
+        return self.ref_name == other.ref_name and self.ref_locus == other.ref_locus and self.haplotype == other.haplotype
+    
+    def get_ref_name(self):
+        return self.ref_name
+
+    def get_ref_locus(self):
+        return self.ref_locus
+    
+    def to_string(self):
+        return ",".join([self.ref_name, str(self.ref_locus), "." if not is_known_haplotype(self.haplotype) else str(self.haplotype)])
+
+# a contact (legs sorted)
+class Con:
+    def __init__(self, leg_1, leg_2):
+        self.legs = [leg_1, leg_2] if leg_1 < leg_2 else [leg_2, leg_1]
+    
+    def __lt__(self, other):
+        return self.leg_1() < other.leg_1() or self.leg_1() == other.leg_1() and self.leg_2() < other.leg_2()
+    
+    def leg_1(self):
+        return self.legs[0]
+
+    def leg_2(self):
+        return self.legs[1]
+   
+    def sort_legs(self):
+        self.legs.sort()
+    
+    def ref_names(self):
+        return tuple([leg.get_ref_name() for leg in self.legs])
+        
+    def is_intra_chr(self):
+        return self.leg_1().get_ref_name() == self.leg_2().get_ref_name()
+    
+    def separation(self):
+        return self.leg_2().get_ref_locus() - self.leg_1().get_ref_locus()
+            
+    def to_string(self):
+        return "\t".join([leg.to_string() for leg in self.legs])
+        
+# a sorted list of contacts
+class ConList:
+    def __init__(self):
+        self.cons = []
+    
+    def add_con(self, con):
+        bisect.insort(self.cons, con)
+        
+    # remove intra-chromosomal contacts with small separations
+    def clean_separation(self, min_separation):
+        self.cons[:] = [con for con in self.cons if not con.is_intra_chr() or con.separation() > min_separation]
+                
+    def to_string(self):
+        return "\n".join([con.to_string() for con in self.cons])
+        
+# a hashmap (tuples of two sorted chromosome names) of lists of contacts (a CON file)
+class ConData:
+    def __init__(self):
+        self.con_lists = {}
+    
+    def add_con(self, con):
+        if con.ref_names() not in self.con_lists:
+            self.con_lists[con.ref_names()] = ConList()
+        self.con_lists[con.ref_names()].add_con(con)
+    
+    def clean_separation(self, min_separation):
+        for con_list in self.con_lists.values():
+            con_list.clean_separation(min_separation)
+    
+    def to_string(self): # no tailing new line
+        return "\n".join([con_list.to_string() for con_list in self.con_lists.values()])
+    

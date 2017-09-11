@@ -14,7 +14,7 @@ def main():
     if sys.argv[1] == "seg":
         import seg
         return_value = seg.seg(sys.argv[1:])
-    if sys.argv[1] == "con":
+    elif sys.argv[1] == "con":
         import con
         return_value = con.con(sys.argv[1:])
     else:
