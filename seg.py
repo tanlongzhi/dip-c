@@ -54,10 +54,11 @@ def seg(argv):
     if len(args) == 0:
         sys.stderr.write("Usage: metac seg [options] <in.bam>\n")
         sys.stderr.write("Options:\n")
-        sys.stderr.write("  -q INT     min mapping quality [" + str(min_mapq) + "]\n")
-        sys.stderr.write("  -m FLOAT   max edit distance per bp of aligned read [" + str(max_nm_per_bp) + "]\n")
-        sys.stderr.write("  -v         tab-delimited SNP file (format: chr, pos, paternal nucleotide, maternal nucleotide) [none]\n")
-        sys.stderr.write("  -Q         min base quality (if -v) [" + str(min_baseq) + "]\n")
+        sys.stderr.write("  -q INT          min mapping quality [" + str(min_mapq) + "]\n")
+        sys.stderr.write("  -m FLOAT        max edit distance per bp of aligned read [" + str(max_nm_per_bp) + "]\n")
+        sys.stderr.write("  -v <snps.txt>   SNP file:\n")
+        sys.stderr.write("                    tab-delimited: chr, pos, paternal nucleotide, maternal nucleotide\n")
+        sys.stderr.write("  -Q              min base quality (if -v) [" + str(min_baseq) + "]\n")
         return 1
     for o, a in opts:
         if o == "-q":

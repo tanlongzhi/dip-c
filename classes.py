@@ -223,7 +223,7 @@ class Leg:
     def is_phased(self):
         return is_known_haplotype(self.haplotype)
     def is_conflict(self):
-        return self.haplotype == Haplotypes.conflict
+        return self.haplotype == Haplotypes.conflict        
         
     def merge_with(self, other):
         self.ref_locus = (self.ref_locus + other.ref_locus)/2
@@ -235,6 +235,27 @@ class Leg:
     def separation_with(self, other):
         return abs(self.ref_locus - other.ref_locus)
     
+    # check if a leg is in a region
+    def in_reg(self, reg):
+        if self.ref_name != reg.ref_name:
+            return False
+        if reg.has_haplotype and self.haplotype != reg.haplotype:
+            return False
+        if reg.has_start and self.ref_locus < reg.start:
+            return False
+        if reg.has_end and self.ref_locus > reg.end:
+            return False
+        return True
+    # check if a leg is in a list of regions
+    def in_regs(self, regs):
+        for reg in regs:
+            if self.in_reg(reg):
+                return True
+        return False
+    # check if a leg is in a list of included regions, but not in a list of excluded regions
+    def satisfy_regs(self, inc_regs, exc_regs):
+        return self.in_regs(inc_regs) and not self.in_regs(exc_regs)
+                            
     def to_string(self):
         return ",".join([self.ref_name, str(self.ref_locus), haplotype_to_string(self.haplotype)])
 
@@ -260,12 +281,14 @@ class Con:
     def num_phased_legs(self):
         num_phased_legs = 0
         for i in range(2):
-            num_phased_legs += 1 if self.legs[i].is_phased() else 0
+            if self.legs[i].is_phased():
+                num_phased_legs += 1
         return num_phased_legs
     def num_conflict_legs(self):
         num_conflict_legs = 0
         for i in range(2):
-            num_conflict_legs += 1 if self.legs[i].is_conflict() else 0
+            if self.legs[i].is_conflict():
+                num_conflict_legs += 1
         return num_conflict_legs
     def ref_names(self):
         return tuple([leg.get_ref_name() for leg in self.legs])
@@ -292,6 +315,10 @@ class Con:
     def distance_inf_with(self, other): # L-inf norm
         return max(self.distance_leg_1_with(other), self.distance_leg_2_with(other))
             
+            
+    def satisfy_regs(self, inc_regs, exc_regs):
+        return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)
+    
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
 def ref_names_to_string(ref_names):
@@ -320,7 +347,13 @@ class ConList:
         for con in self.cons:
             num_conflict_legs += con.num_conflict_legs()
         return num_conflict_legs
-                
+    def num_intra_chr(self):
+        num_intra_chr = 0
+        for con in self.cons:
+            if con.is_intra_chr():
+                num_intra_chr += 1
+        return num_intra_chr
+                        
     def sort_cons(self):
         self.cons.sort()
         self.is_sorted = True
@@ -371,6 +404,9 @@ class ConList:
                 break
             self.cons[i:j] = sorted(self.cons[i:j])
         self.is_sorted = True
+    
+    def apply_regs(self, inc_regs, exc_regs):
+        self.cons[:] = [con for con in self.cons if con.satisfy_regs(inc_regs, exc_regs)]
         
     def to_string(self):
         return "\n".join([con.to_string() for con in self.cons])
@@ -418,6 +454,11 @@ class ConData:
             sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(self.con_lists[ref_names].num_cons()) + " putative contacts\n")
             self.con_lists[ref_names].dedup(max_distance)
         self.is_sorted = True
+    def apply_regs(self, inc_regs, exc_regs):
+        for ref_names in self.con_lists.keys():
+            self.con_lists[ref_names].apply_regs(inc_regs, exc_regs)
+            if self.con_lists[ref_names].num_cons() == 0:
+                del self.con_lists[ref_names]
     def num_cons(self):
         num_cons = 0
         for con_list in self.con_lists.values():
@@ -433,7 +474,12 @@ class ConData:
         for con_list in self.con_lists.values():
             num_conflict_legs += con_list.num_conflict_legs()
         return num_conflict_legs
-            
+    def num_intra_chr(self):
+        num_intra_chr = 0
+        for con_list in self.con_lists.values():
+            num_intra_chr += con_list.num_intra_chr()
+        return num_intra_chr
+                    
     def to_string(self): # no tailing new line
         return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(ref_names for ref_names in self.con_lists.keys())])
 
@@ -493,3 +539,26 @@ class DupConData(ConData):
         
     def add_empty_con_list(self, ref_names):
         self.con_lists[ref_names] = DupConList()
+
+# structures for included and excluded regions
+class Reg:
+    def __init__(self, ref_name):
+        self.ref_name = ref_name
+        self.has_haplotype = False
+        self.has_start = False
+        self.has_end = False
+        self.haplotype = Haplotypes.unknown
+        self.start = -1
+        self.end = -1
+    def add_haplotype(self, haplotype):
+        if is_known_haplotype(haplotype):
+            self.has_haplotype = True
+            self.haplotype = haplotype
+    def add_start(self, start):
+        self.has_start = True
+        self.start = start
+    def add_end(self, end):
+        self.has_start = True
+        self.end = end
+    def to_string(self):
+        return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])

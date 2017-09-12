@@ -12,7 +12,6 @@ def dedup(argv):
     max_distance = 1000
     
     # progress display parameters
-    display_num_reads = 1e4
     max_num_dups = 10
     
     # read arguments

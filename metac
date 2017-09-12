@@ -9,7 +9,9 @@ def main():
         sys.stderr.write("Commands:\n")
         sys.stderr.write("  seg      extract read segments (SEG) from a BAM file\n")
         sys.stderr.write("  con      extract contacts (CON) from a SEG file\n")
-        sys.stderr.write("  dedup    dedup a CON file\n")
+        sys.stderr.write("  dedup    merge duplicates in a CON file\n")
+        sys.stderr.write("  reg      exclude genomic regions from a CON file\n")
+        sys.stderr.write("  clean    remove artifacts from a CON file\n")
         return 1
     start_time = time.time()
     if sys.argv[1] == "seg":
@@ -21,6 +23,12 @@ def main():
     elif sys.argv[1] == "dedup":
         import dedup
         return_value = dedup.dedup(sys.argv[1:])
+    elif sys.argv[1] == "reg":
+        import reg
+        return_value = reg.reg(sys.argv[1:])
+    elif sys.argv[1] == "clean":
+        import reg
+        return_value = clean.clean(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
