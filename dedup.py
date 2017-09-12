@@ -38,18 +38,15 @@ def dedup(argv):
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " putative contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
 
-    # dedup
+    # dedup and clean
     dup_con_data = DupConData(con_data)
     dup_con_data.dedup(max_distance)
+    con_data.clean_separation(min_separation)
     
-    # show stats
-    sys.stderr.write("[M::" + __name__ + "] merged duplicates into " + str(dup_con_data.num_cons()) + " putative contacts. statistics:\n")
+    # show stats and output
+    sys.stderr.write("[M::" + __name__ + "] merged duplicates into " + str(dup_con_data.num_cons()) + " putative contacts (legs: " + str(round(100.0 * dup_con_data.num_phased_legs() / dup_con_data.num_cons() / 2, 2)) + "% phased, " + str(round(100.0 * dup_con_data.num_conflict_legs() / dup_con_data.num_cons() / 2, 2)) + "% conflict); statistics:\n")
     sys.stderr.write(dup_stats_to_string(dup_con_data.dup_stats(max_num_dups)) + "\n")
-    
-    #con_data.clean_separation(min_separation)
-
-
-    #sys.stdout.write(dup_con_data.to_string() + "\n")
+    sys.stdout.write(dup_con_data.to_string() + "\n")
     
     return 0
     

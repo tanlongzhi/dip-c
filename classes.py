@@ -218,12 +218,12 @@ class Leg:
         
     def get_ref_name(self):
         return self.ref_name
-
     def get_ref_locus(self):
-        return self.ref_locus
-    
+        return self.ref_locus    
     def is_phased(self):
         return is_known_haplotype(self.haplotype)
+    def is_conflict(self):
+        return self.haplotype == Haplotypes.conflict
         
     def merge_with(self, other):
         self.ref_locus = (self.ref_locus + other.ref_locus)/2
@@ -262,6 +262,11 @@ class Con:
         for i in range(2):
             num_phased_legs += 1 if self.legs[i].is_phased() else 0
         return num_phased_legs
+    def num_conflict_legs(self):
+        num_conflict_legs = 0
+        for i in range(2):
+            num_conflict_legs += 1 if self.legs[i].is_conflict() else 0
+        return num_conflict_legs
     def ref_names(self):
         return tuple([leg.get_ref_name() for leg in self.legs])
     
@@ -310,7 +315,12 @@ class ConList:
         for con in self.cons:
             num_phased_legs += con.num_phased_legs()
         return num_phased_legs
-        
+    def num_conflict_legs(self):
+        num_conflict_legs = 0
+        for con in self.cons:
+            num_conflict_legs += con.num_conflict_legs()
+        return num_conflict_legs
+                
     def sort_cons(self):
         self.cons.sort()
         self.is_sorted = True
@@ -418,7 +428,12 @@ class ConData:
         for con_list in self.con_lists.values():
             num_phased_legs += con_list.num_phased_legs()
         return num_phased_legs
-    
+    def num_conflict_legs(self):
+        num_conflict_legs = 0
+        for con_list in self.con_lists.values():
+            num_conflict_legs += con_list.num_conflict_legs()
+        return num_conflict_legs
+            
     def to_string(self): # no tailing new line
         return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(ref_names for ref_names in self.con_lists.keys())])
 
@@ -440,8 +455,10 @@ class DupLeg(Leg):
         Leg.merge_with(self, other)
         for haplotype in self.dups.keys():
             self.dups[haplotype] += other.dups[haplotype]
-    def to_string(self):
-        return Leg.to_string(self) + "(" + ",".join([str(self.dups[Haplotypes.unknown]), str(self.dups[Haplotypes.paternal]), str(self.dups[Haplotypes.maternal])]) + ")"
+    #def to_string(self):
+        #if self.haplotype != Haplotypes.conflict:
+            #return ""
+        #return Leg.to_string(self) + "(" + ",".join([str(self.dups[Haplotypes.unknown]), str(self.dups[Haplotypes.paternal]), str(self.dups[Haplotypes.maternal])]) + ")"
 
 class DupCon(Con):
     def __init__(self, con):
