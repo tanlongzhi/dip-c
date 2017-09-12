@@ -1,4 +1,5 @@
 import bisect
+import sys
 
 # enum for haplotypes
 class Haplotypes:
@@ -215,9 +216,6 @@ class Leg:
             return True
         return False
         
-    def __eq__(self, other):
-        return self.ref_name == other.ref_name and self.ref_locus == other.ref_locus and self.haplotype == other.haplotype
-    
     def get_ref_name(self):
         return self.ref_name
 
@@ -240,31 +238,36 @@ class Leg:
     def to_string(self):
         return ",".join([self.ref_name, str(self.ref_locus), haplotype_to_string(self.haplotype)])
 
-# a contact (legs sorted)
+def string_to_leg(leg_string):
+    ref_name, ref_locus, haplotype = leg_string.split(",")
+    ref_locus = int(ref_locus)
+    haplotype = string_to_haplotype(haplotype)
+    return Leg(ref_name, ref_locus, haplotype)
+
+
+# a contact (legs always sorted)
 class Con:
     def __init__(self, leg_1, leg_2):
         self.legs = sorted([leg_1, leg_2])
     
     def __lt__(self, other):
-        return self.leg_1() < other.leg_1() or self.leg_1() == other.leg_1() and self.leg_2() < other.leg_2()
+        return self.legs[0] < other.legs[0] or self.legs[0] == other.legs[0] and self.legs[1] < other.legs[1]
     
     def leg_1(self):
         return self.legs[0]
     def leg_2(self):
         return self.legs[1]
-        
     def num_phased_legs(self):
         num_phased_legs = 0
         for i in range(2):
             num_phased_legs += 1 if self.legs[i].is_phased() else 0
         return num_phased_legs
-   
-    def sort_legs(self):
-        self.legs.sort()
-    
     def ref_names(self):
         return tuple([leg.get_ref_name() for leg in self.legs])
-        
+    
+    def sort_legs(self):
+        self.legs.sort()
+       
     def is_intra_chr(self):
         return self.leg_1().same_chr_with(self.leg_2())
     
@@ -277,12 +280,22 @@ class Con:
         self.sort_legs()
     
     # different distance functions w. r. t. another contact, assuming the same chromosome
-    def distance_with_inf(self, other): # L-inf norm
-        return max(self.leg_1().separation_with(other.leg_1()), self.leg_2().separation_with(other.leg_2()))
+    def distance_leg_1_with(self, other):
+        return self.leg_1().separation_with(other.leg_1())
+    def distance_leg_2_with(self, other):
+        return self.leg_2().separation_with(other.leg_2())
+    def distance_inf_with(self, other): # L-inf norm
+        return max(self.distance_leg_1_with(other), self.distance_leg_2_with(other))
             
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
-        
+def ref_names_to_string(ref_names):
+    return ",".join(ref_names)
+
+def string_to_con(con_string):
+    leg_1, leg_2 = con_string.split("\t")
+    return Con(string_to_leg(leg_1), string_to_leg(leg_2))
+
 # a sorted list of contacts
 class ConList:
     def __init__(self):
@@ -315,13 +328,13 @@ class ConList:
     def clean_separation(self, min_separation):
         self.cons[:] = [con for con in self.cons if not con.is_intra_chr() or con.separation() > min_separation]
 
-    # simple dedup within a read (no binary search, simply merging haplotypes), does not need to be sorted
+    # simple dedup within a read (no binary search), assuming the same chromosome
     def dedup_within_read(self, max_distance):
         while True:
             merged = False
             for i in range(len(self.cons)):
                 for j in range(i + 1, len(self.cons)):
-                    if self.cons[i].distance_with_inf(self.cons[j]) <= max_distance:
+                    if self.cons[i].distance_inf_with(self.cons[j]) <= max_distance:
                         self.cons[i].merge_with(self.cons[j])
                         self.cons.pop(j)
                         merged = True
@@ -329,6 +342,25 @@ class ConList:
             if merged == False:
                 break
         self.is_sorted = False
+    
+    # faster dedup, assuming the same chromosome
+    def dedup(self, max_distance):
+        self.cons.sort()
+        while True:
+            merged = False
+            for i in range(len(self.cons)):
+                for j in range(i + 1, len(self.cons)):
+                    if self.cons[i].distance_leg_1_with(self.cons[j]) > max_distance:
+                        break
+                    if self.cons[i].distance_leg_2_with(self.cons[j]) <= max_distance:
+                        self.cons[i].merge_with(self.cons[j])
+                        self.cons.pop(j)
+                        merged = True
+                        break
+            if merged == False:
+                break
+            self.cons[i:j] = sorted(self.cons[i:j])
+        self.is_sorted = True
         
     def to_string(self):
         return "\n".join([con.to_string() for con in self.cons])
@@ -339,9 +371,12 @@ class ConData:
         self.con_lists = {}
         self.is_sorted = True
     
+    def add_empty_con_list(self, ref_names):
+        self.con_lists[ref_names] = ConList()
+    
     def add_con(self, con):
         if con.ref_names() not in self.con_lists:
-            self.con_lists[con.ref_names()] = ConList()
+            self.add_empty_con_list(con.ref_names())
         self.con_lists[con.ref_names()].add_con(con)
         self.is_sorted = False
     
@@ -368,6 +403,11 @@ class ConData:
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
         self.is_sorted = False
+    def dedup(self, max_distance):
+        for ref_names in self.con_lists.keys():
+            sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(self.con_lists[ref_names].num_cons()) + " putative contacts\n")
+            self.con_lists[ref_names].dedup(max_distance)
+        self.is_sorted = True
     def num_cons(self):
         num_cons = 0
         for con_list in self.con_lists.values():
@@ -381,4 +421,58 @@ class ConData:
     
     def to_string(self): # no tailing new line
         return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(ref_names for ref_names in self.con_lists.keys())])
-    
+
+def file_to_con_data(con_file):
+    con_data = ConData()
+    for con_file_line in con_file:
+        con_data.add_con(string_to_con(con_file_line.strip()))
+    return con_data
+
+# augmented data for dedup: each leg records haplotypes of all duplicates
+class DupLeg(Leg):
+    def __init__(self, leg):
+        Leg.__init__(self, leg.ref_name, leg.ref_locus, leg.haplotype)
+        self.dups = {Haplotypes.unknown: 0, Haplotypes.paternal: 0, Haplotypes.maternal: 0}
+        self.dups[leg.haplotype] += 1
+    def num_dups(self):
+        return sum(self.dups.values())
+    def merge_with(self, other):
+        Leg.merge_with(self, other)
+        for haplotype in self.dups.keys():
+            self.dups[haplotype] += other.dups[haplotype]
+    def to_string(self):
+        return Leg.to_string(self) + "(" + ",".join([str(self.dups[Haplotypes.unknown]), str(self.dups[Haplotypes.paternal]), str(self.dups[Haplotypes.maternal])]) + ")"
+
+class DupCon(Con):
+    def __init__(self, con):
+        Con.__init__(self, DupLeg(con.legs[0]), DupLeg(con.legs[1]))
+    def num_dups(self):
+        return self.legs[0].num_dups() # should be the same for both legs
+
+class DupConList(ConList):
+    def __init__(self, con_list):
+        ConList.__init__(self)
+        for con in con_list.cons:
+            self.add_con(DupCon(con))
+    def dup_stats(self, max_num_dups):
+        hist_num_dups = [0] * max_num_dups
+        for dup_con in self.cons:
+            hist_num_dups[min(dup_con.num_dups(), max_num_dups) - 1] += 1
+        return hist_num_dups
+        
+class DupConData(ConData):
+    def __init__(self, con_data):
+        ConData.__init__(self)
+        for ref_names in con_data.con_lists.keys():
+            self.con_lists[ref_names] = DupConList(con_data.con_lists[ref_names])
+            
+    def dup_stats(self, max_num_dups):
+        hist_num_dups = [0] * max_num_dups
+        for con_list in self.con_lists.values():
+            list_hist_num_dups = con_list.dup_stats(max_num_dups)
+            for i in range(max_num_dups):
+                hist_num_dups[i] += list_hist_num_dups[i]
+        return hist_num_dups
+        
+    def add_empty_con_list(self, ref_names):
+        self.con_lists[ref_names] = DupConList()
