@@ -8,6 +8,11 @@ class Haplotypes:
     maternal = 1
 def is_known_haplotype(haplotype):
     return haplotype >= 0
+# the operations below will set "." for all unphased haplotypes
+def haplotype_to_string(haplotype):
+    return str(haplotype) if is_known_haplotype(haplotype) else "."
+def string_to_haplotype(haplotype_string):
+    return Haplotypes.unknown if haplotype_string == "." else int(haplotype_string) 
 
 # rules for updating one haplotype with another (merging)
 def update_haplotype(haplotype_1, haplotype_2):
@@ -80,8 +85,8 @@ class Seg:
     def to_con_with(self, other):
         return Con(Leg(self.ref_name, self.ref_right(), self.haplotype), Leg(other.ref_name, other.ref_left(), other.haplotype))
     
-    def to_string(self): # "m" is for mate, "." for all unphased haplotypes
-        return ",".join(["m" if self.is_read2 else ".", str(self.query_start), str(self.query_end), self.ref_name, str(self.ref_start), str(self.ref_end), "-" if self.is_reverse else "+", str(self.haplotype) if is_known_haplotype(self.haplotype) else "."])
+    def to_string(self): # "m" is for mate
+        return ",".join(["m" if self.is_read2 else ".", str(self.query_start), str(self.query_end), self.ref_name, str(self.ref_start), str(self.ref_end), "-" if self.is_reverse else "+", haplotype_to_string(self.haplotype)])
 
 # create a segment from a string ("." will be set to unknown)
 def string_to_seg(seg_string):
@@ -92,7 +97,7 @@ def string_to_seg(seg_string):
     ref_start = int(ref_start)
     ref_end = int(ref_end)
     is_reverse = True if is_reverse == "-" else False
-    haplotype = Haplotypes.unknown if haplotype == "." else int(haplotype)
+    haplotype = string_to_haplotype(haplotype)
     return Seg(is_read2, query_start, query_end, ref_name, ref_start, ref_end, is_reverse, haplotype)
 
 # a read, containing all its segments
@@ -233,12 +238,12 @@ class Leg:
         return abs(self.ref_locus - other.ref_locus)
     
     def to_string(self):
-        return ",".join([self.ref_name, str(self.ref_locus), "." if not is_known_haplotype(self.haplotype) else str(self.haplotype)])
+        return ",".join([self.ref_name, str(self.ref_locus), haplotype_to_string(self.haplotype)])
 
 # a contact (legs sorted)
 class Con:
     def __init__(self, leg_1, leg_2):
-        self.legs = [leg_1, leg_2] if leg_1 < leg_2 else [leg_2, leg_1]
+        self.legs = sorted([leg_1, leg_2])
     
     def __lt__(self, other):
         return self.leg_1() < other.leg_1() or self.leg_1() == other.leg_1() and self.leg_2() < other.leg_2()
@@ -269,9 +274,10 @@ class Con:
     def merge_with(self, other):
         for i in range(2):
             self.legs[i].merge_with(other.legs[i])
+        self.sort_legs()
     
-    # different distance functions w. r. t. another contact, assuming same chromosome
-    def distance_with_inf(self, other): # L-inf norm (a square)
+    # different distance functions w. r. t. another contact, assuming the same chromosome
+    def distance_with_inf(self, other): # L-inf norm
         return max(self.leg_1().separation_with(other.leg_1()), self.leg_2().separation_with(other.leg_2()))
             
     def to_string(self):
@@ -282,13 +288,6 @@ class ConList:
     def __init__(self):
         self.cons = []
         self.is_sorted = True
-
-    def sort_cons(self):
-        self.cons.sort()
-        self.is_sorted = True
-    
-    def add_con(self, con):
-        bisect.insort(self.cons, con)
         
     def num_cons(self):
         return(len(self.cons))
@@ -299,16 +298,24 @@ class ConList:
             num_phased_legs += con.num_phased_legs()
         return num_phased_legs
         
+    def sort_cons(self):
+        self.cons.sort()
+        self.is_sorted = True
+    
+    def add_con(self, con):
+        self.cons.append(con)
+        self.is_sorted = False
+    
     def merge_with(self, other):
         self.cons += other.cons
         if other.num_cons() > 0:
             self.is_sorted = False
         
-    # remove intra-chromosomal contacts with small separations
+    # remove intra-chromosomal contacts with small separations, no sorting needed
     def clean_separation(self, min_separation):
         self.cons[:] = [con for con in self.cons if not con.is_intra_chr() or con.separation() > min_separation]
 
-    # simple dedup within a read, merging contacts that are within max_separation for both legs (L-inf norm), regardless of haplotypes
+    # simple dedup within a read (no binary search, simply merging haplotypes), does not need to be sorted
     def dedup_within_read(self, max_distance):
         while True:
             merged = False
@@ -321,6 +328,7 @@ class ConList:
                         break
             if merged == False:
                 break
+        self.is_sorted = False
         
     def to_string(self):
         return "\n".join([con.to_string() for con in self.cons])
@@ -330,12 +338,12 @@ class ConData:
     def __init__(self):
         self.con_lists = {}
         self.is_sorted = True
-
     
     def add_con(self, con):
         if con.ref_names() not in self.con_lists:
             self.con_lists[con.ref_names()] = ConList()
         self.con_lists[con.ref_names()].add_con(con)
+        self.is_sorted = False
     
     def merge_with(self, other):
         for ref_names in other.con_lists.keys():
@@ -359,6 +367,7 @@ class ConData:
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
+        self.is_sorted = False
     def num_cons(self):
         num_cons = 0
         for con_list in self.con_lists.values():

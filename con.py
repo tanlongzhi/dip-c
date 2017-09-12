@@ -44,12 +44,14 @@ def con(argv):
         read = string_to_read(seg_file_line.strip())
         read_con_data = read.to_con_data(adjacent_only)
         
-        # clean and dedup within each read
-        read_con_data.clean_separation(min_separation)
+        # dedup and clean within each read
         read_con_data.dedup_within_read(max_distance)
+        read_con_data.clean_separation(min_separation)
         
         # add to full data
         con_data.merge_with(read_con_data)
+    
+    # sort and output
     sys.stderr.write("[M::" + __name__ + "] read " + str(num_reads) + " candidate reads; sorting " + str(con_data.num_cons()) + " putative contacts\n")
     con_data.sort_cons()
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
