@@ -1,10 +1,8 @@
 import sys
 import getopt
 import gzip
-from classes import ConData, file_to_con_data, DupConData
+from classes import ConData, file_to_con_data, DupConData, hist_num_to_string
 
-def dup_stats_to_string(hist_num_dups):
-    return "\n".join(["#dups\t#cons"] + [(">=" if i == len(hist_num_dups) - 1 else "") + str(i + 1) + "\t" + str(hist_num_dups[i]) + " (" + str(round(100.0 * hist_num_dups[i] / sum(hist_num_dups), 2))+ "%)" for i in range(len(hist_num_dups))])        
 
 def dedup(argv):
     # default parameters
@@ -12,7 +10,7 @@ def dedup(argv):
     max_distance = 1000
     
     # progress display parameters
-    max_num_dups = 10
+    display_max_num_dups = 10
     
     # read arguments
     try:
@@ -44,7 +42,8 @@ def dedup(argv):
     
     # show stats and output
     sys.stderr.write("[M::" + __name__ + "] merged duplicates into " + str(dup_con_data.num_cons()) + " putative contacts (legs: " + str(round(100.0 * dup_con_data.num_phased_legs() / dup_con_data.num_cons() / 2, 2)) + "% phased, " + str(round(100.0 * dup_con_data.num_conflict_legs() / dup_con_data.num_cons() / 2, 2)) + "% conflict); statistics:\n")
-    sys.stderr.write(dup_stats_to_string(dup_con_data.dup_stats(max_num_dups)) + "\n")
+    sys.stderr.write("#dups\t#cons\n")
+    sys.stderr.write(hist_num_to_string(dup_con_data.dup_stats(display_max_num_dups)) + "\n")
     sys.stdout.write(dup_con_data.to_string() + "\n")
     
     return 0

@@ -27,7 +27,7 @@ def main():
         import reg
         return_value = reg.reg(sys.argv[1:])
     elif sys.argv[1] == "clean":
-        import reg
+        import clean
         return_value = clean.clean(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")

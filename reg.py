@@ -70,10 +70,11 @@ def reg(argv):
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " putative contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    
+    # apply regions
     con_data.apply_regs(inc_regs, exc_regs)
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     sys.stdout.write(con_data.to_string()+"\n")
     
-        
     return 0
     

@@ -3,10 +3,12 @@ import sys
 
 # enum for haplotypes
 class Haplotypes:
+    minus_infinity = -3
     conflict = -2
     unknown = -1
     paternal = 0
     maternal = 1
+    infinity = 2
 def is_known_haplotype(haplotype):
     return haplotype >= 0
 # the operations below will set "." for all unphased haplotypes
@@ -219,7 +221,7 @@ class Leg:
     def get_ref_name(self):
         return self.ref_name
     def get_ref_locus(self):
-        return self.ref_locus    
+        return self.ref_locus
     def is_phased(self):
         return is_known_haplotype(self.haplotype)
     def is_conflict(self):
@@ -255,7 +257,7 @@ class Leg:
     # check if a leg is in a list of included regions, but not in a list of excluded regions
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.in_regs(inc_regs) and not self.in_regs(exc_regs)
-                            
+                        
     def to_string(self):
         return ",".join([self.ref_name, str(self.ref_locus), haplotype_to_string(self.haplotype)])
 
@@ -265,7 +267,79 @@ def string_to_leg(leg_string):
     haplotype = string_to_haplotype(haplotype)
     return Leg(ref_name, ref_locus, haplotype)
 
+# a list of legs, can be sorted to query number of legs in a region
+class LegList:
+    def __init__(self):
+        self.legs = []
+        self.is_sorted = True
+    def num_legs(self):
+        return(len(self.legs))
+    def sort_legs(self):
+        self.legs.sort()
+        self.is_sorted = True
+    def add_leg(self, leg):
+        self.legs.append(leg)
+        self.is_sorted = False
+    def add_con_data(self, con_data):
+        for con in con_data.get_cons():
+            self.add_con(con)
+            
+    # query a leg, regardless of haplotypes, assume sorted
+    def count_near_leg(self, leg, max_leg_distance):
+        # old: double bisect
+        return bisect.bisect_right(self.legs[bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity)):], Leg(leg.get_ref_name(), leg.get_ref_locus() + max_leg_distance, Haplotypes.infinity))
+        
+        # new: single bisect
+        #left_index = bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity))
+        #right_leg = Leg(leg.get_ref_name(), leg.get_ref_locus() + max_leg_distance, Haplotypes.infinity)
+        #i = len(self.legs) - 1
+        #for i in range(left_index + 1, len(self.legs)):
+        #    if self.legs[i] > right_leg:
+        #        break
+        #return i - left_index
+    # query a leg to determine whether , regardless of haplotypes, assume sorted
+    def is_leg_promiscuous(self, leg, max_leg_distance, max_leg_count):
+        bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity))
+    
+    def to_string(self):
+        return "\n".join([leg.to_string() for leg in self.legs])
 
+class LegData:
+    def __init__(self):
+        self.leg_lists = {}
+        self.is_sorted = True
+    def num_legs(self):
+        num_legs = 0
+        for leg_list in self.leg_lists.values():
+            num_legs += leg_list.num_legs()
+        return num_legs
+    def add_empty_leg_list(self, ref_name):
+        self.leg_lists[ref_name] = LegList()
+    def add_leg(self, leg):
+        if leg.get_ref_name() not in self.leg_lists:
+            self.add_empty_leg_list(leg.get_ref_name())
+        self.leg_lists[leg.get_ref_name()].add_leg(leg)
+        self.is_sorted = False
+    def add_con(self, con):
+        self.add_leg(con.leg_1())
+        self.add_leg(con.leg_2())   
+    def add_con_data(self, con_data):
+        for con in con_data.get_cons():
+            self.add_con(con)
+    def sort_legs(self):
+        for leg_list in self.leg_lists.values():
+            leg_list.sort_legs()
+        self.is_sorted = True
+        
+    def count_near_leg(self, leg, max_leg_distance):
+        if leg.get_ref_name() in self.leg_lists:
+            return self.leg_lists[leg.get_ref_name()].count_near_leg(leg, max_leg_distance)
+        else:
+            return 0
+
+    def to_string(self):
+        return "\n".join([self.leg_lists[ref_name].to_string() for ref_name in sorted(self.leg_lists.keys())])
+        
 # a contact (legs always sorted)
 class Con:
     def __init__(self, leg_1, leg_2):
@@ -319,6 +393,10 @@ class Con:
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)
     
+    # assumes each leg is in the list, thus minus - 1
+    def count_in_leg_data_inclusive(self, leg_data, max_leg_distance):
+        return max(leg_data.count_near_leg(self.leg_1(), max_leg_distance), leg_data.count_near_leg(self.leg_2(), max_leg_distance)) - 1
+    
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
 def ref_names_to_string(ref_names):
@@ -333,6 +411,11 @@ class ConList:
     def __init__(self):
         self.cons = []
         self.is_sorted = True
+    
+    # generator for all its contacts
+    def get_cons(self):
+        for con in self.cons:
+            yield con
         
     def num_cons(self):
         return(len(self.cons))
@@ -370,6 +453,9 @@ class ConList:
     # remove intra-chromosomal contacts with small separations, no sorting needed
     def clean_separation(self, min_separation):
         self.cons[:] = [con for con in self.cons if not con.is_intra_chr() or con.separation() > min_separation]
+    # remove contacts containing promiscuous legs
+    def clean_promiscuous_legs(self, leg_list, max_leg_distance, max_leg_count):
+        self.cons[:] = [con[0] for con in self.cons if con.count_in_leg_list_inclusive(leg_list, max_leg_distance) <= max_leg_count]
 
     # simple dedup within a read (no binary search), assuming the same chromosome
     def dedup_within_read(self, max_distance):
@@ -416,6 +502,12 @@ class ConData:
     def __init__(self):
         self.con_lists = {}
         self.is_sorted = True
+        
+    # generator for all its cons, with ref_names sorted
+    def get_cons(self):
+        for ref_names in sorted(self.con_lists.keys()):
+            for con in self.con_lists[ref_names].get_cons():
+                yield con
     
     def add_empty_con_list(self, ref_names):
         self.con_lists[ref_names] = ConList()
@@ -479,9 +571,19 @@ class ConData:
         for con_list in self.con_lists.values():
             num_intra_chr += con_list.num_intra_chr()
         return num_intra_chr
-                    
+        
+    def leg_stats(self, leg_data, max_leg_distance, display_max_num_legs, display_num_cons):
+        hist_num_legs = [0] * (display_max_num_legs + 1)
+        num_cons = 0
+        for con in self.get_cons():
+            num_cons += 1
+            if num_cons % display_num_cons == 0:
+                sys.stderr.write("[M::" + __name__ + "] processed " + str(num_cons) + " contacts\n")
+            hist_num_legs[min(con.count_in_leg_data_inclusive(leg_data, max_leg_distance), display_max_num_legs)] += 1
+        return hist_num_legs   
+                         
     def to_string(self): # no tailing new line
-        return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(ref_names for ref_names in self.con_lists.keys())])
+        return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(self.con_lists.keys())])
 
 def file_to_con_data(con_file):
     con_data = ConData()
@@ -517,10 +619,10 @@ class DupConList(ConList):
         ConList.__init__(self)
         for con in con_list.cons:
             self.add_con(DupCon(con))
-    def dup_stats(self, max_num_dups):
-        hist_num_dups = [0] * max_num_dups
+    def dup_stats(self, display_max_num_dups):
+        hist_num_dups = [0] * display_max_num_dups
         for dup_con in self.cons:
-            hist_num_dups[min(dup_con.num_dups(), max_num_dups) - 1] += 1
+            hist_num_dups[min(dup_con.num_dups(), display_max_num_dups) - 1] += 1
         return hist_num_dups
         
 class DupConData(ConData):
@@ -529,16 +631,23 @@ class DupConData(ConData):
         for ref_names in con_data.con_lists.keys():
             self.con_lists[ref_names] = DupConList(con_data.con_lists[ref_names])
             
-    def dup_stats(self, max_num_dups):
-        hist_num_dups = [0] * max_num_dups
+    def dup_stats(self, display_max_num_dups):
+        hist_num_dups = [0] * display_max_num_dups
         for con_list in self.con_lists.values():
-            list_hist_num_dups = con_list.dup_stats(max_num_dups)
-            for i in range(max_num_dups):
+            list_hist_num_dups = con_list.dup_stats(display_max_num_dups)
+            for i in range(display_max_num_dups):
                 hist_num_dups[i] += list_hist_num_dups[i]
         return hist_num_dups
         
     def add_empty_con_list(self, ref_names):
         self.con_lists[ref_names] = DupConList()
+        
+# print a histogram of counts to a string
+def hist_num_to_string(hist_num):
+    return "\n".join([(">=" if i == len(hist_num) - 1 else "") + str(i + 1) + "\t" + str(hist_num[i]) + " (" + str(round(100.0 * hist_num[i] / sum(hist_num), 2))+ "%)" for i in range(len(hist_num))])        
+def hist_num_to_string_with_zero(hist_num):
+    return "\n".join([(">=" if i == len(hist_num) - 1 else "") + str(i) + "\t" + str(hist_num[i]) + " (" + str(round(100.0 * hist_num[i] / sum(hist_num), 2))+ "%)" for i in range(len(hist_num))])        
+
 
 # structures for included and excluded regions
 class Reg:
@@ -562,3 +671,5 @@ class Reg:
         self.end = end
     def to_string(self):
         return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])
+
+
