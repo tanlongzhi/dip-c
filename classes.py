@@ -375,14 +375,21 @@ class Con:
     def distance_inf_with(self, other): # L-inf norm
         return max(self.distance_leg_1_with(other), self.distance_leg_2_with(other))
     def distance_half_with(self, other): # L-1/2 norm
-        return math.sqrt(self.distance_leg_1_with(other) ** 2 + distance_leg_2_with(other) ** 2)
+        return math.sqrt(self.distance_leg_1_with(other) ** 2 + self.distance_leg_2_with(other) ** 2)
             
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)
     
     def is_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
         return leg_data.is_leg_promiscuous(self.leg_1(), max_leg_distance, max_leg_count) or leg_data.is_leg_promiscuous(self.leg_2(), max_leg_distance, max_leg_count)
-
+    def is_isolated(self, con_data, max_clean_distance, min_clean_count):
+        num_neighbors = 0
+        for con in con_data.get_cons_near(self, max_clean_distance):
+            num_neighbors += 1
+            if num_neighbors >= min_clean_count + 1: # assume con is included in ConData, thus plus 1
+                return False
+        return True
+    
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
 def ref_names_to_string(ref_names):
@@ -402,6 +409,20 @@ class ConList:
     def get_cons(self):
         for con in self.cons:
             yield con
+    
+    # generator for contacts near a given contact (L-1/2 norm), assume sorted
+    def get_cons_near(self, con, max_distance):
+        start_index = bisect.bisect_left(self.cons, con)
+        for i in range(start_index, len(self.cons)):
+            if self.cons[i].distance_leg_1_with(con) > max_distance:
+                break
+            if self.cons[i].distance_half_with(con) <= max_distance:
+                yield self.cons[i]
+        for i in range(start_index - 1, -1, -1):
+            if self.cons[i].distance_leg_1_with(con) > max_distance:
+                break
+            if self.cons[i].distance_half_with(con) <= max_distance:
+                yield self.cons[i]            
         
     def num_cons(self):
         return(len(self.cons))
@@ -442,7 +463,11 @@ class ConList:
     # remove contacts containing promiscuous legs
     def clean_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
         self.cons[:] = [con for con in self.cons if not con.is_promiscuous(leg_data, max_leg_distance, max_leg_count)]
-
+    # remove isolated contacts
+    def clean_isolated(self, con_data, max_clean_distance, min_clean_count):
+        self.cons[:] = [con for con in self.cons if not con.is_isolated(con_data, max_clean_distance, min_clean_count)]
+        
+        
     # simple dedup within a read (no binary search), assuming the same chromosome
     def dedup_within_read(self, max_distance):
         while True:
@@ -494,6 +519,10 @@ class ConData:
         for ref_names in sorted(self.con_lists.keys()):
             for con in self.con_lists[ref_names].get_cons():
                 yield con
+    def get_cons_near(self, con, max_distance):
+        if con.ref_names() in self.con_lists:
+            for con in self.con_lists[con.ref_names()].get_cons_near(con, max_distance):
+                yield con
     
     def add_empty_con_list(self, ref_names):
         self.con_lists[ref_names] = ConList()
@@ -526,6 +555,13 @@ class ConData:
     def clean_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
         for ref_names in self.con_lists.keys():
             self.con_lists[ref_names].clean_promiscuous(leg_data, max_leg_distance, max_leg_count)
+            if self.con_lists[ref_names].num_cons() == 0:
+                del self.con_lists[ref_names]
+    def clean_isolated(self, con_data, max_clean_distance, min_clean_count):
+        for ref_names in self.con_lists.keys():
+            original_num_cons = self.con_lists[ref_names].num_cons()
+            self.con_lists[ref_names].clean_isolated(con_data, max_clean_distance, min_clean_count)
+            sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_names].num_cons()) + " contacts\n")
             if self.con_lists[ref_names].num_cons() == 0:
                 del self.con_lists[ref_names]
     def dedup_within_read(self, max_distance):
