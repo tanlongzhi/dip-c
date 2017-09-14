@@ -18,6 +18,9 @@ def haplotype_to_string(haplotype):
     return str(haplotype) if is_known_haplotype(haplotype) else "."
 def string_to_haplotype(haplotype_string):
     return Haplotypes.unknown if haplotype_string == "." else int(haplotype_string) 
+def known_haplotypes():
+    yield Haplotypes.paternal
+    yield Haplotypes.maternal
 
 # rules for updating one haplotype with another (merging)
 def update_haplotype(haplotype_1, haplotype_2):
@@ -217,10 +220,27 @@ class Leg:
         return self.ref_name
     def get_ref_locus(self):
         return self.ref_locus
+    def get_haplotype(self):
+        return self.haplotype
+    def set_haplotype(self, haplotype):
+        self.haplotype = haplotype
+    def in_x(self, par_data):
+        return self.ref_name == par_data.get_x_name()
+    def in_y(self, par_data):
+        return self.ref_name == par_data.get_y_name()
+            
+    # a list of compatible phased legs
+    def compatible_legs_female(self):
+        return [Leg(self.ref_name, self.ref_locus, haplotype) for haplotype in ([self.haplotype] if self.is_phased() else known_haplotypes())]
+    def compatible_legs_male(self, par_data):
+        return par_data.compatible_legs_male(self)
+    def compatible_legs(self, is_male, par_data):
+        return self.compatible_legs_male(par_data) if is_male else self.compatible_legs_female()
+        
     def is_phased(self):
         return is_known_haplotype(self.haplotype)
     def is_conflict(self):
-        return self.haplotype == Haplotypes.conflict        
+        return self.haplotype == Haplotypes.conflict  
         
     def merge_with(self, other):
         self.ref_locus = (self.ref_locus + other.ref_locus)/2
@@ -352,6 +372,11 @@ class Con:
         return num_conflict_legs
     def ref_names(self):
         return tuple([leg.get_ref_name() for leg in self.legs])
+    def haps(self):
+        return tuple([leg.get_hap() for leg in self.legs])
+    def set_haps(self, haps):
+        for i in range(2):
+            self.legs[i].set_hap(haps[i])
     
     def sort_legs(self):
         self.legs.sort()
@@ -715,3 +740,68 @@ class Reg:
         return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])
 
 
+# structures for PARs
+class Par:
+    def __init__(self, x_name, x_start, x_end, y_name, y_start):
+        self.x_name = x_name
+        self.y_name = y_name
+        self.x_start = x_start
+        self.x_end = x_end
+        self.y_start = y_start
+        
+        # derived quantities
+        self.shift = y_start - x_start # Y relative to X
+        
+        self.x_reg = Reg(x_name)
+        self.x_reg.add_start(self.x_start)
+        self.x_reg.add_end(self.x_end)
+        
+        self.y_reg = Reg(x_name)
+        self.y_reg.add_start(self.y_start)
+        self.y_reg.add_end(self.y_start + self.x_end - self.x_start)
+    def compatible_par_legs_male(self, leg):
+        if leg.in_reg(self.x_reg):
+            if leg.get_haplotype() == Haplotypes.paternal:
+                # shift to Y
+                return [Leg(self.y_name, leg.get_ref_locus() + self.shift, Haplotypes.paternal)]
+            if leg.get_haplotype() == Haplotypes.maternal:
+                # keep on X
+                return [Leg(self.x_name, leg.get_ref_locus(), Haplotypes.maternal)]
+            # both possible
+            return [Leg(self.x_name, leg.get_ref_locus(), Haplotypes.maternal), Leg(self.y_name, leg.get_ref_locus() + self.shift, Haplotypes.paternal)]
+
+        if leg.in_reg(self.y_reg):
+            if leg.get_haplotype() == Haplotypes.paternal:
+                # keep on Y
+                return [Leg(self.y_name, leg.get_ref_locus(), Haplotypes.paternal)]
+            if leg.get_haplotype() == Haplotypes.maternal:
+                # shift to X
+                return [Leg(self.x_name, leg.get_ref_locus() - self.shift, Haplotypes.maternal)]
+            # both possible
+            return [Leg(self.y_name, leg.get_ref_locus(), Haplotypes.paternal), Leg(self.x_name, leg.get_ref_locus() - self.shift, Haplotypes.maternal)]
+        return None # leg not in this PAR
+
+class ParData:
+    def __init__(self, x_name, y_name):
+        self.x_name = x_name
+        self.y_name = y_name
+        self.pars = []
+    def add_par(self, par):
+        self.pars.append(par)
+    def get_pars(self):
+        for par in self.pars:
+            yield par
+    def get_x_name(self):
+        return self.x_name
+    def get_y_name(self):
+        return self.y_name
+    def compatible_legs_male(self, leg):
+        for par in self.pars:
+            legs = par.compatible_par_legs_male(leg)
+            if legs != None:
+                return legs
+        if leg.get_ref_name() == self.x_name:
+            return [Leg(self.x_name, leg.get_ref_locus(), Haplotypes.maternal)]
+        if leg.get_ref_name() == self.y_name:
+            return [Leg(self.y_name, leg.get_ref_locus(), Haplotypes.paternal)]
+        return leg.compatible_legs_female()
