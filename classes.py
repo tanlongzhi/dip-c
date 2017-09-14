@@ -375,7 +375,7 @@ class Con:
     def distance_inf_with(self, other): # L-inf norm
         return max(self.distance_leg_1_with(other), self.distance_leg_2_with(other))
     def distance_half_with(self, other): # L-1/2 norm
-        return math.sqrt(self.distance_leg_1_with(other) ** 2 + self.distance_leg_2_with(other) ** 2)
+        return (math.sqrt(self.distance_leg_1_with(other)) + math.sqrt(self.distance_leg_2_with(other))) ** 2
             
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)

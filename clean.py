@@ -6,7 +6,7 @@ from classes import ConData, file_to_con_data, LegData, counts_to_hist_num_with_
 def clean(argv):
     # default parameters
     max_clean_distance = 10000000
-    min_clean_count = 20
+    min_clean_count = 5
     max_leg_distance = 1000
     max_leg_count = 10
     test_mode = False
@@ -28,7 +28,8 @@ def clean(argv):
         sys.stderr.write("  -c INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n")
         sys.stderr.write("  -D INT     max distance (bp) for removing promiscuous legs [" + str(max_leg_distance) + "]\n")
         sys.stderr.write("  -C INT     max neighbor count for a nonpromiscuous leg [" + str(max_leg_count) + "]\n")
-        sys.stderr.write("  -t         test mode for isolated contacts: statistics only, does not remove\n")
+        sys.stderr.write("  -t         test mode for isolated contacts: statistics only, no removal\n")
+        sys.stderr.write("               (a larger -c, for example 20, is recommended for this mode)\n")
         return 1
     for o, a in opts:
         if o == "-d":
@@ -73,7 +74,7 @@ def clean(argv):
         con_data.clean_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
         pass_2_num_cons = con_data.num_cons()
         sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / original_num_cons, 2)) + "%)\n")
-        sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+        sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
         sys.stdout.write(con_data.to_string()+"\n")
         
     
