@@ -389,7 +389,14 @@ class Con:
             if num_neighbors >= min_clean_count + 1: # assume con is included in ConData, thus plus 1
                 return False
         return True
-    
+    def test_isolated(self, con_data, max_clean_distance, min_clean_count):
+        num_neighbors = 0
+        for con in con_data.get_cons_near(self, max_clean_distance):
+            num_neighbors += 1
+            if num_neighbors >= min_clean_count + 1: # assume con is included in ConData, thus plus 1
+                break
+        return num_neighbors - 1
+            
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
 def ref_names_to_string(ref_names):
@@ -466,7 +473,8 @@ class ConList:
     # remove isolated contacts
     def clean_isolated(self, con_data, max_clean_distance, min_clean_count):
         self.cons[:] = [con for con in self.cons if not con.is_isolated(con_data, max_clean_distance, min_clean_count)]
-        
+    def test_isolated(self, con_data, max_clean_distance, min_clean_count):
+        return [con.test_isolated(con_data, max_clean_distance, min_clean_count) for con in self.cons]
         
     # simple dedup within a read (no binary search), assuming the same chromosome
     def dedup_within_read(self, max_distance):
@@ -567,6 +575,13 @@ class ConData:
             sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_names].num_cons()) + " contacts\n")
             if self.con_lists[ref_names].num_cons() == 0:
                 del self.con_lists[ref_names]
+    def test_isolated(self, con_data, max_clean_distance, min_clean_count):
+        neighbor_counts = []
+        for ref_names in self.con_lists.keys():
+            original_num_cons = self.con_lists[ref_names].num_cons()
+            neighbor_counts.extend(self.con_lists[ref_names].test_isolated(con_data, max_clean_distance, min_clean_count))
+            sys.stderr.write("[M::" + __name__ + "] tested isolated contacts for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(original_num_cons) + " contacts\n")
+        return neighbor_counts
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
@@ -665,6 +680,11 @@ class DupConData(ConData):
         self.con_lists[ref_names] = DupConList()
         
 # print a histogram of counts to a string
+def counts_to_hist_num_with_zero(counts):
+    hist_num = [0] * (max(counts) + 1)
+    for count in counts:
+        hist_num[count] += 1
+    return hist_num
 def hist_num_to_string(hist_num):
     return "\n".join([(">=" if i == len(hist_num) - 1 else "") + str(i + 1) + "\t" + str(hist_num[i]) + " (" + str(round(100.0 * hist_num[i] / sum(hist_num), 2))+ "%)" for i in range(len(hist_num))])        
 def hist_num_to_string_with_zero(hist_num):

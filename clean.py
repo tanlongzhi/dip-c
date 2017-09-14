@@ -1,7 +1,7 @@
 import sys
 import getopt
 import gzip
-from classes import ConData, file_to_con_data, LegData, hist_num_to_string_with_zero, Leg
+from classes import ConData, file_to_con_data, LegData, counts_to_hist_num_with_zero, hist_num_to_string_with_zero, Leg
 
 def clean(argv):
     # default parameters
@@ -9,6 +9,7 @@ def clean(argv):
     min_clean_count = 20
     max_leg_distance = 1000
     max_leg_count = 10
+    test_mode = False
     
     # progress display parameters
     display_max_num_legs = 20
@@ -16,7 +17,7 @@ def clean(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "d:c:D:C:R")
+        opts, args = getopt.getopt(argv[1:], "d:c:D:C:t")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -27,6 +28,7 @@ def clean(argv):
         sys.stderr.write("  -c INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n")
         sys.stderr.write("  -D INT     max distance (bp) for removing promiscuous legs [" + str(max_leg_distance) + "]\n")
         sys.stderr.write("  -C INT     max neighbor count for a nonpromiscuous leg [" + str(max_leg_count) + "]\n")
+        sys.stderr.write("  -t         test mode for isolated contacts: statistics only, does not remove\n")
         return 1
     for o, a in opts:
         if o == "-d":
@@ -37,7 +39,9 @@ def clean(argv):
             max_leg_distance = int(a)
         elif o == "-C":
             max_leg_count = int(a)
-                     
+        elif o == "-t":
+            test_mode = True     
+                            
     # read CON file
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
     con_data = file_to_con_data(con_file)
@@ -60,12 +64,18 @@ def clean(argv):
     pass_1_con_data = ConData()
     pass_1_con_data.copy_from(con_data)
     pass_1_con_data.sort_cons()
-    con_data.clean_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
-    pass_2_num_cons = con_data.num_cons()
-    sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / original_num_cons, 2)) + "%)\n")
-    
-    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
-    sys.stdout.write(con_data.to_string()+"\n")
+    if test_mode:
+        neighbor_counts = con_data.test_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
+        sys.stderr.write("[M::" + __name__ + "] pass 2 test done. statistics:\n")
+        sys.stderr.write("#neighbors\t#cons\n")
+        sys.stderr.write(hist_num_to_string_with_zero(counts_to_hist_num_with_zero(neighbor_counts)) + "\n")
+    else:
+        con_data.clean_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
+        pass_2_num_cons = con_data.num_cons()
+        sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / original_num_cons, 2)) + "%)\n")
+        sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+        sys.stdout.write(con_data.to_string()+"\n")
+        
     
     return 0
     
