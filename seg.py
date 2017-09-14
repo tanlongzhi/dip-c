@@ -64,7 +64,7 @@ def seg(argv):
         if o == "-q":
             min_mapq = int(a)
         elif o == "-m":
-            max_nm = int(a)
+            max_nm_per_bp = float(a)
         elif o == "-v":
             snp_file_name = a
             
