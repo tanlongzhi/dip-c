@@ -1,5 +1,7 @@
 import bisect
 import sys
+from functools import total_ordering
+import math
 
 # enum for haplotypes
 class Haplotypes:
@@ -28,6 +30,7 @@ def update_haplotype(haplotype_1, haplotype_2):
     return Haplotypes.conflict
 
 # a read segment (alignment)
+@total_ordering
 class Seg:
     
     def __init__(self, is_read2, query_start, query_end, ref_name, ref_start, ref_end, is_reverse, haplotype = Haplotypes.unknown):
@@ -45,16 +48,11 @@ class Seg:
     # on read 1, order by left side
     # on read 2, order by minus right side
     def __lt__(self, other):
-        if not self.is_read2 and other.is_read2: # read 1 < read 2
-            return True
-        if not self.is_read2 and not other.is_read2: # both read 1
-            if self.query_start < other.query_start:
-                return True
-        if self.is_read2 and other.is_read2: # both read 2
-            if self.query_end > other.query_end:
-                return True
-        return False
-        
+        return (self.is_read2, (-self.query_end if self.is_read2 else self.query_start)) < (other.is_read2, (-other.query_end if other.is_read2 else other.query_start))
+    def __eq__(self, other):
+        return (self.is_read2, (-self.query_end if self.is_read2 else self.query_start)) == (other.is_read2, (-other.query_end if other.is_read2 else other.query_start))
+
+                
     def update_haplotype(self, is_read2, ref_name, ref_locus, haplotype):
         if self.is_read2 == is_read2 and self.ref_name == ref_name and ref_locus - 1 >= self.ref_start and ref_locus <= self.ref_end:
             self.haplotype = update_haplotype(self.haplotype, haplotype)
@@ -202,6 +200,7 @@ class SegData:
         return "\n".join(read.to_string() for read in self.reads.values())
 
 # a leg
+@total_ordering
 class Leg:
     
     def __init__(self, ref_name, ref_locus, haplotype):
@@ -210,13 +209,9 @@ class Leg:
         self.haplotype = haplotype
         
     def __lt__(self, other):
-        if self.ref_name < other.ref_name:
-            return True
-        if self.ref_name == other.ref_name and self.ref_locus < other.ref_locus:
-            return True
-        if self.ref_name == other.ref_name and self.ref_locus == other.ref_locus and self.haplotype < other.haplotype:
-            return True
-        return False
+        return (self.ref_name, self.ref_locus, self.haplotype) < (other.ref_name, other.ref_locus, other.haplotype)
+    def __eq__(self, other):
+        return (self.ref_name, self.ref_locus, self.haplotype) == (other.ref_name, other.ref_locus, other.haplotype)
         
     def get_ref_name(self):
         return self.ref_name
@@ -284,22 +279,12 @@ class LegList:
         for con in con_data.get_cons():
             self.add_con(con)
             
-    # query a leg, regardless of haplotypes, assume sorted
-    def count_near_leg(self, leg, max_leg_distance):
-        # old: double bisect
-        return bisect.bisect_right(self.legs[bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity)):], Leg(leg.get_ref_name(), leg.get_ref_locus() + max_leg_distance, Haplotypes.infinity))
-        
-        # new: single bisect
-        #left_index = bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity))
-        #right_leg = Leg(leg.get_ref_name(), leg.get_ref_locus() + max_leg_distance, Haplotypes.infinity)
-        #i = len(self.legs) - 1
-        #for i in range(left_index + 1, len(self.legs)):
-        #    if self.legs[i] > right_leg:
-        #        break
-        #return i - left_index
-    # query a leg to determine whether , regardless of haplotypes, assume sorted
+    # query a leg, regardless of haplotypes, assume sorted and that the list includes the leg itself
     def is_leg_promiscuous(self, leg, max_leg_distance, max_leg_count):
-        bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity))
+        index_to_check = bisect.bisect_left(self.legs, Leg(leg.get_ref_name(), leg.get_ref_locus() - max_leg_distance, Haplotypes.minus_infinity)) + max_leg_count
+        if index_to_check >= len(self.legs):
+            return False
+        return self.legs[index_to_check] <= Leg(leg.get_ref_name(), leg.get_ref_locus() + max_leg_distance, Haplotypes.infinity)
     
     def to_string(self):
         return "\n".join([leg.to_string() for leg in self.legs])
@@ -331,22 +316,23 @@ class LegData:
             leg_list.sort_legs()
         self.is_sorted = True
         
-    def count_near_leg(self, leg, max_leg_distance):
-        if leg.get_ref_name() in self.leg_lists:
-            return self.leg_lists[leg.get_ref_name()].count_near_leg(leg, max_leg_distance)
-        else:
-            return 0
+    def is_leg_promiscuous(self, leg, max_leg_distance, max_leg_count):
+        return self.leg_lists[leg.get_ref_name()].is_leg_promiscuous(leg, max_leg_distance, max_leg_count)
+    
 
     def to_string(self):
         return "\n".join([self.leg_lists[ref_name].to_string() for ref_name in sorted(self.leg_lists.keys())])
         
 # a contact (legs always sorted)
+@total_ordering
 class Con:
     def __init__(self, leg_1, leg_2):
         self.legs = sorted([leg_1, leg_2])
     
+    def __eq__(self, other):
+        return (self.legs[0], self.legs[1]) == (other.legs[0], other.legs[1])
     def __lt__(self, other):
-        return self.legs[0] < other.legs[0] or self.legs[0] == other.legs[0] and self.legs[1] < other.legs[1]
+        return (self.legs[0], self.legs[1]) < (other.legs[0], other.legs[1])
     
     def leg_1(self):
         return self.legs[0]
@@ -388,15 +374,15 @@ class Con:
         return self.leg_2().separation_with(other.leg_2())
     def distance_inf_with(self, other): # L-inf norm
         return max(self.distance_leg_1_with(other), self.distance_leg_2_with(other))
-            
+    def distance_half_with(self, other): # L-1/2 norm
+        return math.sqrt(self.distance_leg_1_with(other) ** 2 + distance_leg_2_with(other) ** 2)
             
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)
     
-    # assumes each leg is in the list, thus minus - 1
-    def count_in_leg_data_inclusive(self, leg_data, max_leg_distance):
-        return max(leg_data.count_near_leg(self.leg_1(), max_leg_distance), leg_data.count_near_leg(self.leg_2(), max_leg_distance)) - 1
-    
+    def is_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
+        return leg_data.is_leg_promiscuous(self.leg_1(), max_leg_distance, max_leg_count) or leg_data.is_leg_promiscuous(self.leg_2(), max_leg_distance, max_leg_count)
+
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
 def ref_names_to_string(ref_names):
@@ -454,8 +440,8 @@ class ConList:
     def clean_separation(self, min_separation):
         self.cons[:] = [con for con in self.cons if not con.is_intra_chr() or con.separation() > min_separation]
     # remove contacts containing promiscuous legs
-    def clean_promiscuous_legs(self, leg_list, max_leg_distance, max_leg_count):
-        self.cons[:] = [con[0] for con in self.cons if con.count_in_leg_list_inclusive(leg_list, max_leg_distance) <= max_leg_count]
+    def clean_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
+        self.cons[:] = [con for con in self.cons if not con.is_promiscuous(leg_data, max_leg_distance, max_leg_count)]
 
     # simple dedup within a read (no binary search), assuming the same chromosome
     def dedup_within_read(self, max_distance):
@@ -537,6 +523,11 @@ class ConData:
             self.con_lists[ref_names].clean_separation(min_separation)
             if self.con_lists[ref_names].num_cons() == 0:
                 del self.con_lists[ref_names]
+    def clean_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
+        for ref_names in self.con_lists.keys():
+            self.con_lists[ref_names].clean_promiscuous(leg_data, max_leg_distance, max_leg_count)
+            if self.con_lists[ref_names].num_cons() == 0:
+                del self.con_lists[ref_names]
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
@@ -571,16 +562,8 @@ class ConData:
         for con_list in self.con_lists.values():
             num_intra_chr += con_list.num_intra_chr()
         return num_intra_chr
-        
-    def leg_stats(self, leg_data, max_leg_distance, display_max_num_legs, display_num_cons):
-        hist_num_legs = [0] * (display_max_num_legs + 1)
-        num_cons = 0
-        for con in self.get_cons():
-            num_cons += 1
-            if num_cons % display_num_cons == 0:
-                sys.stderr.write("[M::" + __name__ + "] processed " + str(num_cons) + " contacts\n")
-            hist_num_legs[min(con.count_in_leg_data_inclusive(leg_data, max_leg_distance), display_max_num_legs)] += 1
-        return hist_num_legs   
+    
+ 
                          
     def to_string(self): # no tailing new line
         return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(self.con_lists.keys())])
