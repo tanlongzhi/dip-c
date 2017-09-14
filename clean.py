@@ -1,13 +1,12 @@
 import sys
 import getopt
 import gzip
-import copy
 from classes import ConData, file_to_con_data, LegData, hist_num_to_string_with_zero, Leg
 
 def clean(argv):
     # default parameters
     max_clean_distance = 10000000
-    min_clean_count = 4
+    min_clean_count = 20
     max_leg_distance = 1000
     max_leg_count = 10
     
@@ -58,7 +57,10 @@ def clean(argv):
     # pass 2: remove isolated contacts
     con_data.sort_cons()
     sys.stderr.write("[M::" + __name__ + "] pass 2: sorted " + str(pass_1_num_cons) + " contacts\n")
-    con_data.clean_isolated(copy.copy(con_data), max_clean_distance, min_clean_count)
+    pass_1_con_data = ConData()
+    pass_1_con_data.copy_from(con_data)
+    pass_1_con_data.sort_cons()
+    con_data.clean_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
     pass_2_num_cons = con_data.num_cons()
     sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / original_num_cons, 2)) + "%)\n")
     

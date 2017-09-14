@@ -532,6 +532,9 @@ class ConData:
             self.add_empty_con_list(con.ref_names())
         self.con_lists[con.ref_names()].add_con(con)
         self.is_sorted = False
+    def copy_from(self, con_data):
+        for con in con_data.get_cons():
+            self.add_con(con)
     
     def merge_with(self, other):
         for ref_names in other.con_lists.keys():
