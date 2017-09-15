@@ -2,6 +2,7 @@ import bisect
 import sys
 from functools import total_ordering
 import math
+from collections import Counter
 
 # enum for haplotypes
 class Haplotypes:
@@ -215,6 +216,8 @@ class Leg:
         return (self.ref_name, self.ref_locus, self.haplotype) < (other.ref_name, other.ref_locus, other.haplotype)
     def __eq__(self, other):
         return (self.ref_name, self.ref_locus, self.haplotype) == (other.ref_name, other.ref_locus, other.haplotype)
+    def __hash__(self):
+        return hash((self.ref_name, self.ref_locus, self.haplotype))
         
     def get_ref_name(self):
         return self.ref_name
@@ -353,6 +356,8 @@ class Con:
         return (self.legs[0], self.legs[1]) == (other.legs[0], other.legs[1])
     def __lt__(self, other):
         return (self.legs[0], self.legs[1]) < (other.legs[0], other.legs[1])
+    def __hash__(self):
+        return hash((self.legs[0], self.legs[1]))
     
     def leg_1(self):
         return self.legs[0]
@@ -378,10 +383,53 @@ class Con:
         return [Con(leg_1, leg_2) for leg_1 in self.legs[0].compatible_legs(is_male, par_data) for leg_2 in self.legs[1].compatible_legs(is_male, par_data)]
     def compatible_hap_tuples(self, is_male, par_data):
         return [con.hap_tuple() for con in self.compatible_cons(is_male, par_data)]
+    
+    # vote among a list of contacts, return None if vote is not unique or not compatible
+    def vote_among_cons(self, cons, is_male, par_data):
+        self_compatible_hap_tuples = self.compatible_hap_tuples(is_male, par_data)
+        num_cons = 0
+        voted_con = None
+        for con in cons:
+            if con.hap_tuple() in self_compatible_hap_tuples:
+                num_cons += 1
+                if num_cons > 1:
+                    return None
+                voted_con = con
+        return voted_con
+        
+    # impute based on nearby contacts in a ConData, return a list of voted contacts
+    def get_votes_from_con_data(self, con_data, max_impute_distance, is_male, par_data):
+        compatible_cons = self.compatible_cons(is_male, par_data)
+        voted_cons = []
+        for con in con_data.get_cons_near(self, max_impute_distance):
+            voted_con = con.vote_among_cons(compatible_cons, is_male, par_data)
+            if voted_con != None:
+                voted_cons.append(voted_con)
+        return voted_cons
+    def set_hap_tuple_from_votes(self, voted_cons, min_impute_votes, min_impute_vote_fraction):
+        con = con_from_votes(voted_cons, min_impute_votes, min_impute_vote_fraction)
+        if con != None:
+            self.set_hap_tuple_from_con(con)
+    def impute_from_con_data(self, con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data):
+        compatible_cons = self.compatible_cons(is_male, par_data)
+        if len(compatible_cons) == 1:
+            # no need to vote, for example haploid X in male
+            self.set_hap_tuple_from_con(compatible_cons[0])
+        elif len(compatible_cons) == 2 and self.is_intra_chr() and self.separation() <= max_intra_hom_separation:
+            # assume intra-homologous
+            for con in compatible_cons:
+                if con.is_intra_hom():
+                    self.set_hap_tuple_from_con(con)
+                    break
+        else:
+            self.set_hap_tuple_from_votes(self.get_votes_from_con_data(con_data, max_impute_distance, is_male, par_data), min_impute_votes, min_impute_vote_fraction)
+        
         
     def set_hap_tuple(self, hap_tuple):
         for i in range(2):
             self.legs[i].set_haplotype(hap_tuple[i])
+    def set_hap_tuple_from_con(self, con):
+        self.set_hap_tuple(con.hap_tuple())
     def in_par(self, par_data):
         return par_data.contain_leg(self.legs[0]) or par_data.contain_leg(self.legs[1])
     
@@ -390,6 +438,10 @@ class Con:
        
     def is_intra_chr(self):
         return self.leg_1().same_chr_with(self.leg_2())
+    def is_intra_hom(self): # only for fully phased
+        return self.is_intra_chr() and self.leg_1().get_haplotype() == self.leg_2().get_haplotype()
+    def is_inter_hom(self): # only for fully phased
+        return self.is_intra_chr() and self.leg_1().get_haplotype() != self.leg_2().get_haplotype()
     
     def separation(self):
         return self.leg_2().get_ref_locus() - self.leg_1().get_ref_locus()
@@ -428,6 +480,7 @@ class Con:
             if num_neighbors >= min_clean_count + 1: # assume con is included in ConData, thus plus 1
                 break
         return num_neighbors - 1
+    
             
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
@@ -437,6 +490,16 @@ def ref_name_tuple_to_string(ref_name_tuple):
 def string_to_con(con_string):
     leg_1, leg_2 = con_string.split("\t")
     return Con(string_to_leg(leg_1), string_to_leg(leg_2))
+
+# return the winning contact after a vote, None if criteria are not satisfied 
+def con_from_votes(cons, min_impute_votes, min_impute_vote_fraction):
+    if len(cons) == 0:
+        return None
+    con_counter = Counter(cons)
+    con, vote = con_counter.most_common(1)[0]
+    if vote >= min_impute_votes and float(vote) / len(cons) >= min_impute_vote_fraction:
+        return con
+    return None
 
 # a sorted list of contacts
 class ConList:
@@ -510,6 +573,10 @@ class ConList:
     # remove contacts in PARs
     def clean_in_par(self, par_data):
         self.cons[:] = [con for con in self.cons if not con.in_par(par_data)]
+    # impute
+    def impute_from_con_data(self, con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data):
+        for con in self.cons:
+            con.impute_from_con_data(con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data)
 
         
     # simple dedup within a read (no binary search), assuming the same chromosome
@@ -625,6 +692,10 @@ class ConData:
             self.con_lists[ref_name_tuple].clean_in_par(par_data)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
+    def impute_from_con_data(self, con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data):
+        for ref_name_tuple in self.con_lists.keys():
+            self.con_lists[ref_name_tuple].impute_from_con_data(con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data)
+            sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
 
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():

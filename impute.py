@@ -8,6 +8,8 @@ def impute(argv):
     max_impute_distance = 10000000
     min_impute_votes = 3
     min_impute_vote_fraction = 0.9
+    max_intra_hom_separation = 10000000
+    min_inter_hom_separation = 100000000
     max_clean_distance = 10000000
     min_clean_count = 2
     is_male = False
@@ -45,9 +47,11 @@ def impute(argv):
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -d INT     max distance (bp, L-1/2 norm) for imputing haplotypes [" + str(max_impute_distance) + "]\n")
         sys.stderr.write("  -v INT     min votes for the major haplotypes [" + str(min_impute_votes) + "]\n")
-        sys.stderr.write("  -f FLOAT   min vote fraction for the major haplotypes [" + str(min_impute_vote_fraction) + "]\n")
+        sys.stderr.write("  -f FLOAT   min vote fraction for the major haplotypes [" + str(min_impute_vote_fraction) + "]\n\n")
+        sys.stderr.write("  -s INT     max separation (bp) for assuming intra-homologous contacts [" + str(max_intra_hom_separation) + "]\n")
+        sys.stderr.write("  -S INT     min separation (bp) for allowing inter-homologous contacts [" + str(min_inter_hom_separation) + "]\n\n")
         sys.stderr.write("  -D INT     max distance (bp, L-1/2 norm) for removing isolated contacts [" + str(max_clean_distance) + "]\n")
-        sys.stderr.write("  -C INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n")
+        sys.stderr.write("  -C INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n\n")
         sys.stderr.write("  -p STR     presets for PARs and sex: [f]\n")
         for preset in sorted(presets.keys()):
             sys.stderr.write("               " + preset + " = " + preset_descriptions[preset] + "\n")
@@ -76,18 +80,19 @@ def impute(argv):
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
-    # preprocess male
+    # if male, discard all contacts in PARs
     if is_male:
-        # discard all contacts in PARs
         con_data.clean_in_par(par_data)
-        # set haplotypes for all the remaining X (mat) or Y (pat) contacts
-        #con_data.set_non_par_hap_tuple_male(par_data)
-        
-    # impute singly phased contacts
             
-        
-    # impute doubly phased, inter-chromosomal contacts
-    
+    # impute
+    informative_con_data = ConData()
+    for con in con_data.get_cons():
+        if len(con.compatible_cons(is_male, par_data)) == 4:
+            continue # fully unphased contacts are not informative
+        informative_con_data.add_con(con)
+    informative_con_data.sort_cons()
+    sys.stderr.write("[M::" + __name__ + "] pass 1: extracted " + str(informative_con_data.num_cons()) + " informative contacts\n")
+    con_data.impute_from_con_data(informative_con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data)
 
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     #sys.stdout.write(con_data.to_string()+"\n")
