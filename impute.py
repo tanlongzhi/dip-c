@@ -76,14 +76,22 @@ def impute(argv):
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
-    # preprocess for male
+    # preprocess male
     if is_male:
         # discard all contacts in PARs
         con_data.clean_in_par(par_data)
+        # set haplotypes for all the remaining X (mat) or Y (pat) contacts
+        con_data.set_non_par_hap_tuple_male(par_data)
+        
+    # impute singly phased contacts
+    for con in con_data.get_cons():
+        con.compatible_hap_tuples()
+        
+    # impute doubly phased, inter-chromosomal contacts
     
 
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
-    sys.stdout.write(con_data.to_string()+"\n")
+    #sys.stdout.write(con_data.to_string()+"\n")
 
     
     return 0

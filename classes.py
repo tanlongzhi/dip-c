@@ -230,8 +230,10 @@ class Leg:
         return self.ref_name == par_data.get_y_name()
             
     # a list of compatible phased legs
+    def compatible_haps(self):
+        return [haplotype for haplotype in ([self.haplotype] if self.is_phased() else known_haplotypes())]        
     def compatible_legs_female(self):
-        return [Leg(self.ref_name, self.ref_locus, haplotype) for haplotype in ([self.haplotype] if self.is_phased() else known_haplotypes())]
+        return [Leg(self.ref_name, self.ref_locus, haplotype) for haplotype in self.compatible_haps()]
     def compatible_legs_male(self, par_data):
         return par_data.compatible_legs_male(self)
     def compatible_legs(self, is_male, par_data):
@@ -370,13 +372,20 @@ class Con:
             if self.legs[i].is_conflict():
                 num_conflict_legs += 1
         return num_conflict_legs
-    def ref_names(self):
+    def ref_name_tuple(self):
         return tuple([leg.get_ref_name() for leg in self.legs])
-    def haps(self):
+    def hap_tuple(self):
         return tuple([leg.get_hap() for leg in self.legs])
-    def set_haps(self, haps):
+    def compatible_hap_tuples(self):
+        print self.to_string(), [(haplotype_1, haplotype_2) for haplotype_1 in self.legs[0].compatible_haps() for haplotype_2 in self.legs[1].compatible_haps()]
+        return [(haplotype_1, haplotype_2) for haplotype_1 in self.legs[0].compatible_haps() for haplotype_2 in self.legs[1].compatible_haps()]
+        
+    def set_hap_tuple(self, hap_tuple):
         for i in range(2):
-            self.legs[i].set_hap(haps[i])
+            self.legs[i].set_haplotype(hap_tuple[i])
+    def set_non_par_hap_tuple_male(self, par_data):
+        for i in range(2):
+            par_data.set_non_par_leg_haplotype_male(self.legs[i])
     def in_par(self, par_data):
         return par_data.contain_leg(self.legs[0]) or par_data.contain_leg(self.legs[1])
     
@@ -426,8 +435,8 @@ class Con:
             
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
-def ref_names_to_string(ref_names):
-    return ",".join(ref_names)
+def ref_name_tuple_to_string(ref_name_tuple):
+    return ",".join(ref_name_tuple)
 
 def string_to_con(con_string):
     leg_1, leg_2 = con_string.split("\t")
@@ -505,6 +514,10 @@ class ConList:
     # remove contacts in PARs
     def clean_in_par(self, par_data):
         self.cons[:] = [con for con in self.cons if not con.in_par(par_data)]
+    # set haplotypes non-PARs of X (mat) and Y (pat)
+    def set_non_par_hap_tuple_male(self, par_data):
+        for con in self.cons:
+            con.set_non_par_hap_tuple_male(par_data)
 
         
     # simple dedup within a read (no binary search), assuming the same chromosome
@@ -553,36 +566,36 @@ class ConData:
         self.con_lists = {}
         self.is_sorted = True
         
-    # generator for all its cons, with ref_names sorted
+    # generator for all its cons, with ref_name_tuple sorted
     def get_cons(self):
-        for ref_names in sorted(self.con_lists.keys()):
-            for con in self.con_lists[ref_names].get_cons():
+        for ref_name_tuple in sorted(self.con_lists.keys()):
+            for con in self.con_lists[ref_name_tuple].get_cons():
                 yield con
     def get_cons_near(self, con, max_distance):
-        if con.ref_names() in self.con_lists:
-            for con in self.con_lists[con.ref_names()].get_cons_near(con, max_distance):
+        if con.ref_name_tuple() in self.con_lists:
+            for con in self.con_lists[con.ref_name_tuple()].get_cons_near(con, max_distance):
                 yield con
     
-    def add_empty_con_list(self, ref_names):
-        self.con_lists[ref_names] = ConList()
+    def add_empty_con_list(self, ref_name_tuple):
+        self.con_lists[ref_name_tuple] = ConList()
     
     def add_con(self, con):
-        if con.ref_names() not in self.con_lists:
-            self.add_empty_con_list(con.ref_names())
-        self.con_lists[con.ref_names()].add_con(con)
+        if con.ref_name_tuple() not in self.con_lists:
+            self.add_empty_con_list(con.ref_name_tuple())
+        self.con_lists[con.ref_name_tuple()].add_con(con)
         self.is_sorted = False
     def copy_from(self, con_data):
         for con in con_data.get_cons():
             self.add_con(con)
     
     def merge_with(self, other):
-        for ref_names in other.con_lists.keys():
-            if ref_names in self.con_lists:
-                self.con_lists[ref_names].merge_with(other.con_lists[ref_names])
-                if not self.con_lists[ref_names].is_sorted:
+        for ref_name_tuple in other.con_lists.keys():
+            if ref_name_tuple in self.con_lists:
+                self.con_lists[ref_name_tuple].merge_with(other.con_lists[ref_name_tuple])
+                if not self.con_lists[ref_name_tuple].is_sorted:
                     self.is_sorted = False
             else:
-                self.con_lists[ref_names] = other.con_lists[ref_names]
+                self.con_lists[ref_name_tuple] = other.con_lists[ref_name_tuple]
         
     # wrappers for all ConList operations
     def sort_cons(self):
@@ -590,50 +603,55 @@ class ConData:
             con_list.sort_cons()
         self.is_sorted = True
     def clean_separation(self, min_separation):
-        for ref_names in self.con_lists.keys():
-            self.con_lists[ref_names].clean_separation(min_separation)
-            if self.con_lists[ref_names].num_cons() == 0:
-                del self.con_lists[ref_names]
+        for ref_name_tuple in self.con_lists.keys():
+            self.con_lists[ref_name_tuple].clean_separation(min_separation)
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
     def clean_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
-        for ref_names in self.con_lists.keys():
-            self.con_lists[ref_names].clean_promiscuous(leg_data, max_leg_distance, max_leg_count)
-            if self.con_lists[ref_names].num_cons() == 0:
-                del self.con_lists[ref_names]
+        for ref_name_tuple in self.con_lists.keys():
+            self.con_lists[ref_name_tuple].clean_promiscuous(leg_data, max_leg_distance, max_leg_count)
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
     def clean_isolated(self, con_data, max_clean_distance, min_clean_count):
-        for ref_names in self.con_lists.keys():
-            original_num_cons = self.con_lists[ref_names].num_cons()
-            self.con_lists[ref_names].clean_isolated(con_data, max_clean_distance, min_clean_count)
-            sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_names].num_cons()) + " contacts\n")
-            if self.con_lists[ref_names].num_cons() == 0:
-                del self.con_lists[ref_names]
+        for ref_name_tuple in self.con_lists.keys():
+            original_num_cons = self.con_lists[ref_name_tuple].num_cons()
+            self.con_lists[ref_name_tuple].clean_isolated(con_data, max_clean_distance, min_clean_count)
+            sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
     def test_isolated(self, con_data, max_clean_distance, min_clean_count):
         neighbor_counts = []
-        for ref_names in self.con_lists.keys():
-            original_num_cons = self.con_lists[ref_names].num_cons()
-            neighbor_counts.extend(self.con_lists[ref_names].test_isolated(con_data, max_clean_distance, min_clean_count))
-            sys.stderr.write("[M::" + __name__ + "] tested isolated contacts for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(original_num_cons) + " contacts\n")
+        for ref_name_tuple in self.con_lists.keys():
+            original_num_cons = self.con_lists[ref_name_tuple].num_cons()
+            neighbor_counts.extend(self.con_lists[ref_name_tuple].test_isolated(con_data, max_clean_distance, min_clean_count))
+            sys.stderr.write("[M::" + __name__ + "] tested isolated contacts for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(original_num_cons) + " contacts\n")
         return neighbor_counts
     def clean_in_par(self, par_data):
-        for ref_names in self.con_lists.keys():
-            if par_data.get_x_name() not in ref_names and par_data.get_y_name() not in ref_names:
+        for ref_name_tuple in self.con_lists.keys():
+            if par_data.get_x_name() not in ref_name_tuple and par_data.get_y_name() not in ref_name_tuple:
                 continue
-            self.con_lists[ref_names].clean_in_par(par_data)
-            if self.con_lists[ref_names].num_cons() == 0:
-                del self.con_lists[ref_names]
+            self.con_lists[ref_name_tuple].clean_in_par(par_data)
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
+    def set_non_par_hap_tuple_male(self, par_data):
+        for ref_name_tuple in self.con_lists.keys():
+            if par_data.get_x_name() not in ref_name_tuple and par_data.get_y_name() not in ref_name_tuple:
+                continue
+            self.con_lists[ref_name_tuple].set_non_par_hap_tuple_male(par_data)
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
         self.is_sorted = False
     def dedup(self, max_distance):
-        for ref_names in self.con_lists.keys():
-            sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(self.con_lists[ref_names].num_cons()) + " putative contacts\n")
-            self.con_lists[ref_names].dedup(max_distance)
+        for ref_name_tuple in self.con_lists.keys():
+            sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " putative contacts\n")
+            self.con_lists[ref_name_tuple].dedup(max_distance)
         self.is_sorted = True
     def apply_regs(self, inc_regs, exc_regs):
-        for ref_names in self.con_lists.keys():
-            self.con_lists[ref_names].apply_regs(inc_regs, exc_regs)
-            if self.con_lists[ref_names].num_cons() == 0:
-                del self.con_lists[ref_names]
+        for ref_name_tuple in self.con_lists.keys():
+            self.con_lists[ref_name_tuple].apply_regs(inc_regs, exc_regs)
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
     def num_cons(self):
         num_cons = 0
         for con_list in self.con_lists.values():
@@ -658,7 +676,7 @@ class ConData:
  
                          
     def to_string(self): # no tailing new line
-        return "\n".join([self.con_lists[ref_names].to_string() for ref_names in sorted(self.con_lists.keys())])
+        return "\n".join([self.con_lists[ref_name_tuple].to_string() for ref_name_tuple in sorted(self.con_lists.keys())])
 
 def file_to_con_data(con_file):
     con_data = ConData()
@@ -703,8 +721,8 @@ class DupConList(ConList):
 class DupConData(ConData):
     def __init__(self, con_data):
         ConData.__init__(self)
-        for ref_names in con_data.con_lists.keys():
-            self.con_lists[ref_names] = DupConList(con_data.con_lists[ref_names])
+        for ref_name_tuple in con_data.con_lists.keys():
+            self.con_lists[ref_name_tuple] = DupConList(con_data.con_lists[ref_name_tuple])
             
     def dup_stats(self, display_max_num_dups):
         hist_num_dups = [0] * display_max_num_dups
@@ -714,8 +732,8 @@ class DupConData(ConData):
                 hist_num_dups[i] += list_hist_num_dups[i]
         return hist_num_dups
         
-    def add_empty_con_list(self, ref_names):
-        self.con_lists[ref_names] = DupConList()
+    def add_empty_con_list(self, ref_name_tuple):
+        self.con_lists[ref_name_tuple] = DupConList()
         
 # print a histogram of counts to a string
 def counts_to_hist_num_with_zero(counts):
@@ -810,6 +828,11 @@ class ParData:
         return self.x_name
     def get_y_name(self):
         return self.y_name
+    def set_non_par_leg_haplotype_male(self, leg):
+        if leg.get_ref_name() == self.x_name:
+            leg.set_haplotype(Haplotypes.maternal)
+        elif leg.get_ref_name() == self.y_name:
+            leg.set_haplotype(Haplotypes.paternal)
     def contain_leg(self, leg):
         for par in self.pars:
             if par.contain_leg(leg):
