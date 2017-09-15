@@ -48,7 +48,7 @@ def impute(argv):
         sys.stderr.write("  -f FLOAT   min vote fraction for the major haplotypes [" + str(min_impute_vote_fraction) + "]\n")
         sys.stderr.write("  -D INT     max distance (bp, L-1/2 norm) for removing isolated contacts [" + str(max_clean_distance) + "]\n")
         sys.stderr.write("  -C INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n")
-        sys.stderr.write("  -p STR     presets for PARs (not needed if female) and sex: [f]\n")
+        sys.stderr.write("  -p STR     presets for PARs and sex: [f]\n")
         for preset in sorted(presets.keys()):
             sys.stderr.write("               " + preset + " = " + preset_descriptions[preset] + "\n")
         return 1
@@ -74,12 +74,16 @@ def impute(argv):
     # read CON file
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
     con_data = file_to_con_data(con_file)
-    original_num_cons = con_data.num_cons()
-    sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
-    # pass 1:
+    # preprocess for male
+    if is_male:
+        # discard all contacts in PARs
+        con_data.clean_in_par(par_data)
     
-    # pass 2:
+
+    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    sys.stdout.write(con_data.to_string()+"\n")
 
     
     return 0

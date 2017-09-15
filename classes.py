@@ -377,6 +377,8 @@ class Con:
     def set_haps(self, haps):
         for i in range(2):
             self.legs[i].set_hap(haps[i])
+    def in_par(self, par_data):
+        return par_data.contain_leg(self.legs[0]) or par_data.contain_leg(self.legs[1])
     
     def sort_legs(self):
         self.legs.sort()
@@ -500,6 +502,10 @@ class ConList:
         self.cons[:] = [con for con in self.cons if not con.is_isolated(con_data, max_clean_distance, min_clean_count)]
     def test_isolated(self, con_data, max_clean_distance, min_clean_count):
         return [con.test_isolated(con_data, max_clean_distance, min_clean_count) for con in self.cons]
+    # remove contacts in PARs
+    def clean_in_par(self, par_data):
+        self.cons[:] = [con for con in self.cons if not con.in_par(par_data)]
+
         
     # simple dedup within a read (no binary search), assuming the same chromosome
     def dedup_within_read(self, max_distance):
@@ -607,6 +613,13 @@ class ConData:
             neighbor_counts.extend(self.con_lists[ref_names].test_isolated(con_data, max_clean_distance, min_clean_count))
             sys.stderr.write("[M::" + __name__ + "] tested isolated contacts for chromosome pair (" + ref_names_to_string(ref_names) + "): " + str(original_num_cons) + " contacts\n")
         return neighbor_counts
+    def clean_in_par(self, par_data):
+        for ref_names in self.con_lists.keys():
+            if par_data.get_x_name() not in ref_names and par_data.get_y_name() not in ref_names:
+                continue
+            self.con_lists[ref_names].clean_in_par(par_data)
+            if self.con_lists[ref_names].num_cons() == 0:
+                del self.con_lists[ref_names]
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
@@ -734,7 +747,7 @@ class Reg:
         self.has_start = True
         self.start = start
     def add_end(self, end):
-        self.has_start = True
+        self.has_end = True
         self.end = end
     def to_string(self):
         return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])
@@ -759,6 +772,8 @@ class Par:
         self.y_reg = Reg(x_name)
         self.y_reg.add_start(self.y_start)
         self.y_reg.add_end(self.y_start + self.x_end - self.x_start)
+    def contain_leg(self, leg):
+        return leg.in_reg(self.x_reg) or leg.in_reg(self.y_reg)
     def compatible_par_legs_male(self, leg):
         if leg.in_reg(self.x_reg):
             if leg.get_haplotype() == Haplotypes.paternal:
@@ -795,6 +810,11 @@ class ParData:
         return self.x_name
     def get_y_name(self):
         return self.y_name
+    def contain_leg(self, leg):
+        for par in self.pars:
+            if par.contain_leg(leg):
+                return True
+        return False
     def compatible_legs_male(self, leg):
         for par in self.pars:
             legs = par.compatible_par_legs_male(leg)
