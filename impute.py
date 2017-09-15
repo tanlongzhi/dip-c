@@ -81,11 +81,10 @@ def impute(argv):
         # discard all contacts in PARs
         con_data.clean_in_par(par_data)
         # set haplotypes for all the remaining X (mat) or Y (pat) contacts
-        con_data.set_non_par_hap_tuple_male(par_data)
+        #con_data.set_non_par_hap_tuple_male(par_data)
         
     # impute singly phased contacts
-    for con in con_data.get_cons():
-        con.compatible_hap_tuples()
+            
         
     # impute doubly phased, inter-chromosomal contacts
     

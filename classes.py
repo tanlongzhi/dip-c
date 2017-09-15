@@ -229,16 +229,14 @@ class Leg:
     def in_y(self, par_data):
         return self.ref_name == par_data.get_y_name()
             
-    # a list of compatible phased legs
-    def compatible_haps(self):
-        return [haplotype for haplotype in ([self.haplotype] if self.is_phased() else known_haplotypes())]        
+    # a list of compatible phased legs   
     def compatible_legs_female(self):
-        return [Leg(self.ref_name, self.ref_locus, haplotype) for haplotype in self.compatible_haps()]
+        return [Leg(self.ref_name, self.ref_locus, haplotype) for haplotype in ([self.haplotype] if self.is_phased() else known_haplotypes())]
     def compatible_legs_male(self, par_data):
         return par_data.compatible_legs_male(self)
     def compatible_legs(self, is_male, par_data):
-        return self.compatible_legs_male(par_data) if is_male else self.compatible_legs_female()
-        
+        return self.compatible_legs_male(par_data) if is_male else self.compatible_legs_female()        
+           
     def is_phased(self):
         return is_known_haplotype(self.haplotype)
     def is_conflict(self):
@@ -375,17 +373,15 @@ class Con:
     def ref_name_tuple(self):
         return tuple([leg.get_ref_name() for leg in self.legs])
     def hap_tuple(self):
-        return tuple([leg.get_hap() for leg in self.legs])
-    def compatible_hap_tuples(self):
-        print self.to_string(), [(haplotype_1, haplotype_2) for haplotype_1 in self.legs[0].compatible_haps() for haplotype_2 in self.legs[1].compatible_haps()]
-        return [(haplotype_1, haplotype_2) for haplotype_1 in self.legs[0].compatible_haps() for haplotype_2 in self.legs[1].compatible_haps()]
+        return tuple([leg.get_haplotype() for leg in self.legs])
+    def compatible_cons(self, is_male, par_data):
+        return [Con(leg_1, leg_2) for leg_1 in self.legs[0].compatible_legs(is_male, par_data) for leg_2 in self.legs[1].compatible_legs(is_male, par_data)]
+    def compatible_hap_tuples(self, is_male, par_data):
+        return [con.hap_tuple() for con in self.compatible_cons(is_male, par_data)]
         
     def set_hap_tuple(self, hap_tuple):
         for i in range(2):
             self.legs[i].set_haplotype(hap_tuple[i])
-    def set_non_par_hap_tuple_male(self, par_data):
-        for i in range(2):
-            par_data.set_non_par_leg_haplotype_male(self.legs[i])
     def in_par(self, par_data):
         return par_data.contain_leg(self.legs[0]) or par_data.contain_leg(self.legs[1])
     
@@ -514,10 +510,6 @@ class ConList:
     # remove contacts in PARs
     def clean_in_par(self, par_data):
         self.cons[:] = [con for con in self.cons if not con.in_par(par_data)]
-    # set haplotypes non-PARs of X (mat) and Y (pat)
-    def set_non_par_hap_tuple_male(self, par_data):
-        for con in self.cons:
-            con.set_non_par_hap_tuple_male(par_data)
 
         
     # simple dedup within a read (no binary search), assuming the same chromosome
@@ -633,11 +625,7 @@ class ConData:
             self.con_lists[ref_name_tuple].clean_in_par(par_data)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
-    def set_non_par_hap_tuple_male(self, par_data):
-        for ref_name_tuple in self.con_lists.keys():
-            if par_data.get_x_name() not in ref_name_tuple and par_data.get_y_name() not in ref_name_tuple:
-                continue
-            self.con_lists[ref_name_tuple].set_non_par_hap_tuple_male(par_data)
+
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
@@ -828,11 +816,6 @@ class ParData:
         return self.x_name
     def get_y_name(self):
         return self.y_name
-    def set_non_par_leg_haplotype_male(self, leg):
-        if leg.get_ref_name() == self.x_name:
-            leg.set_haplotype(Haplotypes.maternal)
-        elif leg.get_ref_name() == self.y_name:
-            leg.set_haplotype(Haplotypes.paternal)
     def contain_leg(self, leg):
         for par in self.pars:
             if par.contain_leg(leg):
