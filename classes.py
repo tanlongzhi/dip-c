@@ -475,7 +475,15 @@ class Con:
             if num_neighbors >= min_clean_count + 1: # assume con is included in ConData, thus plus 1
                 break
         return num_neighbors - 1
-    
+    def is_isolated_phased(self, con_data, max_clean_distance, min_clean_count):
+        num_neighbors = 0
+        for con in con_data.get_cons_near(self, max_clean_distance):
+            if self.hap_tuple() != con.hap_tuple():
+                continue # count only if hap_tuples match
+            num_neighbors += 1
+            if num_neighbors >= min_clean_count + 1: # assume con is included in ConData, thus plus 1
+                return False
+        return True
             
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
@@ -592,6 +600,12 @@ class ConList:
         for con in self.cons:
             con.impute_from_con_data(con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation)
         self.clean_separation_hom(min_inter_hom_separation)
+    # remove everything but fully phased contacts
+    def clean_unphased(self):
+        self.cons[:] = [con for con in self.cons if con.num_phased_legs() == 2]
+    # remove isolated contacts for fully phased contacts
+    def clean_isolated_phased(self, con_data, max_clean_distance, min_clean_count):
+        self.cons[:] = [con for con in self.cons if not con.is_isolated_phased(con_data, max_clean_distance, min_clean_count)]
             
 
         
@@ -705,6 +719,18 @@ class ConData:
             self.con_lists[ref_name_tuple].clean_in_par(par_data)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
+    def clean_unphased(self):
+        for ref_name_tuple in self.con_lists.keys():
+            self.con_lists[ref_name_tuple].clean_unphased()
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
+    def clean_isolated_phased(self, con_data, max_clean_distance, min_clean_count):
+        for ref_name_tuple in self.con_lists.keys():
+            original_num_cons = self.con_lists[ref_name_tuple].num_cons()
+            self.con_lists[ref_name_tuple].clean_isolated_phased(con_data, max_clean_distance, min_clean_count)
+            #sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
+            if self.con_lists[ref_name_tuple].num_cons() == 0:
+                del self.con_lists[ref_name_tuple]
     def set_non_par_hap_tuple_male(self, par_data):
         for ref_name_tuple in self.con_lists.keys():
             if par_data.get_x_name() not in ref_name_tuple and par_data.get_y_name() not in ref_name_tuple:
@@ -713,7 +739,7 @@ class ConData:
     def impute_from_con_data(self, con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation):
         for ref_name_tuple in self.con_lists.keys():
             self.con_lists[ref_name_tuple].impute_from_con_data(con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
-            sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
+            #sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)

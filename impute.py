@@ -6,6 +6,7 @@ from classes import ConData, file_to_con_data, Leg, Par, ParData
 
 def impute(argv):
     # default parameters
+    num_rounds = 3
     max_impute_distance = 10000000
     min_impute_votes = 3
     min_impute_vote_fraction = 0.9
@@ -39,7 +40,7 @@ def impute(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "d:v:f:D:C:p:")
+        opts, args = getopt.getopt(argv[1:], "d:v:f:D:C:p:r:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -51,6 +52,7 @@ def impute(argv):
         sys.stderr.write("  -f FLOAT   min vote fraction for the major haplotypes [" + str(min_impute_vote_fraction) + "]\n\n")
         sys.stderr.write("  -s INT     max separation (bp) for assuming intra-homologous contacts [" + str(max_intra_hom_separation) + "]\n")
         sys.stderr.write("  -S INT     min separation (bp) for allowing inter-homologous contacts [" + str(min_inter_hom_separation) + "]\n\n")
+        sys.stderr.write("  -r INT     num of rounds of imputing partially phased contacts [" + str(num_rounds) + "]\n\n")
         sys.stderr.write("  -D INT     max distance (bp, L-1/2 norm) for removing isolated contacts [" + str(max_clean_distance) + "]\n")
         sys.stderr.write("  -C INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n\n")
         sys.stderr.write("  -p STR     presets for PARs and sex: [f]\n")
@@ -64,6 +66,8 @@ def impute(argv):
             min_impute_votes = int(a)
         elif o == "-f":
             min_impute_vote_fraction = float(a)
+        elif o == "-r":
+            num_rounds = int(a)
         elif o == "-D":
             max_clean_distance = int(a)
         elif o == "-C":
@@ -100,13 +104,19 @@ def impute(argv):
     sys.stderr.write("[M::" + __name__ + "] found " + str(some_phased_con_data.num_cons()) + " phased or partly phased contacts\n")
             
     # pass 1: impute A with A
-    sys.stderr.write("[M::" + __name__ + "] pass 1: imputing partly phased contacts\n")
-    some_phased_con_data.sort_cons()
-    some_phased_con_data.impute_from_con_data(copy.deepcopy(some_phased_con_data), max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
-    sys.stderr.write("[M::" + __name__ + "] pass 1 done: imputed " + str(some_phased_con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * some_phased_con_data.num_phased_cons() / some_phased_con_data.num_cons(), 2)) + "% of phased or partly phased contacts)\n")
+    for round_id in range(num_rounds):
+        sys.stderr.write("[M::" + __name__ + "] pass 1 round " + str(round_id + 1) + ": imputing partly phased contacts\n")
+        some_phased_con_data.sort_cons()
+        some_phased_con_data.impute_from_con_data(copy.deepcopy(some_phased_con_data), max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
+        sys.stderr.write("[M::" + __name__ + "] pass 1 round " + str(round_id + 1) + " done: imputed " + str(some_phased_con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * some_phased_con_data.num_phased_cons() / some_phased_con_data.num_cons(), 2)) + "% of all phased or partly phased contacts)\n")
     
-    
-
+    # pass 2: clean imputed A
+    some_phased_con_data.clean_unphased()
+    pass_1_num_cons = some_phased_con_data.num_cons()
+    some_phased_con_data.clean_isolated_phased(copy.deepcopy(some_phased_con_data), max_clean_distance, min_clean_count)
+    pass_2_num_cons = some_phased_con_data.num_cons()
+    sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / pass_1_num_cons, 2)) + "%)\n")
+        
     # write output
     con_data = ConData()
     for con in some_phased_con_data.get_cons():
