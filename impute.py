@@ -1,6 +1,7 @@
 import sys
 import getopt
 import gzip
+import copy
 from classes import ConData, file_to_con_data, Leg, Par, ParData
 
 def impute(argv):
@@ -80,22 +81,39 @@ def impute(argv):
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
-    # if male, discard all contacts in PARs
     if is_male:
+        # discard all contacts in PARs
         con_data.clean_in_par(par_data)
+        # set haplotypes for all the remaining X (mat) or Y (pat) contacts
+        con_data.set_non_par_hap_tuple_male(par_data)
+    sys.stderr.write("[M::" + __name__ + "] removed PARs for male, leaving " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
             
-    # impute
-    informative_con_data = ConData()
+    # find two subsets: A. phased or partly phased; B. completely unphased, inter-chromosomal
+    no_phased_inter_chr_con_data = ConData()
+    some_phased_con_data = ConData()
     for con in con_data.get_cons():
-        if len(con.compatible_cons(is_male, par_data)) == 4:
-            continue # fully unphased contacts are not informative
-        informative_con_data.add_con(con)
-    informative_con_data.sort_cons()
-    sys.stderr.write("[M::" + __name__ + "] pass 1: extracted " + str(informative_con_data.num_cons()) + " informative contacts\n")
-    con_data.impute_from_con_data(informative_con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, is_male, par_data)
+        if con.num_phased_legs() > 0:
+            some_phased_con_data.add_con(con)
+        elif not con.is_intra_chr():
+            no_phased_inter_chr_con_data.add_con(con)
+    sys.stderr.write("[M::" + __name__ + "] found " + str(no_phased_inter_chr_con_data.num_cons()) + " completely unphased, inter-chromosomal contacts\n")
+    sys.stderr.write("[M::" + __name__ + "] found " + str(some_phased_con_data.num_cons()) + " phased or partly phased contacts\n")
+            
+    # pass 1: impute A with A
+    sys.stderr.write("[M::" + __name__ + "] pass 1: imputing partly phased contacts\n")
+    some_phased_con_data.sort_cons()
+    some_phased_con_data.impute_from_con_data(copy.deepcopy(some_phased_con_data), max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
+    sys.stderr.write("[M::" + __name__ + "] pass 1 done: imputed " + str(some_phased_con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * some_phased_con_data.num_phased_cons() / some_phased_con_data.num_cons(), 2)) + "% of phased or partly phased contacts)\n")
+    
+    
 
+    # write output
+    con_data = ConData()
+    for con in some_phased_con_data.get_cons():
+        if con.num_phased_legs() == 2:
+            con_data.add_con(con)
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
-    #sys.stdout.write(con_data.to_string()+"\n")
+    sys.stdout.write(con_data.to_string()+"\n")
 
     
     return 0

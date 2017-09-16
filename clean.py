@@ -1,6 +1,7 @@
 import sys
 import getopt
 import gzip
+import copy
 from classes import ConData, file_to_con_data, LegData, counts_to_hist_num_with_zero, hist_num_to_string_with_zero, Leg
 
 def clean(argv):
@@ -62,16 +63,13 @@ def clean(argv):
     # pass 2: remove isolated contacts
     con_data.sort_cons()
     sys.stderr.write("[M::" + __name__ + "] pass 2: sorted " + str(pass_1_num_cons) + " contacts\n")
-    pass_1_con_data = ConData()
-    pass_1_con_data.copy_from(con_data)
-    pass_1_con_data.sort_cons()
     if test_mode:
-        neighbor_counts = con_data.test_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
+        neighbor_counts = con_data.test_isolated(copy.deepcopy(con_data), max_clean_distance, min_clean_count)
         sys.stderr.write("[M::" + __name__ + "] pass 2 test done. statistics:\n")
         sys.stderr.write("#neighbors\t#cons\n")
         sys.stderr.write(hist_num_to_string_with_zero(counts_to_hist_num_with_zero(neighbor_counts)) + "\n")
     else:
-        con_data.clean_isolated(pass_1_con_data, max_clean_distance, min_clean_count)
+        con_data.clean_isolated(copy.deepcopy(con_data), max_clean_distance, min_clean_count)
         pass_2_num_cons = con_data.num_cons()
         sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / original_num_cons, 2)) + "%)\n")
         sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
