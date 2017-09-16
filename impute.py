@@ -104,11 +104,20 @@ def impute(argv):
     sys.stderr.write("[M::" + __name__ + "] found " + str(some_phased_con_data.num_cons()) + " phased or partly phased contacts\n")
             
     # pass 1: impute A with A
+    some_phased_con_data.sort_cons()
+    evidence_con_data = copy.deepcopy(some_phased_con_data)
     for round_id in range(num_rounds):
+        target_con_data = copy.deepcopy(some_phased_con_data) # always use the original as the target of imputation
         sys.stderr.write("[M::" + __name__ + "] pass 1 round " + str(round_id + 1) + ": imputing partly phased contacts\n")
-        some_phased_con_data.sort_cons()
-        some_phased_con_data.impute_from_con_data(copy.deepcopy(some_phased_con_data), max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
-        sys.stderr.write("[M::" + __name__ + "] pass 1 round " + str(round_id + 1) + " done: imputed " + str(some_phased_con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * some_phased_con_data.num_phased_cons() / some_phased_con_data.num_cons(), 2)) + "% of all phased or partly phased contacts)\n")
+        
+        # impute
+        evidence_con_data.sort_cons()
+        target_con_data.impute_from_con_data(evidence_con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
+        
+        sys.stderr.write("[M::" + __name__ + "] pass 1 round " + str(round_id + 1) + " done: imputed " + str(target_con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * target_con_data.num_phased_cons() / target_con_data.num_cons(), 2)) + "% of all phased or partly phased contacts)\n")
+        evidence_con_data = target_con_data # use the result of imputation to refine the original in the next round
+        
+    some_phased_con_data = target_con_data
     
     # pass 2: clean imputed A
     some_phased_con_data.clean_unphased()
