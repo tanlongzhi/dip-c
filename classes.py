@@ -1059,6 +1059,8 @@ class G3dParticle:
         return (self.ref_name, self.haplotype, self.ref_locus) == (other.ref_name, other.haplotype, other.ref_locus)
     def __lt__(self, other):
         return (self.ref_name, self.haplotype, self.ref_locus) < (other.ref_name, other.haplotype, other.ref_locus)
+    def __repr__(self):
+        return self.to_string()
     def to_string(self):
         return "\t".join([ref_name_haplotype_to_hom_name(self.ref_name, self.haplotype), str(self.ref_locus)] + map(str, self.position))
     def get_ref_name(self):
@@ -1077,6 +1079,8 @@ class G3dParticle:
         return self.position[2]
     def ref_name_haplotype(self):
         return (self.ref_name, self.haplotype)
+    def hom_name(self):
+        return ref_name_haplotype_to_hom_name(self.ref_name, self.haplotype)
         
 def string_to_g3d_particle(g3d_particle_string):
     hom_name, ref_locus, x, y, z = g3d_particle_string.split("\t")
@@ -1120,6 +1124,15 @@ class G3dList:
     
     def clean_leg_poor(self, leg_data, max_distance, min_leg_count):
         self.g3d_particles[:] = [g3d_particle for g3d_particle in self.g3d_particles if not leg_data.is_g3d_particle_leg_poor(g3d_particle, max_distance, min_leg_count)]
+
+    def get_g3d_particles(self):
+        for g3d_particle in self.g3d_particles:
+            yield g3d_particle
+    def get_adjacent_g3d_particle_tuples(self, resolution): # assume sorted
+        for i in range(len(self.g3d_particles) - 1):
+            g3d_particle_tuple = (self.g3d_particles[i], self.g3d_particles[i + 1])
+            if g3d_particle_tuple[1].get_ref_locus() - g3d_particle_tuple[0].get_ref_locus() == resolution:
+                yield g3d_particle_tuple
 
 class G3dData:
     def __init__(self):
@@ -1169,6 +1182,14 @@ class G3dData:
     def clean_leg_poor(self, leg_data, max_distance, min_leg_count):
         for g3d_list in self.g3d_lists.values():
             g3d_list.clean_leg_poor(leg_data, max_distance, min_leg_count)
+    def get_g3d_particles(self):
+        for ref_name_haplotype in sorted(self.g3d_lists.keys()):
+            for g3d_particle in self.g3d_lists[ref_name_haplotype].get_g3d_particles():
+                yield g3d_particle
+    def get_adjacent_g3d_particle_tuples(self, resolution): # assume sorted
+        for ref_name_haplotype in sorted(self.g3d_lists.keys()):
+            for g3d_particle_tuple in self.g3d_lists[ref_name_haplotype].get_adjacent_g3d_particle_tuples(resolution):
+                yield g3d_particle_tuple
     def to_string(self):
         return "\n".join([self.g3d_lists[ref_name_haplotype].to_string() for ref_name_haplotype in sorted(self.g3d_lists.keys())])
 

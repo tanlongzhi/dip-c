@@ -15,6 +15,7 @@ def main():
         sys.stderr.write("  impute   impute missing haplotypes in a CON file\n")
         sys.stderr.write("  impute3  impute missing haplotypes in a CON file based on a 3DG file\n")
         sys.stderr.write("  clean3   remove contact-poor particles (e.g. centromeres) from a 3DG file\n")
+        sys.stderr.write("  vis      visualize a 3DG file into mmCIF format, and color particles\n")
         return 1
     start_time = time.time()
     if sys.argv[1] == "seg":
@@ -41,6 +42,9 @@ def main():
     elif sys.argv[1] == "clean3":
         import clean3
         return_value = clean3.clean3(sys.argv[1:])
+    elif sys.argv[1] == "vis":
+        import vis
+        return_value = vis.vis(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
