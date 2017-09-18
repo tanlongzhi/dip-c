@@ -477,7 +477,7 @@ def calc_genome_structure(ncc_file_path, pdb_file_path, general_calc_params, ann
   chromosomes, chromo_limits, contact_dict = load_ncc_file(ncc_file_path)
 
   # Only use contacts which are supported by others nearby in sequence, in the initial instance
-  remove_isolated_contacts(contact_dict, threshold=isolation_threshold)
+  #remove_isolated_contacts(contact_dict, threshold=isolation_threshold)
 
   # Initial coords will be random
   start_coords = None
