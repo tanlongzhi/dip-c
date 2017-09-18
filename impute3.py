@@ -47,7 +47,9 @@ def impute3(argv):
         sys.stderr.write("Usage: metac impute3 [options] -3 <in.3dg> [-v <out.vio>] <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -3 <in.3dg>    3D genome file for imputing haplotypes (required)\n")
-        sys.stderr.write("  -v <out.vio>   output statistics to a contact violation file\n\n")
+        sys.stderr.write("  -v <out.vio>   output statistics to a contact violation file:\n")
+        sys.stderr.write("                   tab-delimited: leg 1, leg 2, num of compatible haplotypes,\n")
+        sys.stderr.write("                   shortest 3D distance, ratio between the shortest and the 2nd shortest distance\n\n")
         sys.stderr.write("  -d FLOAT       max 3D distance for imputing haplotypes [" + str(max_impute3_distance) + "]\n")
         sys.stderr.write("  -r FLOAT       max ratio between 3D distances for the best and 2nd best haplotypes [" + str(max_impute3_ratio) + "]\n")
         sys.stderr.write("  -s FLOAT       min separation (unit: 3D genome resolution) for imputing\n")
@@ -80,7 +82,7 @@ def impute3(argv):
             except KeyError:
                 sys.stderr.write("[E::" + __name__ + "] unknown preset\n")
                 return 1   
-    if g3d_file_name == None:
+    if g3d_file_name is None:
         sys.stderr.write("[E::" + __name__ + "] -3 is required\n")
         return 1
         
@@ -89,20 +91,28 @@ def impute3(argv):
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + str(g3d_resolution) + " bp resolution\n")
-    
+    g3d_data.prepare_interpolate()
                             
     # read CON file
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
-    #con_data = file_to_con_data(con_file)
-    #sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    con_data = file_to_con_data(con_file)
+    sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
+    # impute3
+    con_data.impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, max_impute3_ratio * g3d_resolution, is_male, par_data)
+    sys.stderr.write("[M::" + __name__ + "] imputed " + str(con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * con_data.num_phased_cons() / con_data.num_cons(), 2)) + "%)\n")
     
+    # clean imputed
+    con_data.sort_cons()
+    con_data.clean_unphased()
+    before_clean_num_cons = con_data.num_cons()
+    con_data.clean_isolated_phased(copy.deepcopy(con_data), max_clean_distance, min_clean_count)
+    after_clean_num_cons = con_data.num_cons()
+    sys.stderr.write("[M::" + __name__ + "] removed " + str(before_clean_num_cons - after_clean_num_cons) + " isolated contacts (" + str(round(100.0 * (before_clean_num_cons - after_clean_num_cons) / before_clean_num_cons, 2)) + "%)\n")
     
     # write output
-    #con_data = some_phased_con_data
-    #sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     #sys.stdout.write(con_data.to_string()+"\n")
-
     
     return 0
     

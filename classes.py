@@ -4,7 +4,9 @@ from functools import total_ordering
 import math
 from collections import Counter
 from scipy import interpolate
+from scipy import spatial
 import numpy as np
+import copy
 
 
 # enum for haplotypes
@@ -243,6 +245,8 @@ class Leg:
         return self.ref_name == par_data.get_x_name()
     def in_y(self, par_data):
         return self.ref_name == par_data.get_y_name()
+    def ref_name_haplotype(self):
+        return (self.ref_name, self.haplotype)
             
     # a list of compatible haplotypes for imputation
     def compatible_haps(self):
@@ -376,6 +380,8 @@ class Con:
         return (self.legs[0], self.legs[1]) < (other.legs[0], other.legs[1])
     def __hash__(self):
         return hash((self.legs[0], self.legs[1]))
+    def deep_copy_from_con(self, other):
+        self.legs = copy.deepcopy(other.legs)
     
     def leg_1(self):
         return self.legs[0]
@@ -404,31 +410,73 @@ class Con:
     def compatible_cons(self, is_male, par_data):
         return [Con(leg_1, leg_2) for leg_1 in self.legs[0].compatible_legs(is_male, par_data) for leg_2 in self.legs[1].compatible_legs(is_male, par_data)]
         
-    # impute based on nearby contacts in a ConData, return a list of voted contacts
+    ## impute based on nearby contacts in a ConData
     def votes_from_con_data(self, con_data, max_impute_distance):
         compatible_hap_tuples = self.compatible_hap_tuples()
         voted_hap_tuples = []
         for con in con_data.get_cons_near(self, max_impute_distance):
             voted_hap_tuple = vote_from_hap_tuples(compatible_hap_tuples, con.compatible_hap_tuples())
-            if voted_hap_tuple != None:
+            if not voted_hap_tuple is None:
                 voted_hap_tuples.append(voted_hap_tuple)
         return voted_hap_tuples
     def set_hap_tuple_from_votes(self, voted_hap_tuples, min_impute_votes, min_impute_vote_fraction):
         hap_tuple = winning_vote(voted_hap_tuples, min_impute_votes, min_impute_vote_fraction)
-        if hap_tuple != None:
+        if not hap_tuple is None:
             self.set_hap_tuple(hap_tuple)
     def impute_from_con_data(self, con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation):
         if self.num_phased_legs() == 2:
             # already phased
             return
-        elif self.num_phased_legs() == 1 and self.is_intra_chr() and self.separation() <= max_intra_hom_separation:
+        if self.num_phased_legs() == 1 and self.is_intra_chr() and self.separation() <= max_intra_hom_separation:
             # assume intra-homologous
             if self.legs[0].is_phased():
                 self.legs[1].set_haplotype(self.legs[0].get_haplotype())
             else:
                 self.legs[0].set_haplotype(self.legs[1].get_haplotype())
-        else:
-            self.set_hap_tuple_from_votes(self.votes_from_con_data(con_data, max_impute_distance), min_impute_votes, min_impute_vote_fraction)
+            return
+        self.set_hap_tuple_from_votes(self.votes_from_con_data(con_data, max_impute_distance), min_impute_votes, min_impute_vote_fraction)
+        
+    ## impute based on 3D structure in a G3dData
+    # for a fully phased contact, return whether both legs are out of bounds, and the 3D distance between the two legs
+    def distance_in_g3d_data(self, g3d_data):
+        is_leg_1_out, leg_1_position = g3d_data.interpolate_leg(self.legs[0])
+        is_leg_2_out, leg_2_position = g3d_data.interpolate_leg(self.legs[1])
+        is_both_out = is_leg_1_out and is_leg_2_out
+        if leg_1_position is None or leg_2_position is None:
+            return True, None
+        distance = spatial.distance.euclidean(leg_1_position, leg_2_position)
+        return is_both_out, distance    
+    
+    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data):
+        compatible_cons = self.compatible_cons(is_male, par_data)
+        num_compatible_cons = len(compatible_cons)
+        if num_compatible_cons == 1:
+            # already phased (copy in case of X and Y)
+            self.deep_copy_from_con(compatible_cons[0])
+            return
+        if num_compatible_cons == 4 and self.is_intra_chr() and self.separation() < min_impute3_separation:
+            # too close and completely unphased, cannot impute
+            return
+        con_distance_tuples = []
+        any_is_both_out = False
+        for con in compatible_cons:
+            is_both_out, distance = con.distance_in_g3d_data(g3d_data)
+            if is_both_out:
+                any_is_both_out = True
+            con_distance_tuples.append((con, distance))
+        
+        if self.is_intra_chr() and any_is_both_out:
+            # intra-chromosomal, and both legs are out of range (in any of the compatible), cannot impute (this does not work for CNV loss)
+            return
+            
+        # core imputation
+        con_distance_tuples.sort(key=lambda x:x[1])
+        impute3_con, impute3_distance = con_distance_tuples[0]
+        impute3_ratio = impute3_distance / con_distance_tuples[1][1]
+        #if not vio_file is None:
+            #vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), str(impute3_distance), str(impute3_ratio]) + "\n")
+        if impute3_distance <= max_impute3_distance and impute3_ratio <= max_impute3_ratio:
+            self.deep_copy_from_con(impute3_con)
         
         
     def set_hap_tuple(self, hap_tuple):
@@ -616,7 +664,10 @@ class ConList:
     # remove isolated contacts for fully phased contacts
     def clean_isolated_phased(self, con_data, max_clean_distance, min_clean_count):
         self.cons[:] = [con for con in self.cons if not con.is_isolated_phased(con_data, max_clean_distance, min_clean_count)]
-            
+    # impute3
+    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data):
+        for con in self.cons:
+            con.impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data)
 
         
     # simple dedup within a read (no binary search), assuming the same chromosome
@@ -750,6 +801,10 @@ class ConData:
         for ref_name_tuple in self.con_lists.keys():
             self.con_lists[ref_name_tuple].impute_from_con_data(con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
             #sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
+    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data):
+        for ref_name_tuple in self.con_lists.keys():
+            self.con_lists[ref_name_tuple].impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data)
+            sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts (" + str(round(100.0 * self.con_lists[ref_name_tuple].num_phased_cons() / self.con_lists[ref_name_tuple].num_cons(), 2)) + "% phased)\n")
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
@@ -958,7 +1013,7 @@ class ParData:
     def compatible_legs_male(self, leg):
         for par in self.pars:
             legs = par.compatible_par_legs_male(leg)
-            if legs != None:
+            if not legs is None:
                 return legs
         if leg.get_ref_name() == self.x_name:
             return [Leg(self.x_name, leg.get_ref_locus(), Haplotypes.maternal)]
@@ -1050,6 +1105,13 @@ class G3dData:
         ref_locus_increments_counter = Counter(self.ref_locus_increments())
         ref_locus_increment = ref_locus_increments_counter.most_common(1)[0][0]
         return ref_locus_increment
+        
+    # linear interpolation, return whether out of bounds, and position (None if no homologs are found)
+    def interpolate_leg(self, leg):
+        if leg.ref_name_haplotype() in self.g3d_lists:
+            return self.g3d_lists[leg.ref_name_haplotype()].interpolate_ref_locus(leg.get_ref_locus())
+        return True, None
+
         
     # wrappers for G3dList functions:
     def num_g3d_particles(self):

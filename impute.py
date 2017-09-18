@@ -120,11 +120,12 @@ def impute(argv):
     some_phased_con_data = target_con_data
     
     # pass 2: clean imputed A
+    some_phased_con_data.sort_cons()
     some_phased_con_data.clean_unphased()
     pass_1_num_cons = some_phased_con_data.num_cons()
     some_phased_con_data.clean_isolated_phased(copy.deepcopy(some_phased_con_data), max_clean_distance, min_clean_count)
     pass_2_num_cons = some_phased_con_data.num_cons()
-    sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / pass_1_num_cons, 2)) + "%)\n")
+    sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " isolated contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / pass_1_num_cons, 2)) + "%)\n")
 
     # pass 3: impute B with A
     no_phased_inter_chr_con_data.impute_from_con_data(some_phased_con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
