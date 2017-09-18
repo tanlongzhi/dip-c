@@ -309,15 +309,12 @@ def string_to_leg(leg_string):
 class LegList:
     def __init__(self):
         self.legs = []
-        self.is_sorted = True
     def num_legs(self):
         return(len(self.legs))
     def sort_legs(self):
         self.legs.sort()
-        self.is_sorted = True
     def add_leg(self, leg):
         self.legs.append(leg)
-        self.is_sorted = False
     def add_con_data(self, con_data):
         for con in con_data.get_cons():
             self.add_con(con)
@@ -328,14 +325,53 @@ class LegList:
         if index_to_check >= len(self.legs):
             return False
         return self.legs[index_to_check] <= Leg(leg.get_ref_name(), leg.get_ref_locus() + max_leg_distance, Haplotypes.infinity)
-    
+        
+    ## clean3
+    # sort fully phased legs
+    def sort_phased_legs(self):
+        self.legs.sort(key = lambda x:(x.get_ref_name(), x.get_haplotype(), x.get_ref_locus()))
+    # return num of legs near a G3dParticle, assume fully phased and sorted
+    def num_legs_near_g3d_particle(self, g3d_particle, max_distance):
+        # modified from bisect to support key
+        lo = 0
+        hi = len(self.legs)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if (self.legs[mid].get_ref_name(), self.legs[mid].get_haplotype(), self.legs[mid].get_ref_locus()) < (g3d_particle.get_ref_name(), g3d_particle.get_haplotype(), g3d_particle.get_ref_locus() - max_distance):
+                lo = mid + 1
+            else:
+                hi = mid
+        left_index = lo
+        hi = len(self.legs)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if (g3d_particle.get_ref_name(), g3d_particle.get_haplotype(), g3d_particle.get_ref_locus() + max_distance) < (self.legs[mid].get_ref_name(), self.legs[mid].get_haplotype(), self.legs[mid].get_ref_locus()):
+                hi = mid
+            else:
+                lo = mid + 1
+        return lo - left_index
+    def is_g3d_particle_leg_poor(self, g3d_particle, max_distance, min_leg_count):
+        # modified from bisect to support key
+        lo = 0
+        hi = len(self.legs)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if (self.legs[mid].get_ref_name(), self.legs[mid].get_haplotype(), self.legs[mid].get_ref_locus()) < (g3d_particle.get_ref_name(), g3d_particle.get_haplotype(), g3d_particle.get_ref_locus() - max_distance):
+                lo = mid + 1
+            else:
+                hi = mid
+        index_to_check = lo + min_leg_count - 1
+        if index_to_check >= len(self.legs):
+            return True
+        return (g3d_particle.get_ref_name(), g3d_particle.get_haplotype(), g3d_particle.get_ref_locus() + max_distance) < (self.legs[index_to_check].get_ref_name(), self.legs[index_to_check].get_haplotype(), self.legs[index_to_check].get_ref_locus())
+        
+            
     def to_string(self):
         return "\n".join([leg.to_string() for leg in self.legs])
 
 class LegData:
     def __init__(self):
         self.leg_lists = {}
-        self.is_sorted = True
     def num_legs(self):
         num_legs = 0
         for leg_list in self.leg_lists.values():
@@ -347,7 +383,6 @@ class LegData:
         if leg.get_ref_name() not in self.leg_lists:
             self.add_empty_leg_list(leg.get_ref_name())
         self.leg_lists[leg.get_ref_name()].add_leg(leg)
-        self.is_sorted = False
     def add_con(self, con):
         self.add_leg(con.leg_1())
         self.add_leg(con.leg_2())   
@@ -357,12 +392,17 @@ class LegData:
     def sort_legs(self):
         for leg_list in self.leg_lists.values():
             leg_list.sort_legs()
-        self.is_sorted = True
-        
+    def sort_phased_legs(self):
+        for leg_list in self.leg_lists.values():
+            leg_list.sort_phased_legs()
+                
     def is_leg_promiscuous(self, leg, max_leg_distance, max_leg_count):
         return self.leg_lists[leg.get_ref_name()].is_leg_promiscuous(leg, max_leg_distance, max_leg_count)
     
-    
+    def num_legs_near_g3d_particle(self, g3d_particle, max_distance):
+        return self.leg_lists[g3d_particle.get_ref_name()].num_legs_near_g3d_particle(g3d_particle, max_distance)
+    def is_g3d_particle_leg_poor(self, g3d_particle, max_distance, min_leg_count):
+        return self.leg_lists[g3d_particle.get_ref_name()].is_g3d_particle_leg_poor(g3d_particle, max_distance, min_leg_count)
 
     def to_string(self):
         return "\n".join([self.leg_lists[ref_name].to_string() for ref_name in sorted(self.leg_lists.keys())])
@@ -470,7 +510,7 @@ class Con:
             return
             
         # core imputation
-        con_distance_tuples.sort(key=lambda x:x[1])
+        con_distance_tuples.sort(key = lambda x:x[1])
         impute3_con, impute3_distance = con_distance_tuples[0]
         impute3_ratio = impute3_distance / con_distance_tuples[1][1]
         #if not vio_file is None:
@@ -573,7 +613,6 @@ def winning_vote(hap_tuples, min_impute_votes, min_impute_vote_fraction):
 class ConList:
     def __init__(self):
         self.cons = []
-        self.is_sorted = True
     
     # generator for all its contacts
     def get_cons(self):
@@ -621,16 +660,12 @@ class ConList:
                         
     def sort_cons(self):
         self.cons.sort()
-        self.is_sorted = True
     
     def add_con(self, con):
         self.cons.append(con)
-        self.is_sorted = False
     
     def merge_with(self, other):
         self.cons += other.cons
-        if other.num_cons() > 0:
-            self.is_sorted = False
         
     # remove intra-chromosomal contacts with small separations
     def clean_separation(self, min_separation):
@@ -683,7 +718,6 @@ class ConList:
                         break
             if merged == False:
                 break
-        self.is_sorted = False
     
     # faster dedup, assuming the same chromosome
     def dedup(self, max_distance):
@@ -702,7 +736,6 @@ class ConList:
             if merged == False:
                 break
             self.cons[i:j] = sorted(self.cons[i:j])
-        self.is_sorted = True
     
     def apply_regs(self, inc_regs, exc_regs):
         self.cons[:] = [con for con in self.cons if con.satisfy_regs(inc_regs, exc_regs)]
@@ -714,7 +747,6 @@ class ConList:
 class ConData:
     def __init__(self):
         self.con_lists = {}
-        self.is_sorted = True
         
     # generator for all its cons, with ref_name_tuple sorted
     def get_cons(self):
@@ -733,14 +765,11 @@ class ConData:
         if con.ref_name_tuple() not in self.con_lists:
             self.add_empty_con_list(con.ref_name_tuple())
         self.con_lists[con.ref_name_tuple()].add_con(con)
-        self.is_sorted = False
     
     def merge_with(self, other):
         for ref_name_tuple in other.con_lists.keys():
             if ref_name_tuple in self.con_lists:
                 self.con_lists[ref_name_tuple].merge_with(other.con_lists[ref_name_tuple])
-                if not self.con_lists[ref_name_tuple].is_sorted:
-                    self.is_sorted = False
             else:
                 self.con_lists[ref_name_tuple] = other.con_lists[ref_name_tuple]
         
@@ -748,7 +777,6 @@ class ConData:
     def sort_cons(self):
         for con_list in self.con_lists.values():
             con_list.sort_cons()
-        self.is_sorted = True
     def clean_separation(self, min_separation):
         for ref_name_tuple in self.con_lists.keys():
             self.con_lists[ref_name_tuple].clean_separation(min_separation)
@@ -808,12 +836,10 @@ class ConData:
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
-        self.is_sorted = False
     def dedup(self, max_distance):
         for ref_name_tuple in self.con_lists.keys():
             sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " putative contacts\n")
             self.con_lists[ref_name_tuple].dedup(max_distance)
-        self.is_sorted = True
     def apply_regs(self, inc_regs, exc_regs):
         for ref_name_tuple in self.con_lists.keys():
             self.con_lists[ref_name_tuple].apply_regs(inc_regs, exc_regs)
@@ -1035,6 +1061,10 @@ class G3dParticle:
         return (self.ref_name, self.haplotype, self.ref_locus) < (other.ref_name, other.haplotype, other.ref_locus)
     def to_string(self):
         return "\t".join([ref_name_haplotype_to_hom_name(self.ref_name, self.haplotype), str(self.ref_locus)] + map(str, self.position))
+    def get_ref_name(self):
+        return self.ref_name
+    def get_haplotype(self):
+        return self.haplotype
     def get_ref_locus(self):
         return self.ref_locus
     def get_position(self):
@@ -1083,7 +1113,13 @@ class G3dList:
     # return a list of locus increments, for inferring resolution, must be sorted
     def ref_locus_increments(self):
         return [self.g3d_particles[i + 1].get_ref_locus() - self.g3d_particles[i].get_ref_locus() for i in range(len(self.g3d_particles) - 1)]
-        
+    
+    # return a list of leg counts
+    def leg_counts(self, leg_data, max_distance):
+        return [leg_data.num_legs_near_g3d_particle(g3d_particle, max_distance) for g3d_particle in self.g3d_particles]
+    
+    def clean_leg_poor(self, leg_data, max_distance, min_leg_count):
+        self.g3d_particles[:] = [g3d_particle for g3d_particle in self.g3d_particles if not leg_data.is_g3d_particle_leg_poor(g3d_particle, max_distance, min_leg_count)]
 
 class G3dData:
     def __init__(self):
@@ -1125,6 +1161,14 @@ class G3dData:
     def prepare_interpolate(self):
         for g3d_list in self.g3d_lists.values():
             g3d_list.prepare_interpolate()
+    def leg_counts(self, leg_data, max_distance):
+        leg_counts = []
+        for g3d_list in self.g3d_lists.values():
+            leg_counts.extend(g3d_list.leg_counts(leg_data, max_distance))
+        return leg_counts
+    def clean_leg_poor(self, leg_data, max_distance, min_leg_count):
+        for g3d_list in self.g3d_lists.values():
+            g3d_list.clean_leg_poor(leg_data, max_distance, min_leg_count)
     def to_string(self):
         return "\n".join([self.g3d_lists[ref_name_haplotype].to_string() for ref_name_haplotype in sorted(self.g3d_lists.keys())])
 
