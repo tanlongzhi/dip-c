@@ -3,6 +3,9 @@ import sys
 from functools import total_ordering
 import math
 from collections import Counter
+from scipy import interpolate
+import numpy as np
+
 
 # enum for haplotypes
 class Haplotypes:
@@ -22,6 +25,13 @@ def string_to_haplotype(haplotype_string):
 def known_haplotypes():
     yield Haplotypes.paternal
     yield Haplotypes.maternal
+def ref_name_haplotype_to_hom_name(ref_name, haplotype):
+    return ref_name + "(" + ("pat" if haplotype == Haplotypes.paternal else "mat") + ")"
+def hom_name_to_ref_name_haplotype(hom_name):
+    ref_name, haplotype = hom_name.split("(")
+    haplotype = haplotype.strip(")")
+    haplotype = Haplotypes.paternal if haplotype == "pat" else Haplotypes.maternal
+    return ref_name, haplotype
 
 # rules for updating one haplotype with another (merging)
 def update_haplotype(haplotype_1, haplotype_2):
@@ -955,3 +965,109 @@ class ParData:
         if leg.get_ref_name() == self.y_name:
             return [Leg(self.y_name, leg.get_ref_locus(), Haplotypes.paternal)]
         return leg.compatible_legs_female()
+
+# structures for 3D genome (3DG) files
+@total_ordering
+class G3dParticle:
+    def __init__(self, ref_name, ref_locus, haplotype, position):
+        self.ref_name = ref_name
+        self.ref_locus = ref_locus
+        self.haplotype = haplotype
+        self.position = position
+    def __eq__(self, other):
+        return (self.ref_name, self.haplotype, self.ref_locus) == (other.ref_name, other.haplotype, other.ref_locus)
+    def __lt__(self, other):
+        return (self.ref_name, self.haplotype, self.ref_locus) < (other.ref_name, other.haplotype, other.ref_locus)
+    def to_string(self):
+        return "\t".join([ref_name_haplotype_to_hom_name(self.ref_name, self.haplotype), str(self.ref_locus)] + map(str, self.position))
+    def get_ref_locus(self):
+        return self.ref_locus
+    def get_position(self):
+        return self.position
+    def get_x(self):
+        return self.position[0]
+    def get_y(self):
+        return self.position[1]
+    def get_z(self):
+        return self.position[2]
+    def ref_name_haplotype(self):
+        return (self.ref_name, self.haplotype)
+        
+def string_to_g3d_particle(g3d_particle_string):
+    hom_name, ref_locus, x, y, z = g3d_particle_string.split("\t")
+    ref_name, haplotype = hom_name_to_ref_name_haplotype(hom_name)
+    ref_locus = int(ref_locus)
+    position = [float(x), float(y), float(z)]
+    return G3dParticle(ref_name, ref_locus, haplotype, position)
+    
+class G3dList:
+    def __init__(self):
+        self.g3d_particles = []
+        
+        # for linear interpolation
+        self.min_ref_locus = None
+        self.max_ref_locus = None
+        self.interpolate = None # scipy function for locus -> position
+    def num_g3d_particles(self):
+        return len(self.g3d_particles)
+    def add_g3d_particle(self, g3d_particle):
+        self.g3d_particles.append(g3d_particle)
+    def sort_g3d_particles(self):
+        self.g3d_particles.sort()
+    def prepare_interpolate(self):
+        self.min_ref_locus = min([g3d_particle.get_ref_locus() for g3d_particle in self.g3d_particles])
+        self.max_ref_locus = max([g3d_particle.get_ref_locus() for g3d_particle in self.g3d_particles])
+        self.interpolate = interpolate.interp1d(np.array([g3d_particle.get_ref_locus() for g3d_particle in self.g3d_particles]), np.array([g3d_particle.get_position() for g3d_particle in self.g3d_particles]),axis=0)
+    def interpolate_ref_locus(self, ref_locus):
+        is_out = ref_locus < self.min_ref_locus or ref_locus > self.max_ref_locus # if out of bounds
+        position = self.interpolate(min(max(ref_locus, self.min_ref_locus), self.max_ref_locus))
+        return is_out, position
+    def to_string(self):
+        return "\n".join([g3d_particle.to_string() for g3d_particle in self.g3d_particles])
+    
+    # return a list of locus increments, for inferring resolution, must be sorted
+    def ref_locus_increments(self):
+        return [self.g3d_particles[i + 1].get_ref_locus() - self.g3d_particles[i].get_ref_locus() for i in range(len(self.g3d_particles) - 1)]
+        
+
+class G3dData:
+    def __init__(self):
+        self.g3d_lists = {}
+    def add_empty_g3d_list(self, ref_name_haplotype):
+        self.g3d_lists[ref_name_haplotype] = G3dList()
+    def add_g3d_particle(self, g3d_particle):
+        if g3d_particle.ref_name_haplotype() not in self.g3d_lists:
+            self.add_empty_g3d_list(g3d_particle.ref_name_haplotype())
+        self.g3d_lists[g3d_particle.ref_name_haplotype()].add_g3d_particle(g3d_particle)
+    
+    # infer resolution, must be sorted
+    def ref_locus_increments(self):
+        ref_locus_increments = []
+        for g3d_list in self.g3d_lists.values():
+            ref_locus_increments.extend(g3d_list.ref_locus_increments())
+        return ref_locus_increments
+    def resolution(self):
+        ref_locus_increments_counter = Counter(self.ref_locus_increments())
+        ref_locus_increment = ref_locus_increments_counter.most_common(1)[0][0]
+        return ref_locus_increment
+        
+    # wrappers for G3dList functions:
+    def num_g3d_particles(self):
+        num_g3d_particles = 0
+        for g3d_list in self.g3d_lists.values():
+            num_g3d_particles += g3d_list.num_g3d_particles()
+        return num_g3d_particles
+    def sort_g3d_particles(self):
+        for g3d_list in self.g3d_lists.values():
+            g3d_list.sort_g3d_particles()
+    def prepare_interpolate(self):
+        for g3d_list in self.g3d_lists.values():
+            g3d_list.prepare_interpolate()
+    def to_string(self):
+        return "\n".join([self.g3d_lists[ref_name_haplotype].to_string() for ref_name_haplotype in sorted(self.g3d_lists.keys())])
+
+def file_to_g3d_data(g3d_file):
+    g3d_data = G3dData()
+    for g3d_file_line in g3d_file:
+        g3d_data.add_g3d_particle(string_to_g3d_particle(g3d_file_line.strip()))
+    return g3d_data

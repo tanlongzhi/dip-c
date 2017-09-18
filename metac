@@ -13,6 +13,7 @@ def main():
         sys.stderr.write("  reg      exclude genomic regions from a CON file\n")
         sys.stderr.write("  clean    remove artifacts from a CON file\n")
         sys.stderr.write("  impute   impute missing haplotypes in a CON file\n")
+        sys.stderr.write("  impute3  impute missing haplotypes in a CON file based on a 3DG file\n")
         return 1
     start_time = time.time()
     if sys.argv[1] == "seg":
@@ -33,6 +34,9 @@ def main():
     elif sys.argv[1] == "impute":
         import impute
         return_value = impute.impute(sys.argv[1:])
+    elif sys.argv[1] == "impute3":
+        import impute3
+        return_value = impute3.impute3(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
