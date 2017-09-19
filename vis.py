@@ -1,10 +1,6 @@
 import sys
 import getopt
-import gzip
-import copy
 from classes import Haplotypes, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
-import numpy as np
-import math
 from pdbx.reader.PdbxReader  import PdbxReader
 from pdbx.writer.PdbxWriter  import PdbxWriter
 from pdbx.reader.PdbxContainers import *
@@ -21,13 +17,11 @@ def g3d_particle_tuple_to_conn_data(g3d_particle_tuple):
 def vis(argv):
     # default parameters
     color_file_name = None
-    
-    # display parameters
-    display_quantiles = np.arange(0.0, 1.01, 0.01)
+    color_mode = None
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:d:q:")
+        opts, args = getopt.getopt(argv[1:], "c:l:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -35,7 +29,7 @@ def vis(argv):
         sys.stderr.write("Usage: metac vis [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <chr.txt>      color by chromosome name (one chromosome per line)\n")
-        sys.stderr.write("  -l <chr.len>      color by locus along each chromosome (tab-delimited: chr, len)\n\n")
+        sys.stderr.write("  -l <chr.len>      color by locus divided by chromosome length (tab-delimited: chr, len)\n\n")
         sys.stderr.write("mmCIF format:\n")
         sys.stderr.write("  label_asym_id     homolog name (e.g. \"1(mat)\")\n")
         sys.stderr.write("  label_comp_id     locus // 1 Mb, 3 digits with leading zeros\n")
@@ -44,11 +38,13 @@ def vis(argv):
         sys.stderr.write("  B_iso_or_equiv    scalar color\n")
         sys.stderr.write("  covale            backbone bond\n")
         return 1
-    for o, a in opts:
-        if o == "-c":
-            color_file_name = a
-        elif o == "-l":
-            max_clean_distance = int(a)
+    if len(opts) > 1:
+        sys.stderr.write("[E::" + __name__ + "] only one color option is allowed\n")
+        return 1
+    if len(opts) == 1:
+        o, a = opts[0]
+        color_mode = o[1:]
+        color_file_name = a
             
     # read 3DG file
     g3d_data = file_to_g3d_data(open(args[0], "rb"))
@@ -57,15 +53,25 @@ def vis(argv):
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + str(g3d_resolution) + " bp resolution\n")
 
     # open color file
-    color_file = open(color_file_name, "rb")
+    if not color_file_name is None:
+        color_file = open(color_file_name, "rb")
     
-    # -c: read chromosome name file
-    ref_name_colors = {}
-    color_counter = 0
-    for color_file_line in color_file:
-        color_counter += 1
-        ref_name = color_file_line.strip()
-        ref_name_colors[ref_name] = color_counter
+    # read color file
+    if color_mode is None:
+        pass
+    elif color_mode == "c":
+        ref_name_colors = {}
+        color_counter = 0
+        for color_file_line in color_file:
+            color_counter += 1
+            ref_name = color_file_line.strip()
+            ref_name_colors[ref_name] = color_counter
+    elif color_mode == "l":
+        ref_lens = {}
+        for color_file_line in color_file:
+            ref_name, ref_len = color_file_line.strip().split("\t")
+            ref_len = int(ref_len)
+            ref_lens[ref_name] = ref_len
         
     # open mmCIF file to write
     myDataList = []
@@ -97,7 +103,15 @@ def vis(argv):
     atom_id = 0
     for g3d_particle in g3d_data.get_g3d_particles():
         atom_id += 1
-        color = ref_name_colors[g3d_particle.get_ref_name()]
+        
+        # color
+        if color_mode is None:
+            color = atom_id
+        elif color_mode == "c":
+            color = ref_name_colors[g3d_particle.get_ref_name()]
+        elif color_mode == "l":
+            color = float(g3d_particle.get_ref_locus()) / ref_lens[g3d_particle.get_ref_name()]
+        
         aCat.append(g3d_particle_to_atom_data(g3d_particle, atom_id, color))
     
     # write backbond bonds
