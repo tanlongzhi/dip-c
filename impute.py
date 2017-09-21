@@ -90,7 +90,7 @@ def impute(argv):
         con_data.clean_in_par(par_data)
         # set haplotypes for all the remaining X (mat) or Y (pat) contacts
         con_data.set_non_par_hap_tuple_male(par_data)
-    sys.stderr.write("[M::" + __name__ + "] removed PARs for male, leaving " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+        sys.stderr.write("[M::" + __name__ + "] removed PARs for male, leaving " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
             
     # find two subsets: A. phased or partly phased; B. completely unphased, inter-chromosomal
     no_phased_inter_chr_con_data = ConData()
