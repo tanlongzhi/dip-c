@@ -39,7 +39,7 @@ def seg(argv):
     min_mapq = 20
     max_nm_per_bp = 0.05
     min_baseq = 20
-    snp_file_name = ""
+    snp_file_name = None
     
     # progress display parameters
     display_num_bam_reads = 1e5
@@ -116,7 +116,7 @@ def seg(argv):
     sys.stderr.write("[M::" + __name__ + "] pass 2 done: read " + str(num_bam_reads) + " alignments; kept " + str(seg_data.num_reads()) + " candidate reads (" + str(round(100.0 * seg_data.num_reads() / num_bam_reads, 2)) + "% of alignments)\n")
     
     # pass 3: (if -v) find haplotype information based on the SNP file
-    if snp_file_name != "":
+    if not snp_file_name is None:
         num_snps = 0
         snp_file = gzip.open(snp_file_name, "rb") if snp_file_name.endswith(".gz") else open(snp_file_name, "rb")
         for snp_file_line in snp_file:
