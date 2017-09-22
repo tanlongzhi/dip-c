@@ -274,7 +274,9 @@ class Leg:
         
     def separation_with(self, other):
         return abs(self.ref_locus - other.ref_locus)
-    
+    def signed_separation_with(self, other):
+        return self.ref_locus - other.ref_locus 
+         
     # check if a leg is in a region
     def in_reg(self, reg):
         if self.ref_name != reg.ref_name:
@@ -585,6 +587,11 @@ class Con:
             
     def to_string(self):
         return "\t".join([leg.to_string() for leg in self.legs])
+        
+    # ard: print relative locus with respect to a reference point
+    def to_string_around(self, other):
+        return str(self.leg_1().signed_separation_with(other.leg_1())) + "\t" + str(self.leg_2().signed_separation_with(other.leg_2()))
+        
 def ref_name_tuple_to_string(ref_name_tuple):
     return ",".join(ref_name_tuple)
 
@@ -632,7 +639,20 @@ class ConList:
                 break
             if self.cons[i].distance_half_with(con) <= max_distance:
                 yield self.cons[i]            
-        
+    # generator for contacts near a given contact (L-inf norm), assume sorted
+    def get_cons_near_inf(self, con, max_distance):
+        start_index = bisect.bisect_left(self.cons, con)
+        for i in range(start_index, len(self.cons)):
+            if self.cons[i].distance_leg_1_with(con) > max_distance:
+                break
+            if self.cons[i].distance_leg_2_with(con) <= max_distance:
+                yield self.cons[i]
+        for i in range(start_index - 1, -1, -1):
+            if self.cons[i].distance_leg_1_with(con) > max_distance:
+                break
+            if self.cons[i].distance_leg_2_with(con) <= max_distance:
+                yield self.cons[i]         
+                        
     def num_cons(self):
         return(len(self.cons))
     def num_phased_legs(self):
@@ -742,6 +762,7 @@ class ConList:
         
     def to_string(self):
         return "\n".join([con.to_string() for con in self.cons])
+
         
 # a hashmap (tuples of two sorted chromosome names) of lists of contacts (a CON file)
 class ConData:
@@ -753,11 +774,17 @@ class ConData:
         for ref_name_tuple in sorted(self.con_lists.keys()):
             for con in self.con_lists[ref_name_tuple].get_cons():
                 yield con
+    
+    # wrappers for generators
     def get_cons_near(self, con, max_distance):
         if con.ref_name_tuple() in self.con_lists:
             for con in self.con_lists[con.ref_name_tuple()].get_cons_near(con, max_distance):
                 yield con
-    
+    def get_cons_near_inf(self, con, max_distance):
+        if con.ref_name_tuple() in self.con_lists:
+            for con in self.con_lists[con.ref_name_tuple()].get_cons_near_inf(con, max_distance):
+                yield con
+                    
     def add_empty_con_list(self, ref_name_tuple):
         self.con_lists[ref_name_tuple] = ConList()
     
@@ -772,6 +799,18 @@ class ConData:
                 self.con_lists[ref_name_tuple].merge_with(other.con_lists[ref_name_tuple])
             else:
                 self.con_lists[ref_name_tuple] = other.con_lists[ref_name_tuple]
+    
+    # remove all intra-chromosomal contacts
+    def clean_intra_chr(self):
+        for ref_name_tuple in self.con_lists.keys():
+            if ref_name_tuple[0] == ref_name_tuple[1]:
+                del self.con_lists[ref_name_tuple]
+
+    # remove all inter-chromosomal contacts
+    def clean_inter_chr(self):
+        for ref_name_tuple in self.con_lists.keys():
+            if ref_name_tuple[0] != ref_name_tuple[1]:
+                del self.con_lists[ref_name_tuple]
         
     # wrappers for all ConList operations
     def sort_cons(self):
