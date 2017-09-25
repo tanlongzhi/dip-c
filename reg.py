@@ -1,11 +1,13 @@
 import sys
 import getopt
 import gzip
-from classes import ConData, file_to_con_data, Reg
+from classes import ConData, file_to_con_data, Reg, file_to_reg_list
 
 def reg(argv):
     # default parameters
     use_presets = False
+    inc_file_name = None
+    exc_file_name = None
     inc_regs = []
     exc_regs = []
     
@@ -53,9 +55,21 @@ def reg(argv):
             use_presets = True
         elif o == "-i":
             use_presets = False
+            inc_file_name = a
         elif o == "-e":
             use_presets = False  
-                     
+            exc_file_name = a
+    
+    # load regions from file
+    if not inc_file_name is None:
+        inc_file = gzip.open(inc_file_name, "rb") if inc_file_name.endswith(".gz") else open(inc_file_name, "rb")
+        inc_regs.extend(file_to_reg_list(inc_file))
+        inc_file.close()
+    if not exc_file_name is None:
+        exc_file = gzip.open(exc_file_name, "rb") if exc_file_name.endswith(".gz") else open(exc_file_name, "rb")
+        exc_regs.extend(file_to_reg_list(exc_file))
+        exc_file.close()        
+    
     # display regions
     sys.stderr.write("[M::" + __name__ + "] only include the following regions:\n")
     sys.stderr.write("chr\thap\tstart\tend\n")

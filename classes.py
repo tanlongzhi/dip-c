@@ -1009,7 +1009,23 @@ class Reg:
     def to_string(self):
         return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])
 
+def string_to_reg(reg_string):
+    ref_name, haplotype, start, end = reg_string.split("\t")
+    reg = Reg(ref_name)
+    if haplotype != ".":
+        reg.add_haplotype(string_to_haplotype(haplotype))
+    if start != ".":
+        reg.add_start(int(start))
+    if end != ".":
+        reg.add_end(int(end))
+    return reg
 
+def file_to_reg_list(reg_file):
+    reg_list = []
+    for reg_file_line in reg_file:
+        reg_list.append(string_to_reg(reg_file_line.strip()))
+    return reg_list
+    
 # structures for PARs
 class Par:
     def __init__(self, x_name, x_start, x_end, y_name, y_start):
