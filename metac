@@ -17,6 +17,7 @@ def main():
         sys.stderr.write("  clean3   remove contact-poor particles (e.g. centromeres) from a 3DG file\n")
         sys.stderr.write("  vis      visualize a 3DG file into mmCIF format, and color particles\n")
         sys.stderr.write("\n")
+        sys.stderr.write("  info     basic information about CON file(s)\n")
         sys.stderr.write("  ard      contacts around certain points (e.g. other contacts)\n")
         return 1
     start_time = time.time()
@@ -47,6 +48,9 @@ def main():
     elif sys.argv[1] == "vis":
         import vis
         return_value = vis.vis(sys.argv[1:])
+    elif sys.argv[1] == "info":
+        import info
+        return_value = info.info(sys.argv[1:])
     elif sys.argv[1] == "ard":
         import ard
         return_value = ard.ard(sys.argv[1:])

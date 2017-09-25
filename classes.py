@@ -589,6 +589,8 @@ class Con:
         return "\t".join([leg.to_string() for leg in self.legs])
         
     # ard: print relative locus with respect to a reference point
+    def to_rel_locus_around(self, other):
+        return (self.leg_1().signed_separation_with(other.leg_1())), self.leg_2().signed_separation_with(other.leg_2())
     def to_string_around(self, other):
         return str(self.leg_1().signed_separation_with(other.leg_1())) + "\t" + str(self.leg_2().signed_separation_with(other.leg_2()))
         
