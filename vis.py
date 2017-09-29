@@ -18,19 +18,22 @@ def vis(argv):
     # default parameters
     color_file_name = None
     color_mode = None
+    missing_value = -1.0
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:l:")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
         sys.stderr.write("Usage: metac vis [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
-        sys.stderr.write("  -c <chr.txt>      color by chromosome name (one chromosome per line)\n")
+        sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: chr, locus, color)\n")
+        sys.stderr.write("  -n <chr.txt>      color by chromosome name (one chromosome per line)\n")
         sys.stderr.write("  -l <chr.len>      color by locus divided by chromosome length (tab-delimited: chr, len)\n\n")
-        sys.stderr.write("mmCIF format:\n")
+        sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n\n")
+        sys.stderr.write("Output mmCIF format:\n")
         sys.stderr.write("  label_asym_id     homolog name (e.g. \"1(mat)\")\n")
         sys.stderr.write("  label_comp_id     locus // 1 Mb, 3 digits with leading zeros\n")
         sys.stderr.write("  label_seq_id      1\n")
@@ -38,14 +41,19 @@ def vis(argv):
         sys.stderr.write("  B_iso_or_equiv    scalar color\n")
         sys.stderr.write("  covale            backbone bond\n")
         return 1
-    if len(opts) > 1:
-        sys.stderr.write("[E::" + __name__ + "] only one color option is allowed\n")
+        
+    num_color_schemes = 0
+    for o, a in opts:
+        if o == "-m":
+            missing_value = float(a)
+        else:
+            num_color_schemes += 1
+            color_mode = o[1:]
+            color_file_name = a
+    if num_color_schemes > 1:
+        sys.stderr.write("[E::" + __name__ + "] only one color scheme is allowed\n")
         return 1
-    if len(opts) == 1:
-        o, a = opts[0]
-        color_mode = o[1:]
-        color_file_name = a
-            
+                    
     # read 3DG file
     g3d_data = file_to_g3d_data(open(args[0], "rb"))
     g3d_data.sort_g3d_particles()
@@ -60,6 +68,13 @@ def vis(argv):
     if color_mode is None:
         pass
     elif color_mode == "c":
+        ref_name_ref_locus_colors = {}
+        for color_file_line in color_file:
+            ref_name, ref_locus, color = color_file_line.strip().split("\t")
+            ref_locus = int(ref_locus)
+            color = float(color)
+            ref_name_ref_locus_colors[(ref_name, ref_locus)] = color
+    elif color_mode == "n":
         ref_name_colors = {}
         color_counter = 0
         for color_file_line in color_file:
@@ -108,10 +123,20 @@ def vis(argv):
         if color_mode is None:
             color = atom_id
         elif color_mode == "c":
-            color = ref_name_colors[g3d_particle.get_ref_name()]
+            try:
+                color = ref_name_ref_locus_colors[(g3d_particle.get_ref_name(), g3d_particle.get_ref_locus())]
+            except KeyError:
+                color = missing_value
+        elif color_mode == "n":
+            try:
+                color = ref_name_colors[g3d_particle.get_ref_name()]
+            except KeyError:
+                color = missing_value
         elif color_mode == "l":
-            color = float(g3d_particle.get_ref_locus()) / ref_lens[g3d_particle.get_ref_name()]
-        
+            try:
+                color = float(g3d_particle.get_ref_locus()) / ref_lens[g3d_particle.get_ref_name()]
+            except KeyError:
+                color = missing_value        
         aCat.append(g3d_particle_to_atom_data(g3d_particle, atom_id, color))
     
     # write backbond bonds
