@@ -55,7 +55,7 @@ def exp(argv):
         for ref_name_haplotype in g3d_data.get_ref_name_haplotype():
             center_position = center_g3d_particles(g3d_data.get_g3d_particles_from_ref_name_haplotype(ref_name_haplotype))
             center_position += (center_position - nuc_center) * expansion_factor
-            center_g3d_data.add_g3d_particle(G3dParticle(ref_name_haplotype[0], ref_name_haplotype[1], 0, center_position.tolist()))
+            center_g3d_data.add_g3d_particle(G3dParticle(ref_name_haplotype[0], 0, ref_name_haplotype[1], center_position.tolist()))
         g3d_data = center_g3d_data
     else:
         ref_name_haplotype_centers = {}
