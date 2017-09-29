@@ -1140,6 +1140,8 @@ class G3dParticle:
         return self.ref_locus
     def get_position(self):
         return self.position
+    def set_position(self, position):
+        self.position[:] = position
     def get_x(self):
         return self.position[0]
     def get_y(self):
@@ -1279,6 +1281,9 @@ class G3dData:
         for g3d_list in self.g3d_lists.values():
             for g3d_particle in g3d_list.get_g3d_particles():
                 yield g3d_particle
+    def get_g3d_particles_from_ref_name_haplotype(self, ref_name_haplotype):
+        for g3d_particle in self.g3d_lists[ref_name_haplotype].get_g3d_particles():
+            yield g3d_particle
     def get_g3d_particles_in_reg(self, reg):
         for g3d_list in self.g3d_lists.values():
             for g3d_particle in g3d_list.get_g3d_particles_in_reg(reg):
