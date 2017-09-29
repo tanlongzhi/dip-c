@@ -7,12 +7,12 @@ from pdbx.reader.PdbxContainers import *
 
 def g3d_particle_to_atom_data(g3d_particle, atom_id, color):
     locus_string = str(g3d_particle.get_ref_locus()).rjust(9,'0')
-    return ("HETATM", atom_id, g3d_particle.hom_name(), locus_string[0:3], 1, locus_string[3:6], g3d_particle.get_x(), g3d_particle.get_y(), g3d_particle.get_z(), color)
+    return ("HETATM", ".", atom_id, g3d_particle.hom_name(), locus_string[0:3], 1, locus_string[3:6], g3d_particle.get_x(), g3d_particle.get_y(), g3d_particle.get_z(), color)
 
-def g3d_particle_tuple_to_conn_data(g3d_particle_tuple):
+def g3d_particle_tuple_to_conn_data(g3d_particle_tuple, conn_id):
     locus_1_string = str(g3d_particle_tuple[0].get_ref_locus()).rjust(9,'0')
     locus_2_string = str(g3d_particle_tuple[1].get_ref_locus()).rjust(9,'0')
-    return ("covale", g3d_particle_tuple[0].hom_name(), locus_1_string[0:3], 1, locus_1_string[3:6], g3d_particle_tuple[1].hom_name(), locus_2_string[0:3], 1, locus_2_string[3:6])
+    return (conn_id, "covale", g3d_particle_tuple[0].hom_name(), locus_1_string[0:3], 1, locus_1_string[3:6], g3d_particle_tuple[1].hom_name(), locus_2_string[0:3], 1, locus_2_string[3:6])
 
 def vis(argv):
     # default parameters
@@ -93,6 +93,7 @@ def vis(argv):
     curContainer = DataContainer("myblock")
     aCat = DataCategory("atom_site")
     aCat.appendAttribute("group_PDB")
+    aCat.appendAttribute("type_symbol")
     aCat.appendAttribute("id")
     aCat.appendAttribute("label_asym_id")
     aCat.appendAttribute("label_comp_id")
@@ -104,6 +105,7 @@ def vis(argv):
     aCat.appendAttribute("B_iso_or_equiv")
 
     sCat = DataCategory("struct_conn")
+    sCat.appendAttribute("id")
     sCat.appendAttribute("conn_type_id")
     sCat.appendAttribute("ptnr1_label_asym_id")
     sCat.appendAttribute("ptnr1_label_comp_id")
@@ -140,8 +142,10 @@ def vis(argv):
         aCat.append(g3d_particle_to_atom_data(g3d_particle, atom_id, color))
     
     # write backbond bonds
+    conn_id = 0
     for g3d_particle_tuple in g3d_data.get_adjacent_g3d_particle_tuples(g3d_resolution):
-        sCat.append(g3d_particle_tuple_to_conn_data(g3d_particle_tuple))
+        conn_id += 1
+        sCat.append(g3d_particle_tuple_to_conn_data(g3d_particle_tuple, conn_id))
  
     # write output
     curContainer.append(sCat)
