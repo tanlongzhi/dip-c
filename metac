@@ -19,6 +19,7 @@ def main():
         sys.stderr.write("\n")
         sys.stderr.write("  info     basic information about CON file(s)\n")
         sys.stderr.write("  ard      contacts around certain points (e.g. other contacts)\n")
+        sys.stderr.write("  rg       calculate the Rg matrix from a 3DG file\n")
         return 1
     start_time = time.time()
     if sys.argv[1] == "seg":
@@ -54,6 +55,9 @@ def main():
     elif sys.argv[1] == "ard":
         import ard
         return_value = ard.ard(sys.argv[1:])
+    elif sys.argv[1] == "rg":
+        import rg
+        return_value = rg.rg(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1

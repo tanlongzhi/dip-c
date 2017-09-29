@@ -27,13 +27,13 @@ def string_to_haplotype(haplotype_string):
 def known_haplotypes():
     yield Haplotypes.paternal
     yield Haplotypes.maternal
-def ref_name_haplotype_to_hom_name(ref_name, haplotype):
-    return ref_name + "(" + ("pat" if haplotype == Haplotypes.paternal else "mat") + ")"
+def ref_name_haplotype_to_hom_name(ref_name_haplotype):
+    return ref_name_haplotype[0] + "(" + ("pat" if ref_name_haplotype[1] == Haplotypes.paternal else "mat") + ")"
 def hom_name_to_ref_name_haplotype(hom_name):
     ref_name, haplotype = hom_name.split("(")
     haplotype = haplotype.strip(")")
     haplotype = Haplotypes.paternal if haplotype == "pat" else Haplotypes.maternal
-    return ref_name, haplotype
+    return (ref_name, haplotype)
 
 # rules for updating one haplotype with another (merging)
 def update_haplotype(haplotype_1, haplotype_2):
@@ -1006,8 +1006,15 @@ class Reg:
     def add_end(self, end):
         self.has_end = True
         self.end = end
+    def get_phased(self):
+        for haplotype in ([self.haplotype] if self.has_haplotype else known_haplotypes()):
+            phased_reg = copy.deepcopy(self)
+            phased_reg.add_haplotype(haplotype)
+            yield phased_reg
     def to_string(self):
         return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])
+    def to_name_string(self):
+        return (ref_name_haplotype_to_hom_name((self.ref_name, self.haplotype)) if self.has_haplotype else self.ref_name) + ("_" + (str(self.start) if self.has_start else "") + "-" + (str(self.end) if self.has_end else "") if self.has_start or self.has_end else "")
 
 def string_to_reg(reg_string):
     ref_name, haplotype, start, end = reg_string.split("\t")
@@ -1025,6 +1032,11 @@ def file_to_reg_list(reg_file):
     for reg_file_line in reg_file:
         reg_list.append(string_to_reg(reg_file_line.strip()))
     return reg_list
+
+def get_phased_regs(reg_list):
+    for reg in reg_list:
+        for phased_reg in reg.get_phased():
+            yield phased_reg
     
 # structures for PARs
 class Par:
@@ -1119,7 +1131,7 @@ class G3dParticle:
     def __repr__(self):
         return self.to_string()
     def to_string(self):
-        return "\t".join([ref_name_haplotype_to_hom_name(self.ref_name, self.haplotype), str(self.ref_locus)] + map(str, self.position))
+        return "\t".join([self.hom_name(), str(self.ref_locus)] + map(str, self.position))
     def get_ref_name(self):
         return self.ref_name
     def get_haplotype(self):
@@ -1137,8 +1149,20 @@ class G3dParticle:
     def ref_name_haplotype(self):
         return (self.ref_name, self.haplotype)
     def hom_name(self):
-        return ref_name_haplotype_to_hom_name(self.ref_name, self.haplotype)
-        
+        return ref_name_haplotype_to_hom_name(self.ref_name_haplotype())
+    
+    # same as Leg
+    def in_reg(self, reg):
+        if self.ref_name != reg.ref_name:
+            return False
+        if reg.has_haplotype and self.haplotype != reg.haplotype:
+            return False
+        if reg.has_start and self.ref_locus < reg.start:
+            return False
+        if reg.has_end and self.ref_locus > reg.end:
+            return False
+        return True
+                
 def string_to_g3d_particle(g3d_particle_string):
     hom_name, ref_locus, x, y, z = g3d_particle_string.split("\t")
     ref_name, haplotype = hom_name_to_ref_name_haplotype(hom_name)
@@ -1158,6 +1182,13 @@ class G3dList:
         return len(self.g3d_particles)
     def add_g3d_particle(self, g3d_particle):
         self.g3d_particles.append(g3d_particle)
+    def get_g3d_particles(self):
+        for g3d_particle in self.g3d_particles:
+            yield g3d_particle
+    def get_g3d_particles_in_reg(self, reg):
+        for g3d_particle in self.g3d_particles:
+            if g3d_particle.in_reg(reg):
+                yield g3d_particle
     def sort_g3d_particles(self):
         self.g3d_particles.sort()
     def prepare_interpolate(self):
@@ -1170,6 +1201,17 @@ class G3dList:
         return is_out, position
     def to_string(self):
         return "\n".join([g3d_particle.to_string() for g3d_particle in self.g3d_particles])
+    def to_np_arrays(self):
+        loci_np_array = np.empty([len(self.g3d_particles), 1], dtype=int)
+        position_np_array = np.empty([len(self.g3d_particles), 3], dtype=float)
+        g3d_particle_counter = 0
+        for g3d_particle in self.g3d_particles:
+            loci_np_array[g3d_particle_counter] = g3d_particle.get_ref_locus()
+            position_np_array[g3d_particle_counter, 0] = g3d_particle.get_x()
+            position_np_array[g3d_particle_counter, 1] = g3d_particle.get_y()
+            position_np_array[g3d_particle_counter, 2] = g3d_particle.get_z()
+            g3d_particle_counter += 1
+        return loci_np_array, position_np_array
     
     # return a list of locus increments, for inferring resolution, must be sorted
     def ref_locus_increments(self):
@@ -1200,6 +1242,11 @@ class G3dData:
         if g3d_particle.ref_name_haplotype() not in self.g3d_lists:
             self.add_empty_g3d_list(g3d_particle.ref_name_haplotype())
         self.g3d_lists[g3d_particle.ref_name_haplotype()].add_g3d_particle(g3d_particle)
+    def get_ref_name_haplotype(self):
+        for ref_name_haplotype in sorted(self.g3d_lists.keys()):
+            yield ref_name_haplotype
+    def get_g3d_list_from_ref_name_haplotype(self, ref_name_haplotype):
+        return self.g3d_lists[ref_name_haplotype]
     
     # infer resolution, must be sorted
     def ref_locus_increments(self):
@@ -1228,6 +1275,14 @@ class G3dData:
     def sort_g3d_particles(self):
         for g3d_list in self.g3d_lists.values():
             g3d_list.sort_g3d_particles()
+    def get_g3d_particles(self):
+        for g3d_list in self.g3d_lists.values():
+            for g3d_particle in g3d_list.get_g3d_particles():
+                yield g3d_particle
+    def get_g3d_particles_in_reg(self, reg):
+        for g3d_list in self.g3d_lists.values():
+            for g3d_particle in g3d_list.get_g3d_particles_in_reg(reg):
+                yield g3d_particle
     def prepare_interpolate(self):
         for g3d_list in self.g3d_lists.values():
             g3d_list.prepare_interpolate()
