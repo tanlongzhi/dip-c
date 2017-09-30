@@ -44,27 +44,28 @@ def exp(argv):
     g3d_data = file_to_g3d_data(open(args[0], "rb"))
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
-    sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + str(g3d_resolution) + " bp resolution\n")
+    sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
     
     # center of nucleus
     nuc_center = center_g3d_particles(g3d_data.get_g3d_particles())
     
-    # center of each homologs
+    # process data
     if centers_only:
         center_g3d_data = G3dData()
-        for ref_name_haplotype in g3d_data.get_ref_name_haplotype():
-            center_position = center_g3d_particles(g3d_data.get_g3d_particles_from_ref_name_haplotype(ref_name_haplotype))
+        for hom_name in g3d_data.get_hom_names():
+            center_position = center_g3d_particles(g3d_data.get_g3d_particles_from_hom_name(hom_name))
             center_position += (center_position - nuc_center) * expansion_factor
-            center_g3d_data.add_g3d_particle(G3dParticle(ref_name_haplotype[0], 0, ref_name_haplotype[1], center_position.tolist()))
+            center_g3d_data.add_g3d_particle(G3dParticle(hom_name, 0, center_position.tolist()))
         g3d_data = center_g3d_data
     else:
-        ref_name_haplotype_centers = {}
-        for ref_name_haplotype in g3d_data.get_ref_name_haplotype():
-            ref_name_haplotype_centers[ref_name_haplotype] = center_g3d_particles(g3d_data.get_g3d_particles_from_ref_name_haplotype(ref_name_haplotype))
+        hom_centers = {}
+        # center of each homologs
+        for hom_name in g3d_data.get_hom_names():
+            hom_centers[hom_name] = center_g3d_particles(g3d_data.get_g3d_particles_from_hom_name(hom_name))
         # translate
-        for ref_name_haplotype in g3d_data.get_ref_name_haplotype():
-            translation_vector = (ref_name_haplotype_centers[ref_name_haplotype] - nuc_center) * expansion_factor
-            for g3d_particle in g3d_data.get_g3d_particles_from_ref_name_haplotype(ref_name_haplotype):
+        for hom_name in g3d_data.get_hom_names():
+            translation_vector = (hom_centers[hom_name] - nuc_center) * expansion_factor
+            for g3d_particle in g3d_data.get_g3d_particles_from_hom_name(hom_name):
                 g3d_particle.set_position((np.array(g3d_particle.get_position()) + translation_vector).tolist())
     
     # output

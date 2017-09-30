@@ -90,7 +90,7 @@ def impute3(argv):
     g3d_data = file_to_g3d_data(open(g3d_file_name, "rb"))
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
-    sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + str(g3d_resolution) + " bp resolution\n")
+    sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
     g3d_data.prepare_interpolate()
                             
     # read CON file

@@ -7,12 +7,12 @@ from pdbx.reader.PdbxContainers import *
 
 def g3d_particle_to_atom_data(g3d_particle, atom_id, color):
     locus_string = str(g3d_particle.get_ref_locus()).rjust(9,'0')
-    return ("HETATM", ".", atom_id, g3d_particle.hom_name(), locus_string[0:3], 1, locus_string[3:6], g3d_particle.get_x(), g3d_particle.get_y(), g3d_particle.get_z(), color)
+    return ("HETATM", ".", atom_id, g3d_particle.get_hom_name(), locus_string[0:3], 1, locus_string[3:6], g3d_particle.get_x(), g3d_particle.get_y(), g3d_particle.get_z(), color)
 
 def g3d_particle_tuple_to_conn_data(g3d_particle_tuple, conn_id):
     locus_1_string = str(g3d_particle_tuple[0].get_ref_locus()).rjust(9,'0')
     locus_2_string = str(g3d_particle_tuple[1].get_ref_locus()).rjust(9,'0')
-    return (conn_id, "covale", g3d_particle_tuple[0].hom_name(), locus_1_string[0:3], 1, locus_1_string[3:6], g3d_particle_tuple[1].hom_name(), locus_2_string[0:3], 1, locus_2_string[3:6])
+    return (conn_id, "covale", g3d_particle_tuple[0].get_hom_name(), locus_1_string[0:3], 1, locus_1_string[3:6], g3d_particle_tuple[1].get_hom_name(), locus_2_string[0:3], 1, locus_2_string[3:6])
 
 def vis(argv):
     # default parameters
@@ -22,7 +22,7 @@ def vis(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -32,6 +32,7 @@ def vis(argv):
         sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: chr, locus, color)\n")
         sys.stderr.write("  -n <chr.txt>      color by chromosome name (one chromosome per line)\n")
         sys.stderr.write("  -l <chr.len>      color by locus divided by chromosome length (tab-delimited: chr, len)\n\n")
+        sys.stderr.write("  -L <chr.cen>      color by arm locus divided by arm length (tab-delimited: chr, len, center of centromere)\n\n")
         sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n\n")
         sys.stderr.write("Output mmCIF format:\n")
         sys.stderr.write("  label_asym_id     homolog name (e.g. \"1(mat)\")\n")
@@ -57,10 +58,7 @@ def vis(argv):
     # read 3DG file
     g3d_data = file_to_g3d_data(open(args[0], "rb"))
     g3d_data.sort_g3d_particles()
-    try:
-        g3d_resolution = g3d_data.resolution()
-    except IndexError:
-        g3d_resolution = None
+    g3d_resolution = g3d_data.resolution()
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
 
     # open color file
@@ -90,7 +88,16 @@ def vis(argv):
             ref_name, ref_len = color_file_line.strip().split("\t")
             ref_len = int(ref_len)
             ref_lens[ref_name] = ref_len
-        
+    elif color_mode == "L":
+        ref_lens = {}
+        ref_cens = {}
+        for color_file_line in color_file:
+            ref_name, ref_len, ref_cen = color_file_line.strip().split("\t")
+            ref_len = int(ref_len)
+            ref_cen = int(ref_cen)
+            ref_lens[ref_name] = ref_len
+            ref_cens[ref_name] = ref_cen
+                    
     # open mmCIF file to write
     myDataList = []
     curContainer = DataContainer("myblock")
@@ -140,6 +147,16 @@ def vis(argv):
         elif color_mode == "l":
             try:
                 color = float(g3d_particle.get_ref_locus()) / ref_lens[g3d_particle.get_ref_name()]
+            except KeyError:
+                color = missing_value        
+        elif color_mode == "L":
+            try:
+                arm_locus = g3d_particle.get_ref_locus() - ref_cens[g3d_particle.get_ref_name()]
+                if arm_locus > 0:
+                    arm_len = ref_lens[g3d_particle.get_ref_name()] - ref_cens[g3d_particle.get_ref_name()]
+                else:
+                    arm_len = ref_cens[g3d_particle.get_ref_name()]
+                color = float(abs(arm_locus)) / arm_len
             except KeyError:
                 color = missing_value        
         aCat.append(g3d_particle_to_atom_data(g3d_particle, atom_id, color))
