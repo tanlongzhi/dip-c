@@ -50,7 +50,7 @@ def rg(argv):
         sys.stderr.write("                  (will output two regions if haplotype is \".\")\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  <prefix><region_name>.rg    an N x N matrix of radii of gyration\n")
-        sys.stderr.write("  <prefix><region_name>.loc   a N list of chromosomal loci\n")
+        sys.stderr.write("  <prefix><region_name>.loc   a list of N chromosomal loci\n")
         return 1
     for o, a in opts:
         if o == "-o":

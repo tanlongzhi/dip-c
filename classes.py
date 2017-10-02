@@ -1179,6 +1179,7 @@ class G3dList:
         self.min_ref_locus = None
         self.max_ref_locus = None
         self.interpolate = None # scipy function for locus -> position
+        self.kdtree = None # scipy to query position -> nearby particles
     def num_g3d_particles(self):
         return len(self.g3d_particles)
     def add_g3d_particle(self, g3d_particle):
@@ -1192,6 +1193,8 @@ class G3dList:
                 yield g3d_particle
     def sort_g3d_particles(self):
         self.g3d_particles.sort()
+        
+    # interpolation
     def prepare_interpolate(self):
         self.min_ref_locus = min([g3d_particle.get_ref_locus() for g3d_particle in self.g3d_particles])
         self.max_ref_locus = max([g3d_particle.get_ref_locus() for g3d_particle in self.g3d_particles])
@@ -1200,6 +1203,17 @@ class G3dList:
         is_out = ref_locus < self.min_ref_locus or ref_locus > self.max_ref_locus # if out of bounds
         position = self.interpolate(min(max(ref_locus, self.min_ref_locus), self.max_ref_locus))
         return is_out, position
+
+    # nearby particles
+    def prepare_nearby(self):
+        loci_np_array, position_np_array = self.to_np_arrays()
+        self.kdtree = spatial.KDTree(position_np_array)
+    def get_g3d_particles_near(self, position, max_distance):
+        for g3d_particle_index in self.kdtree.query_ball_point(position, max_distance):
+            yield self.g3d_particles[g3d_particle_index]
+    def num_g3d_particles_near(self, position, max_distance):
+        return len(self.kdtree.query_ball_point(position, max_distance))
+            
     def to_string(self):
         return "\n".join([g3d_particle.to_string() for g3d_particle in self.g3d_particles])
     def to_np_arrays(self):
@@ -1293,6 +1307,13 @@ class G3dData:
     def prepare_interpolate(self):
         for g3d_list in self.g3d_lists.values():
             g3d_list.prepare_interpolate()
+    def prepare_nearby(self):
+        for g3d_list in self.g3d_lists.values():
+            g3d_list.prepare_nearby()
+    def get_g3d_particles_near(self, position, max_distance):
+        for g3d_list in self.g3d_lists.values():
+            for g3d_particle in g3d_list.get_g3d_particles_near(position, max_distance):
+                yield g3d_particle
     def leg_counts(self, leg_data, max_distance):
         leg_counts = []
         for g3d_list in self.g3d_lists.values():
