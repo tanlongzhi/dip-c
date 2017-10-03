@@ -43,7 +43,7 @@ def vis(argv):
     for o, a in opts:
         if o == "-m":
             missing_value = float(a)
-        elif o == "-i":
+        elif o == "-c":
             color_file_name = a
                     
     # read 3DG file

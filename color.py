@@ -14,18 +14,34 @@ def intra_hom_fraction(g3d_particle, nearby_g3d_particles):
         return None
     return float(num_intra_hom) / num_g3d_particles
 
+def smooth_color(g3d_particle, nearby_g3d_particles, color_data):
+    hom_name = g3d_particle.get_hom_name()
+    ref_locus = g3d_particle.get_ref_locus()
+    num_g3d_particles = 0 # include self
+    sum_color = 0
+    for nearby_g3d_particle in nearby_g3d_particles:
+        nearby_hom_name = nearby_g3d_particle.get_hom_name()
+        nearby_ref_locus = nearby_g3d_particle.get_ref_locus()
+        if (nearby_hom_name, nearby_ref_locus) in color_data:
+            num_g3d_particles += 1
+            sum_color += color_data[(nearby_hom_name, nearby_ref_locus)]
+    if num_g3d_particles == 0:
+        return None
+    return sum_color / num_g3d_particles
+    
 def color(argv):
     # default parameters
     color_file_name = None
     color_mode = None
     intra_distance = None
+    smooth_distance = None
     
     # display parameters
-    disp_num_particles = 100
+    disp_num_particles = 1000
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -36,7 +52,8 @@ def color(argv):
         sys.stderr.write("  -n <chr.txt>      color by chromosome name (one chromosome per line)\n")
         sys.stderr.write("  -l <chr.len>      color by locus divided by chromosome length (tab-delimited: chr, len)\n")
         sys.stderr.write("  -L <chr.cen>      color by arm locus divided by arm length (tab-delimited: chr, len, center of centromere)\n")
-        sys.stderr.write("  -i FLOAT          color by percentage of intra-homologous neighbors within a given distance\n")
+        sys.stderr.write("  -i FLOAT          color by percentage of intra-homologous neighbors within a given distance\n\n")
+        sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
         return 1
@@ -44,14 +61,17 @@ def color(argv):
     num_color_schemes = 0
     for o, a in opts:
         if o == "-i":
+            num_color_schemes += 1
             color_mode = "i"
             intra_distance = float(a)
+        elif o == "-s":
+            smooth_distance = float(a)
         else:
             num_color_schemes += 1
             color_mode = o[1:]
             color_file_name = a
     if num_color_schemes != 1:
-        sys.stderr.write("[E::" + __name__ + "] exactly one color scheme is allowed\n")
+        sys.stderr.write("[E::" + __name__ + "] exactly one color scheme is needed\n")
         return 1
                     
     # read 3DG file
@@ -99,7 +119,8 @@ def color(argv):
     elif color_mode == "i":
         g3d_data.prepare_nearby()
                         
-    # write colors
+    # calculate colors
+    color_data = {}
     atom_id = 0
     for g3d_particle in g3d_data.get_g3d_particles():
         atom_id += 1
@@ -135,10 +156,27 @@ def color(argv):
         elif color_mode == "i":
             color = intra_hom_fraction(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), intra_distance))
             if color is None:
-                continue            
+                continue
         
-        # write
-        sys.stdout.write("\t".join([g3d_particle.get_hom_name(), str(g3d_particle.get_ref_locus()), str(color)]) + "\n")
+        color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
+        
+    # smoothing
+    if not smooth_distance is None:
+        g3d_data.prepare_nearby()
+        smooth_color_data = {}
+        atom_id = 0
+        for g3d_particle in g3d_data.get_g3d_particles():
+            atom_id += 1
+            if atom_id % disp_num_particles == 0:
+                sys.stderr.write("[M::" + __name__ + "] smoothed " + str(atom_id) + " particles (" + str(round(100.0 * atom_id / g3d_data.num_g3d_particles(), 2)) + "%)\n")
+            color = smooth_color(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), smooth_distance), color_data)
+            smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
+        color_data = smooth_color_data
+            
+    # output
+    sys.stderr.write("[M::" + __name__ + "] writing " + str(len(color_data)) + " colors (" + str(round(100.0 * len(color_data) / g3d_data.num_g3d_particles(), 2)) + "%)\n")
+    for hom_name, ref_locus in sorted(color_data.keys()):
+        sys.stdout.write("\t".join([hom_name, str(ref_locus), str(color_data[(hom_name, ref_locus)])]) + "\n")
     
     return 0
     
