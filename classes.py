@@ -7,6 +7,7 @@ from scipy import interpolate
 from scipy import spatial
 import numpy as np
 import copy
+import random
 
 
 # enum for haplotypes
@@ -320,6 +321,8 @@ class LegList:
     def add_con_data(self, con_data):
         for con in con_data.get_cons():
             self.add_con(con)
+    def get_random_leg(self):
+        return random.choice(self.legs)
             
     # query a leg, regardless of haplotypes, assume sorted and that the list includes the leg itself
     def is_leg_promiscuous(self, leg, max_leg_distance, max_leg_count):
