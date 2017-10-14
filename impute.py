@@ -27,10 +27,14 @@ def impute(argv):
     
     presets = {
         "f":[False, None],
+        "hf":[False, None],
+        "mf":[False, None],
         "hm":[True, h_par],
         "mm":[True, m_par]}
     preset_descriptions = {
         "f":"female",
+        "hf":"human female (same as f)",
+        "mf":"mouse female (same as f)",
         "hm":"human male (hg19, no \"chr\" prefix)",
         "mm":"mouse male (mm10)"}
     
