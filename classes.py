@@ -298,7 +298,15 @@ class Leg:
     # check if a leg is in a list of included regions, but not in a list of excluded regions
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.in_regs(inc_regs) and not self.in_regs(exc_regs)
-                        
+    # set haplotypes for a haploid region
+    def set_haplotype_in_hap_reg(self, reg):
+        unphased_reg = reg.get_unphased()
+        if self.in_reg(unphased_reg):
+            self.set_haplotype(reg.haplotype)
+    def set_haplotype_in_hap_regs(self, regs):
+        for reg in regs:
+            self.set_haplotype_in_hap_reg(reg)
+                                    
     def to_string(self):
         return ",".join([self.ref_name, str(self.ref_locus), haplotype_to_string(self.haplotype)])
 
@@ -561,6 +569,8 @@ class Con:
             
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)
+    def set_haplotype_in_hap_regs(self, regs):
+        self.leg_1().set_haplotype_in_hap_regs(regs) and self.leg_2().set_haplotype_in_hap_regs(regs)
     
     def is_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
         return leg_data.is_leg_promiscuous(self.leg_1(), max_leg_distance, max_leg_count) or leg_data.is_leg_promiscuous(self.leg_2(), max_leg_distance, max_leg_count)
@@ -762,8 +772,10 @@ class ConList:
                 break
             self.cons[i:j] = sorted(self.cons[i:j])
     
-    def apply_regs(self, inc_regs, exc_regs):
+    def apply_regs(self, inc_regs, exc_regs, hap_regs):
         self.cons[:] = [con for con in self.cons if con.satisfy_regs(inc_regs, exc_regs)]
+        for con in self.cons:
+            con.set_haplotype_in_hap_regs(hap_regs)
         
     def to_string(self):
         return "\n".join([con.to_string() for con in self.cons])
@@ -884,9 +896,9 @@ class ConData:
         for ref_name_tuple in self.con_lists.keys():
             sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " putative contacts\n")
             self.con_lists[ref_name_tuple].dedup(max_distance)
-    def apply_regs(self, inc_regs, exc_regs):
+    def apply_regs(self, inc_regs, exc_regs, hap_regs):
         for ref_name_tuple in self.con_lists.keys():
-            self.con_lists[ref_name_tuple].apply_regs(inc_regs, exc_regs)
+            self.con_lists[ref_name_tuple].apply_regs(inc_regs, exc_regs, hap_regs)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
     def num_cons(self):
@@ -1003,6 +1015,9 @@ class Reg:
         if is_known_haplotype(haplotype):
             self.has_haplotype = True
             self.haplotype = haplotype
+    def remove_haplotype(self):
+        self.has_haplotype = False
+        self.haplotype = Haplotypes.unknown
     def add_start(self, start):
         self.has_start = True
         self.start = start
@@ -1014,6 +1029,10 @@ class Reg:
             phased_reg = copy.deepcopy(self)
             phased_reg.add_haplotype(haplotype)
             yield phased_reg
+    def get_unphased(self):
+        unphased_reg = copy.deepcopy(self)
+        unphased_reg.remove_haplotype()
+        return unphased_reg
     def to_string(self):
         return "\t".join([self.ref_name, (haplotype_to_string(self.haplotype) if self.has_haplotype else "."), (str(self.start) if self.has_start else "."), (str(self.end) if self.has_end else ".")])
     def to_name_string(self):
