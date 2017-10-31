@@ -1302,11 +1302,14 @@ class G3dData:
         for hom_name in sorted(self.g3d_lists.keys()):
             yield hom_name
     def get_g3d_list_from_hom_name(self, hom_name):
-        return self.g3d_lists[hom_name]
+        if hom_name in self.g3d_lists:
+            return self.g3d_lists[hom_name]
+        return None
     def get_g3d_particle_from_hom_name_ref_locus(self, hom_name, ref_locus):
-        for g3d_particle in self.get_g3d_list_from_hom_name(hom_name).get_g3d_particles():
-            if g3d_particle.get_ref_locus() == ref_locus:
-                return g3d_particle
+        if hom_name in self.g3d_lists:
+            for g3d_particle in self.g3d_lists[hom_name].get_g3d_particles():
+                if g3d_particle.get_ref_locus() == ref_locus:
+                    return g3d_particle
         return None
             
     # infer resolution, must be sorted
