@@ -103,7 +103,12 @@ def impute3(argv):
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
     # impute3
-    con_data.impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, max_impute3_ratio * g3d_resolution, is_male, par_data)
+    vio_file = None
+    if not vio_file_name is None:
+        vio_file = open(vio_file_name, "wb")
+    con_data.impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, max_impute3_ratio * g3d_resolution, is_male, par_data, vio_file)
+    if not vio_file is None:
+        vio_file.close()
     sys.stderr.write("[M::" + __name__ + "] imputed " + str(con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * con_data.num_phased_cons() / con_data.num_cons(), 2)) + "%)\n")
     
     # clean imputed

@@ -1,6 +1,7 @@
 import sys
 import getopt
-from classes import Haplotypes, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
+from classes import Haplotypes, homologous_hom_name, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
+import math
 
 def intra_hom_fraction(g3d_particle, nearby_g3d_particles):
     hom_name = g3d_particle.get_hom_name()
@@ -41,7 +42,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:h")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -52,6 +53,7 @@ def color(argv):
         sys.stderr.write("  -n <chr.txt>      color by chromosome name (one chromosome per line)\n")
         sys.stderr.write("  -l <chr.len>      color by locus divided by chromosome length (tab-delimited: chr, len)\n")
         sys.stderr.write("  -L <chr.cen>      color by arm locus divided by arm length (tab-delimited: chr, len, center of centromere)\n")
+        sys.stderr.write("  -h                color by distance to homologous locus\n")
         sys.stderr.write("  -i FLOAT          color by percentage of intra-homologous neighbors within a given distance\n\n")
         sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n")
         sys.stderr.write("Output:\n")
@@ -69,7 +71,8 @@ def color(argv):
         else:
             num_color_schemes += 1
             color_mode = o[1:]
-            color_file_name = a
+            if a != "":
+                color_file_name = a
     if num_color_schemes != 1:
         sys.stderr.write("[E::" + __name__ + "] exactly one color scheme is needed\n")
         return 1
@@ -157,6 +160,11 @@ def color(argv):
             color = intra_hom_fraction(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), intra_distance))
             if color is None:
                 continue
+        elif color_mode == "h":
+            homologous_g3d_particle = g3d_data.get_g3d_particle_from_hom_name_ref_locus(homologous_hom_name(g3d_particle.get_hom_name()), g3d_particle.get_ref_locus())
+            if homologous_g3d_particle is None:
+                continue
+            color = math.sqrt((g3d_particle.get_x() - homologous_g3d_particle.get_x()) ** 2 + (g3d_particle.get_y() - homologous_g3d_particle.get_y()) ** 2 + (g3d_particle.get_z() - homologous_g3d_particle.get_z()) ** 2)
         
         color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         

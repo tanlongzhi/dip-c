@@ -28,6 +28,12 @@ def string_to_haplotype(haplotype_string):
 def known_haplotypes():
     yield Haplotypes.paternal
     yield Haplotypes.maternal
+def homologous_haplotype(haplotype):
+    if haplotype == Haplotypes.paternal:
+        return Haplotypes.maternal
+    elif haplotype == Haplotypes.maternal:
+        return Haplotypes.paternal
+    return None
 def ref_name_haplotype_to_hom_name(ref_name_haplotype):
     return ref_name_haplotype[0] + "(" + ("pat" if ref_name_haplotype[1] == Haplotypes.paternal else "mat") + ")"
 def hom_name_to_ref_name_haplotype(hom_name):
@@ -35,6 +41,12 @@ def hom_name_to_ref_name_haplotype(hom_name):
     haplotype = haplotype.strip(")")
     haplotype = Haplotypes.paternal if haplotype == "pat" else Haplotypes.maternal
     return (ref_name, haplotype)
+def homologous_ref_name_haplotype(ref_name_haplotype):
+    ref_name = ref_name_haplotype[0]
+    haplotype = homologous_haplotype(ref_name_haplotype[1])
+    return (ref_name, haplotype)   
+def homologous_hom_name(hom_name):
+    return ref_name_haplotype_to_hom_name(homologous_ref_name_haplotype(hom_name_to_ref_name_haplotype(hom_name)))
 
 # rules for updating one haplotype with another (merging)
 def update_haplotype(haplotype_1, haplotype_2):
@@ -500,15 +512,19 @@ class Con:
         distance = spatial.distance.euclidean(leg_1_position, leg_2_position)
         return is_both_out, distance    
     
-    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data):
+    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file = None):
         compatible_cons = self.compatible_cons(is_male, par_data)
         num_compatible_cons = len(compatible_cons)
         if num_compatible_cons == 1:
             # already phased (copy in case of X and Y)
             self.deep_copy_from_con(compatible_cons[0])
+            if not vio_file is None:
+                vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), ".", "."]) + "\n")
             return
         if num_compatible_cons == 4 and self.is_intra_chr() and self.separation() < min_impute3_separation:
             # too close and completely unphased, cannot impute
+            if not vio_file is None:
+                vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), ".", "."]) + "\n")
             return
         con_distance_tuples = []
         any_is_both_out = False
@@ -520,14 +536,16 @@ class Con:
         
         if self.is_intra_chr() and any_is_both_out:
             # intra-chromosomal, and both legs are out of range (in any of the compatible), cannot impute (this does not work for CNV loss)
+            if not vio_file is None:
+                vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), ".", "."]) + "\n")
             return
             
         # core imputation
         con_distance_tuples.sort(key = lambda x:x[1])
         impute3_con, impute3_distance = con_distance_tuples[0]
         impute3_ratio = impute3_distance / con_distance_tuples[1][1]
-        #if not vio_file is None:
-            #vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), str(impute3_distance), str(impute3_ratio]) + "\n")
+        if not vio_file is None:
+            vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), str(impute3_distance), str(impute3_ratio)]) + "\n")
         if impute3_distance <= max_impute3_distance and impute3_ratio <= max_impute3_ratio:
             self.deep_copy_from_con(impute3_con)
         
@@ -735,9 +753,9 @@ class ConList:
     def clean_isolated_phased(self, con_data, max_clean_distance, min_clean_count):
         self.cons[:] = [con for con in self.cons if not con.is_isolated_phased(con_data, max_clean_distance, min_clean_count)]
     # impute3
-    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data):
+    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file = None):
         for con in self.cons:
-            con.impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data)
+            con.impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file)
 
         
     # simple dedup within a read (no binary search), assuming the same chromosome
@@ -885,9 +903,9 @@ class ConData:
         for ref_name_tuple in self.con_lists.keys():
             self.con_lists[ref_name_tuple].impute_from_con_data(con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
             #sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
-    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data):
+    def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file = None):
         for ref_name_tuple in self.con_lists.keys():
-            self.con_lists[ref_name_tuple].impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data)
+            self.con_lists[ref_name_tuple].impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file)
             sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts (" + str(round(100.0 * self.con_lists[ref_name_tuple].num_phased_cons() / self.con_lists[ref_name_tuple].num_cons(), 2)) + "% phased)\n")
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
@@ -1172,7 +1190,7 @@ class G3dParticle:
     def get_y(self):
         return self.position[1]
     def get_z(self):
-        return self.position[2]
+        return self.position[2]        
     
     # same as Leg
     def in_reg(self, reg):
@@ -1213,6 +1231,7 @@ class G3dList:
         for g3d_particle in self.g3d_particles:
             if g3d_particle.in_reg(reg):
                 yield g3d_particle
+                
     def sort_g3d_particles(self):
         self.g3d_particles.sort()
         
@@ -1284,7 +1303,12 @@ class G3dData:
             yield hom_name
     def get_g3d_list_from_hom_name(self, hom_name):
         return self.g3d_lists[hom_name]
-    
+    def get_g3d_particle_from_hom_name_ref_locus(self, hom_name, ref_locus):
+        for g3d_particle in self.get_g3d_list_from_hom_name(hom_name).get_g3d_particles():
+            if g3d_particle.get_ref_locus() == ref_locus:
+                return g3d_particle
+        return None
+            
     # infer resolution, must be sorted
     def ref_locus_increments(self):
         ref_locus_increments = []
