@@ -105,7 +105,7 @@ def ard(argv):
     # output 2D histogram
     if not grid_size is None:
         sys.stderr.write("[M::" + __name__ + "] writing output for 2D histogram\n")
-        np.savetxt(sys.stdout, around_hist)
+        np.savetxt(sys.stdout, around_hist, delimiter='\t')
     
     return 0
     

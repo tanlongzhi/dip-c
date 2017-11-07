@@ -96,7 +96,7 @@ def rg(argv):
         
         # write loci file
         loci_file_name = output_prefix + reg_name + ".loc"
-        np.savetxt(loci_file_name, loci_np_array, delimiter='\t')
+        np.savetxt(loci_file_name, loci_np_array, fmt='%i', delimiter='\t')
         
         # calculate Rg
         rg_file_name = output_prefix + reg_name + ".rg"
