@@ -588,7 +588,8 @@ class Con:
     def satisfy_regs(self, inc_regs, exc_regs):
         return self.leg_1().satisfy_regs(inc_regs, exc_regs) and self.leg_2().satisfy_regs(inc_regs, exc_regs)
     def set_haplotype_in_hap_regs(self, regs):
-        self.leg_1().set_haplotype_in_hap_regs(regs) and self.leg_2().set_haplotype_in_hap_regs(regs)
+        self.leg_1().set_haplotype_in_hap_regs(regs)
+        self.leg_2().set_haplotype_in_hap_regs(regs)
     
     def is_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
         return leg_data.is_leg_promiscuous(self.leg_1(), max_leg_distance, max_leg_count) or leg_data.is_leg_promiscuous(self.leg_2(), max_leg_distance, max_leg_count)
