@@ -178,7 +178,8 @@ def color(argv):
             if atom_id % disp_num_particles == 0:
                 sys.stderr.write("[M::" + __name__ + "] smoothed " + str(atom_id) + " particles (" + str(round(100.0 * atom_id / g3d_data.num_g3d_particles(), 2)) + "%)\n")
             color = smooth_color(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), smooth_distance), color_data)
-            smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
+            if not color is None:
+                smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         color_data = smooth_color_data
             
     # output
