@@ -129,7 +129,6 @@ def color(argv):
             ref_lens[ref_name] = ref_len
             ref_cens[ref_name] = ref_cen
     elif color_mode == "i":
-        sys.stderr.write("[M::" + __name__ + "] preparing KD tree\n")
         g3d_data.prepare_nearby()
                         
     # calculate colors
@@ -180,7 +179,6 @@ def color(argv):
         
     # smoothing
     if not smooth_distance is None:
-        sys.stderr.write("[M::" + __name__ + "] preparing KD tree\n")
         g3d_data.prepare_nearby()
         smooth_color_data = {}
         atom_id = 0

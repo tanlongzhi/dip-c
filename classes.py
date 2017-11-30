@@ -1172,6 +1172,9 @@ class G3dParticle:
         return self.to_string()
     def to_string(self):
         return "\t".join([self.hom_name, str(self.ref_locus)] + map(str, self.position))
+    def to_leg(self):
+        ref_name, haplotype = hom_name_to_ref_name_haplotype(self.hom_name)
+        return Leg(ref_name, self.ref_locus, haplotype)
     def get_hom_name(self):
         return self.hom_name
     def ref_name_haplotype(self):
@@ -1289,10 +1292,12 @@ class G3dList:
             g3d_particle_tuple = (self.g3d_particles[i], self.g3d_particles[i + 1])
             if g3d_particle_tuple[1].get_ref_locus() - g3d_particle_tuple[0].get_ref_locus() == resolution:
                 yield g3d_particle_tuple
+            
 
 class G3dData:
     def __init__(self):
         self.g3d_lists = {}
+        self.kdtree = None # scipy to find contacts
     def add_empty_g3d_list(self, hom_name):
         self.g3d_lists[hom_name] = G3dList()
     def add_g3d_particle(self, g3d_particle):
@@ -1358,6 +1363,7 @@ class G3dData:
         for g3d_list in self.g3d_lists.values():
             g3d_list.prepare_interpolate()
     def prepare_nearby(self):
+        sys.stderr.write("[M::" + __name__ + "] preparing KD tree for each homolog\n")
         for g3d_list in self.g3d_lists.values():
             g3d_list.prepare_nearby()
     def get_g3d_particles_near(self, position, max_distance):
@@ -1380,6 +1386,20 @@ class G3dData:
         for hom_name in sorted(self.g3d_lists.keys()):
             for g3d_particle_tuple in self.g3d_lists[hom_name].get_adjacent_g3d_particle_tuples(resolution):
                 yield g3d_particle_tuple
+    def to_np_arrays(self):
+        hom_names = []
+        loci_np_array = np.empty([self.num_g3d_particles(), 1], dtype=int)
+        position_np_array = np.empty([self.num_g3d_particles(), 3], dtype=float)
+        g3d_particle_counter = 0
+        for hom_name in sorted(self.g3d_lists.keys()):
+            g3d_list = self.g3d_lists[hom_name]
+            list_loci_np_array, list_position_np_array = g3d_list.to_np_arrays()
+            list_num_g3d_particles = g3d_list.num_g3d_particles()
+            hom_names.extend([hom_name] * list_num_g3d_particles)
+            loci_np_array[g3d_particle_counter:(g3d_particle_counter + list_num_g3d_particles)] = list_loci_np_array
+            position_np_array[g3d_particle_counter:(g3d_particle_counter + list_num_g3d_particles), :] = list_position_np_array
+            g3d_particle_counter += list_num_g3d_particles
+        return hom_names, loci_np_array, position_np_array
     def to_string(self):
         return "\n".join([self.g3d_lists[hom_name].to_string() for hom_name in sorted(self.g3d_lists.keys())])
 
