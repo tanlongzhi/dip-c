@@ -3,7 +3,7 @@ import numpy as np
 
 num_files = 0
 row_id = int(sys.argv[1])
-sys.stderr.write("row to extract: " + int(row_id) + "\n")
+sys.stderr.write("row to extract: " + str(row_id) + "\n")
 for file_name in sys.argv[2:]:
     sys.stderr.write("reading file: " + file_name + "\n")
     file_data = np.loadtxt(file_name, dtype = int, delimiter='\t')
