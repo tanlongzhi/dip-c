@@ -17,7 +17,7 @@ def append_color_data(merged_color_data, color_data, missing_value):
             else:
                 merged_color_data[key].append(missing_value)
         else:
-            merged_color_data[key] = [0] * num_color_files
+            merged_color_data[key] = [missing_value] * num_color_files
             merged_color_data[key].append(color_data[key])
 
 def mgcolor(argv):
