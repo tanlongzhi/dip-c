@@ -61,10 +61,11 @@ def con3(argv):
     chr_len_file_name = None
     matrix_bin_size = 1000000
     merge_haplotypes = False
+    info_mode = False
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "d:m:b:H")
+        opts, args = getopt.getopt(argv[1:], "d:m:b:Hi")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -74,7 +75,8 @@ def con3(argv):
         sys.stderr.write("  -d FLOAT       max distance for generating a contact [" + str(max_distance) + "]\n")
         sys.stderr.write("  -m <chr.len>   output a matrix of binned counts based on chromosome lengths (tab-delimited: chr, len)\n")
         sys.stderr.write("  -b INT         bin size (bp) for \"-m\" (bins are centered around multiples of bin size) [" + str(matrix_bin_size) + "]\n")
-        sys.stderr.write("  -H             merge the two haplotypes for \"-m\" [" + str(matrix_bin_size) + "]\n")
+        sys.stderr.write("  -H             merge the two haplotypes (for \"-m\")\n")
+        sys.stderr.write("  -i             output bin info (tab-delimited: homolog or chr if \"-H\", bin center) instead (for \"-m\")\n")
         return 1
         
     num_color_schemes = 0
@@ -88,12 +90,15 @@ def con3(argv):
             matrix_bin_size = int(a)
         elif o == "-H":
             merge_haplotypes = True
-                                            
+        elif o == "-i":
+            info_mode = True
+                                                        
     # read 3DG file
-    g3d_data = file_to_g3d_data(open(args[0], "rb"))
-    g3d_data.sort_g3d_particles()
-    g3d_resolution = g3d_data.resolution()
-    sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
+    if not info_mode:
+        g3d_data = file_to_g3d_data(open(args[0], "rb"))
+        g3d_data.sort_g3d_particles()
+        g3d_resolution = g3d_data.resolution()
+        sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
     
     # matrix mode
     if matrix_mode:
@@ -113,16 +118,22 @@ def con3(argv):
                 hom_bin_lens[hom_name] = hom_bin_len
                 hom_offsets[hom_name] = matrix_size
                 matrix_size += hom_bin_len
+                
+                if info_mode:
+                    for bin_id in range(hom_bin_len):
+                        sys.stdout.write("\t".join([(ref_name if merge_haplotypes else hom_name), str(bin_id * matrix_bin_size)]) + "\n")
         
         # generate matrix
-        matrix_data = g3d_data_to_matrix(g3d_data, max_distance, hom_offsets, matrix_bin_size, matrix_size, merge_haplotypes)
-        np.savetxt(sys.stdout, matrix_data, fmt='%i', delimiter='\t')
+        if not info_mode:
+            matrix_data = g3d_data_to_matrix(g3d_data, max_distance, hom_offsets, matrix_bin_size, matrix_size, merge_haplotypes)
+            np.savetxt(sys.stdout, matrix_data, fmt='%i', delimiter='\t')
         
     else:
-        con_data = g3d_data_to_con_data(g3d_data, max_distance)
-        con_data.sort_cons()
-        sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
-        sys.stdout.write(con_data.to_string()+"\n")
+        if not info_mode:
+            con_data = g3d_data_to_con_data(g3d_data, max_distance)
+            con_data.sort_cons()
+            sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+            sys.stdout.write(con_data.to_string() + "\n")
     
     return 0
     

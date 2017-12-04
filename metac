@@ -15,6 +15,7 @@ def main():
         sys.stderr.write("  impute   impute missing haplotypes in a CON file\n")
         sys.stderr.write("  impute3  impute missing haplotypes in a CON file based on a 3DG file\n")
         sys.stderr.write("  clean3   remove contact-poor particles (e.g. centromeres) from a 3DG file\n")
+        sys.stderr.write("  reg3     exclude genomic regions from a 3DG file\n")
         sys.stderr.write("  mkcon    make artificial CON from contact legs\n")
         sys.stderr.write("\n")
         sys.stderr.write("  color    color particles in a 3DG file\n")
@@ -53,6 +54,9 @@ def main():
     elif sys.argv[1] == "clean3":
         import clean3
         return_value = clean3.clean3(sys.argv[1:])
+    elif sys.argv[1] == "reg3":
+        import reg3
+        return_value = reg3.reg3(sys.argv[1:])
     elif sys.argv[1] == "mkcon":
         import mkcon
         return_value = mkcon.mkcon(sys.argv[1:])

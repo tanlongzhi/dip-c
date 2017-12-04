@@ -1194,7 +1194,10 @@ class G3dParticle:
     def get_y(self):
         return self.position[1]
     def get_z(self):
-        return self.position[2]        
+        return self.position[2]    
+        
+    def satisfy_regs(self, inc_regs, exc_regs):
+        return self.to_leg().satisfy_regs(inc_regs, exc_regs)
     
     # same as Leg
     def in_reg(self, reg):
@@ -1292,7 +1295,9 @@ class G3dList:
             g3d_particle_tuple = (self.g3d_particles[i], self.g3d_particles[i + 1])
             if g3d_particle_tuple[1].get_ref_locus() - g3d_particle_tuple[0].get_ref_locus() == resolution:
                 yield g3d_particle_tuple
-            
+    
+    def apply_regs(self, inc_regs, exc_regs):
+        self.g3d_particles[:] = [g3d_particle for g3d_particle in self.g3d_particles if g3d_particle.satisfy_regs(inc_regs, exc_regs)]
 
 class G3dData:
     def __init__(self):
@@ -1376,8 +1381,10 @@ class G3dData:
             leg_counts.extend(g3d_list.leg_counts(leg_data, max_distance))
         return leg_counts
     def clean_leg_poor(self, leg_data, max_distance, min_leg_count):
-        for g3d_list in self.g3d_lists.values():
-            g3d_list.clean_leg_poor(leg_data, max_distance, min_leg_count)
+        for hom_name in sorted(self.g3d_lists.keys()):
+            self.g3d_lists[hom_name].clean_leg_poor(leg_data, max_distance, min_leg_count)
+            if self.g3d_lists[hom_name].num_g3d_particles() == 0:
+                del self.g3d_lists[hom_name]
     def get_g3d_particles(self):
         for hom_name in sorted(self.g3d_lists.keys()):
             for g3d_particle in self.g3d_lists[hom_name].get_g3d_particles():
@@ -1400,6 +1407,11 @@ class G3dData:
             position_np_array[g3d_particle_counter:(g3d_particle_counter + list_num_g3d_particles), :] = list_position_np_array
             g3d_particle_counter += list_num_g3d_particles
         return hom_names, loci_np_array, position_np_array
+    def apply_regs(self, inc_regs, exc_regs):
+        for hom_name in sorted(self.g3d_lists.keys()):
+            self.g3d_lists[hom_name].apply_regs(inc_regs, exc_regs)
+            if self.g3d_lists[hom_name].num_g3d_particles() == 0:
+                del self.g3d_lists[hom_name]
     def to_string(self):
         return "\n".join([self.g3d_lists[hom_name].to_string() for hom_name in sorted(self.g3d_lists.keys())])
 
