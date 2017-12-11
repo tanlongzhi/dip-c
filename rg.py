@@ -4,6 +4,7 @@ import gzip
 import copy
 from classes import Haplotypes, Reg, file_to_reg_list, get_phased_regs, G3dList, G3dParticle, G3dData, file_to_g3d_data, ref_name_haplotype_to_hom_name
 import numpy as np
+from scipy.spatial.distance import pdist, squareform
 import math
 
 def position_np_array_to_rg_np_array(position_np_array, disp_num_particles):
@@ -32,13 +33,14 @@ def rg(argv):
     output_prefix = None
     reg_file_name = None
     reg_list = []
+    distance_mode = False
     
     # display parameters
     disp_num_particles = 100
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "o:r:")
+        opts, args = getopt.getopt(argv[1:], "o:r:d")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -48,6 +50,7 @@ def rg(argv):
         sys.stderr.write("  -o STR        output prefix [<in.3dg>.]\n")
         sys.stderr.write("  -r <in.reg>   only analyze certain regions\n")
         sys.stderr.write("                  (will output two regions if haplotype is \".\")\n")
+        sys.stderr.write("  -d            output pairwise distances instead\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  <prefix><region_name>.rg    an N x N matrix of radii of gyration\n")
         sys.stderr.write("  <prefix><region_name>.loc   a list of N chromosomal loci\n")
@@ -57,7 +60,9 @@ def rg(argv):
             output_prefix = a
         elif o == "-r":
             reg_file_name = a
-
+        elif o == "-d":
+            distance_mode = True
+            
     if output_prefix is None:
         output_prefix = args[0] + "."
         
@@ -100,7 +105,11 @@ def rg(argv):
         
         # calculate Rg
         rg_file_name = output_prefix + reg_name + ".rg"
-        np.savetxt(rg_file_name, position_np_array_to_rg_np_array(position_np_array, disp_num_particles), delimiter='\t')        
+        if distance_mode:
+            output_matrix = squareform(pdist(position_np_array))
+        else:
+            output_matrix = position_np_array_to_rg_np_array(position_np_array, disp_num_particles)
+        np.savetxt(rg_file_name, output_matrix, delimiter='\t')        
     
     return 0
     
