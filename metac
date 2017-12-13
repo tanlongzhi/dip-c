@@ -27,6 +27,7 @@ def main():
         sys.stderr.write("  dist     calculate 3D distances from a 3DG file\n")
         sys.stderr.write("  rg       calculate the Rg matrix from a 3DG file\n")
         sys.stderr.write("  con3     generate CON from a 3DG file\n")
+        sys.stderr.write("  pos      find 3D positions from a 3DG file\n")
         sys.stderr.write("  tad      find the TAD tree from a Rg matrix\n")
         sys.stderr.write("  exp      expand a 3DG file by translating each chromosome\n")
         return 1
@@ -85,6 +86,9 @@ def main():
     elif sys.argv[1] == "rg":
         import rg
         return_value = rg.rg(sys.argv[1:])
+    elif sys.argv[1] == "pos":
+        import pos
+        return_value = pos.pos(sys.argv[1:])
     elif sys.argv[1] == "tad":
         import tad
         return_value = tad.tad(sys.argv[1:])
