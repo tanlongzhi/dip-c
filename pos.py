@@ -8,10 +8,11 @@ import numpy as np
 def pos(argv):
     # default parameters
     leg_file_name = None
+    in_only = False
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "l:")
+        opts, args = getopt.getopt(argv[1:], "l:O")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -19,10 +20,13 @@ def pos(argv):
         sys.stderr.write("Usage: metac leg [options] -l <in.leg> <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -l <in.leg>    LEG file to convert to 3D positions (required)\n")
+        sys.stderr.write("  -O             exclude out-of-bound legs\n")
         return 1
     for o, a in opts:
         if o == "-l":
             leg_file_name = a
+        if o == "-O":
+            in_only = True
     if leg_file_name is None:
         sys.stderr.write("[E::" + __name__ + "] -l is required\n")
         return 1
@@ -37,7 +41,7 @@ def pos(argv):
     # convert LEG file to 3DG particles
     for leg_file_line in open(leg_file_name, "rb"):
         is_out, position = g3d_data.interpolate_leg(string_to_leg(leg_file_line.strip()))
-        if position is None:
+        if position is None or (is_out and in_only):
             sys.stdout.write("None\n")
         else:
             sys.stdout.write("\t".join(map(str, position)) + "\n")
