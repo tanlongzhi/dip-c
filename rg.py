@@ -2,7 +2,7 @@ import sys
 import getopt
 import gzip
 import copy
-from classes import Haplotypes, Reg, file_to_reg_list, get_phased_regs, G3dList, G3dParticle, G3dData, file_to_g3d_data, ref_name_haplotype_to_hom_name
+from classes import Haplotypes, Reg, file_to_reg_list, get_phased_regs, G3dList, G3dParticle, G3dData, file_to_g3d_data, ref_name_haplotype_to_hom_name, hom_name_to_ref_name_haplotype
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 import math
@@ -75,8 +75,11 @@ def rg(argv):
     # prepare regions to analyze
     if reg_file_name is None:
         # analyze all homologs
-        for ref_name_haplotype in g3d_data.get_ref_name_haplotype():
-            reg_list.append(Reg(ref_name_haplotype[0]))
+        for hom_name in g3d_data.get_hom_names():
+            ref_name, haplotype = hom_name_to_ref_name_haplotype(hom_name)
+            reg = Reg(ref_name)
+            reg.add_haplotype(haplotype)
+            reg_list.append(reg)
     else:
         reg_file = gzip.open(reg_file_name, "rb") if reg_file_name.endswith(".gz") else open(reg_file_name, "rb")
         reg_list.extend(file_to_reg_list(reg_file))
