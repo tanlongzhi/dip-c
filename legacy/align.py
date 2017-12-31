@@ -13,7 +13,7 @@ for inputFileName in sys.argv[1:]:
     inputData.append({})
     for inputFileLine in inputFile:
         inputFileLineData = inputFileLine.strip().split()
-        inputData[-1][(int(inputFileLineData[0]),int(inputFileLineData[1]))] = [float(inputFileLineData[2]),float(inputFileLineData[3]),float(inputFileLineData[4])]
+        inputData[-1][(inputFileLineData[0],int(inputFileLineData[1]))] = [float(inputFileLineData[2]),float(inputFileLineData[3]),float(inputFileLineData[4])]
 
 # find common particles
 commonLoci = set(inputData[0])

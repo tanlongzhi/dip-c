@@ -19,13 +19,14 @@ def ard(argv):
     max_distance = 10000000
     grid_size = None
     is_symmetrical = True
+    superellipse_mode = False
     
     # progress display parameters
     display_num_ref_cons = 1000
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:s:d:h:S")
+        opts, args = getopt.getopt(argv[1:], "c:s:d:h:Se")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -36,7 +37,8 @@ def ard(argv):
         sys.stderr.write("  -s INT          only use intra-chromosomal reference points, min separation (bp) [only use inter-chromosomal] \n")
         sys.stderr.write("  -d INT          max distance (bp, L-inf norm) around reference points [" + str(max_distance) + "]\n")
         sys.stderr.write("  -h INT          output 2D histogram, grid size (bp) (useful for too many contacts)\n")
-        sys.stderr.write("  -S              does not symmetrize\n")
+        sys.stderr.write("  -e              use L-1/2 norm (superellipse) instead\n")
+        sys.stderr.write("  -S              does not symmetrize for \"-h\"\n")
         return 1
     for o, a in opts:
         if o == "-c":
@@ -49,7 +51,9 @@ def ard(argv):
             grid_size = int(a)
         elif o == "-S":
             is_symmetrical = False
-                                        
+        elif o == "-e":
+            superellipse_mode = True     
+                                               
     # read CON file
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
     con_data = file_to_con_data(con_file)
@@ -87,7 +91,7 @@ def ard(argv):
         num_ref_cons += 1
         if num_ref_cons % display_num_ref_cons == 0:
             sys.stderr.write("[M::" + __name__ + "] analyzed " + str(num_ref_cons) + " reference points\n")
-        for con in con_data.get_cons_near_inf(ref_con, max_distance):
+        for con in (con_data.get_cons_near(ref_con, max_distance) if superellipse_mode else con_data.get_cons_near_inf(ref_con, max_distance)):
             if grid_size is None:
                 # output relative positions
                 sys.stdout.write(con.to_string_around(ref_con) + "\n")
@@ -97,11 +101,11 @@ def ard(argv):
                 if is_symmetrical:
                     # symmetrize
                     if min_separation is None:
-                            # inter-chromosomal: 8 copies
-                            for sign_1 in [-1, 1]:
-                                for sign_2 in [-1, 1]:
-                                    add_ref_locus_to_hist(around_hist, (sign_1 * rel_locus[0], sign_2 * rel_locus[1]), max_distance, grid_size)
-                                    add_ref_locus_to_hist(around_hist, (sign_2 * rel_locus[1], sign_1 * rel_locus[0]), max_distance, grid_size)
+                        # inter-chromosomal: 8 copies
+                        for sign_1 in [-1, 1]:
+                            for sign_2 in [-1, 1]:
+                                add_ref_locus_to_hist(around_hist, (sign_1 * rel_locus[0], sign_2 * rel_locus[1]), max_distance, grid_size)
+                                add_ref_locus_to_hist(around_hist, (sign_2 * rel_locus[1], sign_1 * rel_locus[0]), max_distance, grid_size)
                     else:
                         # intra-chromosomal: 2 copies
                         add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
