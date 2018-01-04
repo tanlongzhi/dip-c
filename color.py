@@ -16,6 +16,28 @@ def intra_hom_fraction(g3d_particle, nearby_g3d_particles, max_separation):
         return None
     return float(num_intra_hom) / num_g3d_particles
 
+def hom_diversity(g3d_particles):
+    particle_counts = {}
+    total_count = 0
+    for g3d_particle in g3d_particles:
+        total_count += 1
+        hom_name = g3d_particle.get_hom_name()
+        if hom_name not in particle_counts:
+            particle_counts[hom_name] = 0
+        particle_counts[hom_name] += 1
+    # calculate entropy
+    entropy = 0.0
+    for particle_count in particle_counts.values():
+        hom_fraction = float(particle_count) / total_count
+        entropy -= hom_fraction * math.log(hom_fraction)
+    return entropy
+
+def hom_richness(g3d_particles):
+    hom_names = set()
+    for g3d_particle in g3d_particles:
+        hom_names.add(g3d_particle.get_hom_name())
+    return len(hom_names)
+
 def smooth_color(g3d_particle, nearby_g3d_particles, color_data):
     hom_name = g3d_particle.get_hom_name()
     ref_locus = g3d_particle.get_ref_locus()
@@ -36,7 +58,7 @@ def color(argv):
     # default parameters
     color_file_name = None
     color_mode = None
-    intra_distance = None
+    max_distance = None
     smooth_distance = None
     max_separation = None
     
@@ -45,7 +67,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:h")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -59,6 +81,8 @@ def color(argv):
         sys.stderr.write("  -h                color by distance to homologous locus\n\n")
         sys.stderr.write("  -i FLOAT          color by percentage of intra-homologous neighbors within a given distance\n")
         sys.stderr.write("  -S INT            (with \"-i\") max separation (bp) for intra-homologous neighbors\n\n")
+        sys.stderr.write("  -d FLOAT          color by homolog diversity within a given distance\n")
+        sys.stderr.write("  -r FLOAT          color by homolog richness within a given distance\n")
         sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
@@ -66,10 +90,10 @@ def color(argv):
         
     num_color_schemes = 0
     for o, a in opts:
-        if o == "-i":
+        if o == "-i" or o == "-d" or o == "-r":
             num_color_schemes += 1
-            color_mode = "i"
-            intra_distance = float(a)
+            color_mode = o[1:]
+            max_distance = float(a)
         elif o == "-s":
             smooth_distance = float(a)
         elif o == "-S":
@@ -128,7 +152,7 @@ def color(argv):
             ref_cen = int(ref_cen)
             ref_lens[ref_name] = ref_len
             ref_cens[ref_name] = ref_cen
-    elif color_mode == "i":
+    elif color_mode == "i" or color_mode == "d" or color_mode == "r":
         g3d_data.prepare_nearby()
                         
     # calculate colors
@@ -166,7 +190,7 @@ def color(argv):
             except KeyError:
                 continue    
         elif color_mode == "i":
-            color = intra_hom_fraction(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), intra_distance), max_separation)
+            color = intra_hom_fraction(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance), max_separation)
             if color is None:
                 continue
         elif color_mode == "h":
@@ -174,6 +198,10 @@ def color(argv):
             if homologous_g3d_particle is None:
                 continue
             color = math.sqrt((g3d_particle.get_x() - homologous_g3d_particle.get_x()) ** 2 + (g3d_particle.get_y() - homologous_g3d_particle.get_y()) ** 2 + (g3d_particle.get_z() - homologous_g3d_particle.get_z()) ** 2)
+        elif color_mode == "d":
+            color = hom_diversity(g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance))
+        elif color_mode == "r":
+            color = hom_richness(g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance))
         
         color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         
