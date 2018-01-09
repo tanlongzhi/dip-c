@@ -38,12 +38,13 @@ for commonStructure in commonData:
 deviations = np.empty((numOfLoci, 0), float)
 for i in range(numOfStructures):
     for j in range(i+1, numOfStructures):
-        sys.stderr.write('calculating pair: '+str(i)+', '+str(j)+'\n')
         # mirror image if needed
         if rmsd.kabsch_rmsd(commonData[i], commonData[j]) > rmsd.kabsch_rmsd(commonData[i], -1 * commonData[j]):
             commonData[j] *= -1
         # calculate deviation
-        deviations = np.c_[deviations, np.linalg.norm(rmsd.kabsch_rotate(commonData[j], commonData[i]) - commonData[i], axis = 1).T]
+        deviation = np.linalg.norm(rmsd.kabsch_rotate(commonData[j], commonData[i]) - commonData[i], axis = 1).T
+        deviations = np.c_[deviations, deviation]
+        sys.stderr.write('median deviation between '+str(i)+' and '+str(j)+': '+str(np.median(deviation))+'\n')
 
 # summarize rmsd and print
 rmsds = np.sqrt((deviations ** 2).mean(axis = 1))
