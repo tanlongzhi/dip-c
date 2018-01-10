@@ -515,17 +515,14 @@ class Con:
     def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file = None):
         compatible_cons = self.compatible_cons(is_male, par_data)
         num_compatible_cons = len(compatible_cons)
+        skip_ratio_calculation = False
         if num_compatible_cons == 1:
             # already phased (copy in case of X and Y)
             self.deep_copy_from_con(compatible_cons[0])
-            if not vio_file is None:
-                vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), ".", "."]) + "\n")
-            return
-        if num_compatible_cons == 4 and self.is_intra_chr() and self.separation() < min_impute3_separation:
+            skip_ratio_calculation = True
+        elif num_compatible_cons == 4 and self.is_intra_chr() and self.separation() < min_impute3_separation:
             # too close and completely unphased, cannot impute
-            if not vio_file is None:
-                vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), ".", "."]) + "\n")
-            return
+            skip_ratio_calculation = True
         con_distance_tuples = []
         any_is_both_out = False
         for con in compatible_cons:
@@ -536,17 +533,18 @@ class Con:
         
         if self.is_intra_chr() and any_is_both_out:
             # intra-chromosomal, and both legs are out of range (in any of the compatible), cannot impute (this does not work for CNV loss)
-            if not vio_file is None:
-                vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), ".", "."]) + "\n")
-            return
+            skip_ratio_calculation = True
             
         # core imputation
         con_distance_tuples.sort(key = lambda x:x[1])
         impute3_con, impute3_distance = con_distance_tuples[0]
-        impute3_ratio = impute3_distance / con_distance_tuples[1][1]
+        if skip_ratio_calculation:
+            impute3_ratio = -1
+        else:
+            impute3_ratio = impute3_distance / con_distance_tuples[1][1]
         if not vio_file is None:
             vio_file.write("\t".join([self.to_string(), str(num_compatible_cons), str(impute3_distance), str(impute3_ratio)]) + "\n")
-        if impute3_distance <= max_impute3_distance and impute3_ratio <= max_impute3_ratio:
+        if not skip_ratio_calculation and impute3_distance <= max_impute3_distance and impute3_ratio <= max_impute3_ratio:
             self.deep_copy_from_con(impute3_con)
         
         
