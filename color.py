@@ -2,6 +2,8 @@ import sys
 import getopt
 from classes import Haplotypes, homologous_hom_name, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
 import math
+import numpy as np
+
 
 def intra_hom_fraction(g3d_particle, nearby_g3d_particles, max_separation):
     hom_name = g3d_particle.get_hom_name()
@@ -76,7 +78,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:C")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -92,7 +94,8 @@ def color(argv):
         sys.stderr.write("  -I FLOAT          color by number of intra-homologous neighbors within a given distance\n")
         sys.stderr.write("  -S INT            (with \"-i\" or \"-I\") max separation (bp) for intra-homologous neighbors\n\n")
         sys.stderr.write("  -d FLOAT          color by homolog diversity within a given distance\n")
-        sys.stderr.write("  -r FLOAT          color by homolog richness within a given distance\n")
+        sys.stderr.write("  -r FLOAT          color by homolog richness within a given distance\n\n")
+        sys.stderr.write("  -C                color by distance to the nuclear center of mass\n")
         sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
@@ -130,7 +133,7 @@ def color(argv):
     if not color_file_name is None:
         color_file = open(color_file_name, "rb")
     
-    # read color file
+    # prepare
     if color_mode is None:
         pass
     elif color_mode == "c":
@@ -164,8 +167,12 @@ def color(argv):
             ref_cens[ref_name] = ref_cen
     elif color_mode == "i" or color_mode == "I" or color_mode == "d" or color_mode == "r":
         g3d_data.prepare_nearby()
+    elif color_mode == "C":
+        hom_names, loci_np_array, position_np_array = g3d_data.to_np_arrays()
+        center_mass = np.mean(position_np_array, axis = 0)
+        sys.stderr.write("[M::" + __name__ + "] center of mass is at (" + ", ".join(map(str, center_mass)) + ")\n")
                         
-    # calculate colors
+    # calculate colors for each particle
     color_data = {}
     atom_id = 0
     for g3d_particle in g3d_data.get_g3d_particles():
@@ -214,6 +221,8 @@ def color(argv):
             color = hom_diversity(g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance))
         elif color_mode == "r":
             color = hom_richness(g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance))
+        elif color_mode == "C":
+            color = math.sqrt((g3d_particle.get_x() - center_mass[0]) ** 2 + (g3d_particle.get_y() - center_mass[1]) ** 2 + (g3d_particle.get_z() - center_mass[2]) ** 2)
         #sys.stderr.write(str(color) + "\n")
         color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         
