@@ -30,10 +30,10 @@ sys.stderr.write('found common particles: '+str(numOfLoci)+'\n')
 # subtract centroid
 commonData = np.array(commonData)
 centroidData = []
-for commonStructure in commonData:
-    commonStructure = np.array(commonStructure)
-    centroidPos = rmsd.centroid(commonStructure)
-    commonStructure -= centroidPos
+for i in range(numOfStructures):
+    commonData[i] = np.array(commonData[i])
+    centroidPos = rmsd.centroid(commonData[i])
+    commonData[i] -= centroidPos
     centroidData.append(centroidPos)
     
 # calculate pairwise deviation and rotate
@@ -43,25 +43,25 @@ for i in range(numOfStructures):
         if j == i:
             continue
         # mirror image if needed
-        isMirrored = False
-        if rmsd.kabsch_rmsd(commonData[i], commonData[j]) > rmsd.kabsch_rmsd(commonData[i], -1 * commonData[j]):
-            commonData[j] *= -1
-            isMirrored = True
+        mirrorFactor = 1.0
+        if rmsd.kabsch_rmsd(commonData[i], commonData[j]) > rmsd.kabsch_rmsd(commonData[i], -1.0 * commonData[j]):
+            mirrorFactor = -1.0
         # calculate deviation
-        rotationMatrix = rmsd.kabsch(commonData[j], commonData[i])
+        rotationMatrix = rmsd.kabsch(mirrorFactor * commonData[j], commonData[i])
         if j > i:
-            deviation = np.linalg.norm(np.dot(commonData[j], rotationMatrix) - commonData[i], axis = 1).T
+            deviation = np.linalg.norm(np.dot(mirrorFactor * commonData[j], rotationMatrix) - commonData[i], axis = 1).T
             deviations = np.c_[deviations, deviation]
             sys.stderr.write('median deviation between '+str(i)+' and '+str(j)+': '+str(np.median(deviation))+'\n')
         # rotate j to align with i
-        sys.stderr.write('aligning '+str(i)+' to '+str(j)+'\n')
+        sys.stderr.write('aligning '+str(j)+' to '+str(i)+'\n')
         alignedFilename = "aligned_" + str(j) + "_to_" + str(i) + ".3dg"
         alignedFile = open(alignedFilename, "wb")
         for inputLocus in inputData[j]:
             #sys.stderr.write("locus: "+str(inputLocus)+"\n")
             #sys.stderr.write("old: "+str(np.array(inputData[j][inputLocus]))+"\n")
             #sys.stderr.write("centroid: "+str(centroidData[j])+"\n")
-            alignedPos = np.dot((np.array(inputData[j][inputLocus]) - centroidData[j]) * (-1.0 if isMirrored else 1.0), rotationMatrix) + centroidData[i]
+            #sys.stderr.write("reference centroid: "+str(centroidData[i])+"\n")
+            alignedPos = np.dot((np.array(inputData[j][inputLocus]) - centroidData[j]) * mirrorFactor, rotationMatrix) + centroidData[i]
             #sys.stderr.write("new: "+str(alignedPos)+"\n")
             #if inputLocus in commonLoci:
                 #sys.stderr.write("reference: "+str(commonData[i][commonLoci.index(inputLocus), :])+"\n")
