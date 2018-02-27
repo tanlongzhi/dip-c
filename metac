@@ -24,6 +24,7 @@ def main():
         sys.stderr.write("\n")
         sys.stderr.write("  info     basic information about CON file(s)\n")
         sys.stderr.write("  ard      contacts around certain points (e.g. other contacts)\n")
+        sys.stderr.write("  cv       cross validation of CON files\n")
         sys.stderr.write("  dist     calculate 3D distances from a 3DG file\n")
         sys.stderr.write("  rg       calculate the Rg matrix from a 3DG file\n")
         sys.stderr.write("  con3     generate CON from a 3DG file\n")
@@ -77,6 +78,9 @@ def main():
     elif sys.argv[1] == "ard":
         import ard
         return_value = ard.ard(sys.argv[1:])
+    elif sys.argv[1] == "cv":
+        import cv
+        return_value = cv.cv(sys.argv[1:])
     elif sys.argv[1] == "con3":
         import con3
         return_value = con3.con3(sys.argv[1:])
