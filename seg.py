@@ -146,7 +146,7 @@ def seg(argv):
                             else:
                                 continue
                             seg_data.update_haplotype(pileup_read.alignment.query_name, pileup_read.alignment.is_read2, snp_chr, snp_locus, seg_haplotype)
-    sys.stderr.write("[M::" + __name__ + "] pass 3 done: read " + str(num_snps) + " SNPs\n")
+        sys.stderr.write("[M::" + __name__ + "] pass 3 done: read " + str(num_snps) + " SNPs\n")
     
     # write output
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(seg_data.num_reads()) + " candidate reads, containing " + str(seg_data.num_segs()) + " segments (" + str(round(100.0 * seg_data.num_phased_segs() / seg_data.num_segs(), 2)) + "% phased)\n")
