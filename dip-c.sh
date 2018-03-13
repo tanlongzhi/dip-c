@@ -12,7 +12,7 @@ impute_clean_count="2"
 impute3_clean_count="2"
 
 # preparation
-${dip-c_path}/dip-c seg -v ${snp_file} ${sample_folder}/srt.bam | gzip -c > ${sample_folder}/phased.seg.gz
+${dip-c_path}/dip-c seg -v ${snp_file} ${sample_folder}/aln.bam | gzip -c > ${sample_folder}/phased.seg.gz
 ${dip-c_path}/dip-c con ${sample_folder}/phased.seg.gz | gzip -c > ${sample_folder}/raw.con.gz
 ${dip-c_path}/dip-c dedup ${sample_folder}/raw.con.gz | gzip -c > ${sample_folder}/dedup.con.gz
 ${dip-c_path}/dip-c reg -p ${preset_name} ${sample_folder}/dedup.con.gz | gzip -c > ${sample_folder}/reg.con.gz
