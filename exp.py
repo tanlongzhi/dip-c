@@ -17,6 +17,10 @@ def center_g3d_particles(g3d_particles):
     sum_one /= sum_zero
     return sum_one
 
+# for object name in pymol
+def hom_name_to_object_name(hom_name):
+    return hom_name.replace("(", "_").replace(")", "")
+
 def exp(argv):
     # default parameters
     expansion_factor = 3.0
@@ -62,11 +66,16 @@ def exp(argv):
         # center of each homologs
         for hom_name in g3d_data.get_hom_names():
             hom_centers[hom_name] = center_g3d_particles(g3d_data.get_g3d_particles_from_hom_name(hom_name))
+            sys.stderr.write("extract " + hom_name_to_object_name(hom_name) + ", chain \"" + hom_name + "\"\n")
         # translate
         for hom_name in g3d_data.get_hom_names():
             translation_vector = (hom_centers[hom_name] - nuc_center) * expansion_factor
             for g3d_particle in g3d_data.get_g3d_particles_from_hom_name(hom_name):
                 g3d_particle.set_position((np.array(g3d_particle.get_position()) + translation_vector).tolist())
+            #sys.stderr.write("translate [" + ",".join(map(str, translation_vector)) + "], chain \"" + hom_name + "\"\n")
+            sys.stderr.write("translate [" + ",".join(map(str, translation_vector)) + "], object=" + hom_name_to_object_name(hom_name) + ", camera=0\n")
+        for hom_name in g3d_data.get_hom_names():
+            sys.stderr.write("mview store, object=" + hom_name_to_object_name(hom_name)  + "\n")            
     
     # output
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(g3d_data.num_g3d_particles()) + " particles\n")
