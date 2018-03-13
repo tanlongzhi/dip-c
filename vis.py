@@ -26,7 +26,7 @@ def vis(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac vis [options] <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c vis [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: homolog, locus, color)\n")
         sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n\n")

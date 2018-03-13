@@ -32,7 +32,7 @@ def mgcolor(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac mgcolor [options] <in1.color> <in2.color> ...\n")
+        sys.stderr.write("Usage: dip-c mgcolor [options] <in1.color> <in2.color> ...\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -m FLOAT          color for particles that are missing from some files [" + str(missing_value) + "]\n")
         sys.stderr.write("  -d                diploid mode: two columns for each file (pat and mat)\n\n")

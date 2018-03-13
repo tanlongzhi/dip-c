@@ -63,7 +63,7 @@ def tad(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac tad [options] -l <in.loc> <in.rg>\n")
+        sys.stderr.write("Usage: dip-c tad [options] -l <in.loc> <in.rg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -l <in.loc>   input locus file (one locus per line)\n")
         sys.stderr.write("Output:\n")

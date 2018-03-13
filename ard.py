@@ -31,7 +31,7 @@ def ard(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac ard [options] <in.con>\n")
+        sys.stderr.write("Usage: dip-c ard [options] <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <ref.con>    contact file for reference points [<in.con> itself]\n")
         sys.stderr.write("  -s INT          only use intra-chromosomal reference points, min separation (bp) [only use inter-chromosomal] \n")

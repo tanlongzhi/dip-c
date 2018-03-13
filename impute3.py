@@ -48,7 +48,7 @@ def impute3(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac impute3 [options] -3 <in.3dg> [-v <out.vio>] <in.con>\n")
+        sys.stderr.write("Usage: dip-c impute3 [options] -3 <in.3dg> [-v <out.vio>] <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -3 <in.3dg>    3D genome file for imputing haplotypes (required)\n")
         sys.stderr.write("  -v <out.vio>   output statistics to a contact violation file:\n")

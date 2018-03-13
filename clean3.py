@@ -22,7 +22,7 @@ def clean3(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac clean3 [options] -c <in.con> <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c clean3 [options] -c <in.con> <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <in.con>    contact file for cleaning (required)\n")
         sys.stderr.write("  -d INT         max distance (bp) from a contact leg to a 3D genome particle [" + str(max_clean_distance) + "]\n")

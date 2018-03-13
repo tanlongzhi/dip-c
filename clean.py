@@ -23,7 +23,7 @@ def clean(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac clean [options] <in.con>\n")
+        sys.stderr.write("Usage: dip-c clean [options] <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -d INT     max distance (bp, L-1/2 norm) for removing isolated contacts [" + str(max_clean_distance) + "]\n")
         sys.stderr.write("  -c INT     min neighbor count for an unisolated contact [" + str(min_clean_count) + "]\n")

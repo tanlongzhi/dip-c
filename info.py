@@ -21,7 +21,7 @@ def info(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac info <in1.con> <in2.con> ...\n")
+        sys.stderr.write("Usage: dip-c info <in1.con> <in2.con> ...\n")
         return 1
                                         
     # read each CON file

@@ -19,7 +19,7 @@ def dedup(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac dedup [options] <in.con>\n")
+        sys.stderr.write("Usage: dip-c dedup [options] <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -s INT     min separation (bp) for intra-chromosomal contacts [" + str(min_separation) + "]\n")
         sys.stderr.write("  -d INT     max distance (bp, L-inf norm) for merging duplicates [" + str(max_distance) + "]\n")

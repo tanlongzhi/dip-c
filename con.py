@@ -19,7 +19,7 @@ def con(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac con [options] <in.seg>\n")
+        sys.stderr.write("Usage: dip-c con [options] <in.seg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -s INT     min separation (bp) for intra-chromosomal contacts [" + str(min_separation) + "]\n")
         sys.stderr.write("  -d INT     max distance (bp, L-inf norm) for merging contacts within a read [" + str(max_distance) + "]\n")

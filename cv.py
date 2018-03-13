@@ -22,7 +22,7 @@ def cv(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac cv -i <impute.con> -t <truth.con> <in.con>\n")
+        sys.stderr.write("Usage: dip-c cv -i <impute.con> -t <truth.con> <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -i <impute.con>    imputed contacts\n")
         sys.stderr.write("  -t <truth.con>     ground truth contacts\n")

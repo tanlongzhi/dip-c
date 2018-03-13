@@ -49,7 +49,7 @@ def impute(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac impute [options] <in.con>\n")
+        sys.stderr.write("Usage: dip-c impute [options] <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -d INT     max distance (bp, L-1/2 norm) for imputing haplotypes [" + str(max_impute_distance) + "]\n")
         sys.stderr.write("  -v INT     min votes for the major haplotypes [" + str(min_impute_votes) + "]\n")

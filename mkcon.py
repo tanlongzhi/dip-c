@@ -28,7 +28,7 @@ def mkcon(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac mkcon [options] <leg1.txt> <leg2.txt>\n")
+        sys.stderr.write("Usage: dip-c mkcon [options] <leg1.txt> <leg2.txt>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -n INT     number of contacts to output [" + str(num_con) + "]\n")
         return 1

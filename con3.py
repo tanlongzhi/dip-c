@@ -70,7 +70,7 @@ def con3(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac con3 [options] <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c con3 [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -d FLOAT       max distance for generating a contact [" + str(max_distance) + "]\n")
         sys.stderr.write("  -m <chr.len>   output a matrix of binned counts based on chromosome lengths (tab-delimited: chr, len)\n")

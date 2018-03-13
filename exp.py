@@ -33,7 +33,7 @@ def exp(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac exp [options] <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c exp [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -f FLOAT     expansion factor for translating away from nuclear center [" + str(expansion_factor) + "]\n")
         sys.stderr.write("  -c           output centers of mass\n")

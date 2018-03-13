@@ -52,7 +52,7 @@ def seg(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac seg [options] <in.bam>\n")
+        sys.stderr.write("Usage: dip-c seg [options] <in.bam>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -q INT          min mapping quality [" + str(min_mapq) + "]\n")
         sys.stderr.write("  -m FLOAT        max edit distance per bp of aligned read [" + str(max_nm_per_bp) + "]\n")

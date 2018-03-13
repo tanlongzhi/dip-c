@@ -33,7 +33,7 @@ def reg3(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac reg3 [options] <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c reg3 [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -i <inc.reg>   the only regions to include:\n")
         sys.stderr.write("                   tab-delimited: chr, haplotype, start, end\n")

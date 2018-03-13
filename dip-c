@@ -5,7 +5,7 @@ import time
 
 def main():
     if len(sys.argv) == 1:
-        sys.stderr.write("Usage: metac <command> <arguments>\n")
+        sys.stderr.write("Usage: dip-c <command> <arguments>\n")
         sys.stderr.write("Commands:\n")
         sys.stderr.write("  seg      extract read segments (SEG) from a BAM file\n")
         sys.stderr.write("  con      extract contacts (CON) from a SEG file\n")

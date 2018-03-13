@@ -17,7 +17,7 @@ def pos(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: metac leg [options] -l <in.leg> <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c leg [options] -l <in.leg> <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -l <in.leg>    LEG file to convert to 3D positions (required)\n")
         sys.stderr.write("  -O             exclude out-of-bound legs\n")
