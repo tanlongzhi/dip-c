@@ -48,6 +48,9 @@ def main():
     elif sys.argv[1] == "clean":
         import clean
         return_value = clean.clean(sys.argv[1:])
+    elif sys.argv[1] == "bincon":
+        import bincon
+        return_value = bincon.bincon(sys.argv[1:])
     elif sys.argv[1] == "impute":
         import impute
         return_value = impute.impute(sys.argv[1:])
@@ -99,6 +102,9 @@ def main():
     elif sys.argv[1] == "exp":
         import exp
         return_value = exp.exp(sys.argv[1:])
+    elif sys.argv[1] == "force":
+        import force
+        return_value = force.force(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
