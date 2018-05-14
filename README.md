@@ -1,4 +1,5 @@
 # Dip-C
+![Dip-C logo](images/logo.png =256x256)
 
 ## Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
@@ -62,7 +63,7 @@ Below is a typical workflow starting from paired-end META data (FASTQ), part of 
 
 ```sh
 # read preprocessing and alignment
-seqtk mergepe R1.fq.gz R2.fq.gz | lianti trim - | bwa mem -Cp hs37m.fa - | samtools view -uS | sambamba sort -o /aln.bam /dev/stdin
+seqtk mergepe R1.fq.gz R2.fq.gz | lianti trim - | bwa mem -Cp hs37m.fa - | samtools view -uS | sambamba sort -o aln.bam /dev/stdin
 
 # identify genomic contacts
 dip-c seg -v snp.txt.gz aln.bam | gzip -c > phased.seg.gz
