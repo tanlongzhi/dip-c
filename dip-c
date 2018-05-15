@@ -19,6 +19,7 @@ def main():
         sys.stderr.write("  mkcon    make artificial CON from contact legs\n")
         sys.stderr.write("\n")
         sys.stderr.write("  color    color particles in a 3DG file\n")
+        sys.stderr.write("  color2   color particles based on a CON file\n")
         sys.stderr.write("  mgcolor  merge color files\n")
         sys.stderr.write("  vis      visualize a 3DG file into mmCIF format, and color particles\n")
         sys.stderr.write("\n")
@@ -69,6 +70,9 @@ def main():
     elif sys.argv[1] == "color":
         import color
         return_value = color.color(sys.argv[1:])
+    elif sys.argv[1] == "color2":
+        import color2
+        return_value = color2.color2(sys.argv[1:])
     elif sys.argv[1] == "mgcolor":
         import mgcolor
         return_value = mgcolor.mgcolor(sys.argv[1:])
