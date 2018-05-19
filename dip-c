@@ -11,6 +11,7 @@ def main():
         sys.stderr.write("  con      extract contacts (CON) from a SEG file\n")
         sys.stderr.write("  dedup    merge duplicates in a CON file\n")
         sys.stderr.write("  reg      exclude genomic regions from a CON file\n")
+        sys.stderr.write("  bincon   bin a CON file into a matrix\n")
         sys.stderr.write("  clean    remove artifacts from a CON file\n")
         sys.stderr.write("  impute   impute missing haplotypes in a CON file\n")
         sys.stderr.write("  impute3  impute missing haplotypes in a CON file based on a 3DG file\n")
