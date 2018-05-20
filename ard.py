@@ -20,13 +20,14 @@ def ard(argv):
     grid_size = None
     is_symmetrical = True
     superellipse_mode = False
+    count_mode = False
     
     # progress display parameters
     display_num_ref_cons = 1000
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:s:d:h:Se")
+        opts, args = getopt.getopt(argv[1:], "c:s:d:h:Sen")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -36,6 +37,7 @@ def ard(argv):
         sys.stderr.write("  -c <ref.con>    contact file for reference points [<in.con> itself]\n")
         sys.stderr.write("  -s INT          only use intra-chromosomal reference points, min separation (bp) [only use inter-chromosomal] \n")
         sys.stderr.write("  -d INT          max distance (bp, L-inf norm) around reference points [" + str(max_distance) + "]\n")
+        sys.stderr.write("  -n              output the number of nearby contacts for each reference point\n")
         sys.stderr.write("  -h INT          output 2D histogram, grid size (bp) (useful for too many contacts)\n")
         sys.stderr.write("  -e              use L-1/2 norm (superellipse) instead\n")
         sys.stderr.write("  -S              does not symmetrize for \"-h\"\n")
@@ -53,7 +55,9 @@ def ard(argv):
             is_symmetrical = False
         elif o == "-e":
             superellipse_mode = True     
-                                               
+        elif o == "-n":
+            count_mode = True  
+                                                           
     # read CON file
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
     con_data = file_to_con_data(con_file)
@@ -91,7 +95,11 @@ def ard(argv):
         num_ref_cons += 1
         if num_ref_cons % display_num_ref_cons == 0:
             sys.stderr.write("[M::" + __name__ + "] analyzed " + str(num_ref_cons) + " reference points\n")
+        num_nearby_cons = 0
         for con in (con_data.get_cons_near(ref_con, max_distance) if superellipse_mode else con_data.get_cons_near_inf(ref_con, max_distance)):
+            num_nearby_cons += 1
+            if count_mode:
+                continue
             if grid_size is None:
                 # output relative positions
                 sys.stdout.write(con.to_string_around(ref_con) + "\n")
@@ -112,6 +120,8 @@ def ard(argv):
                         add_ref_locus_to_hist(around_hist, (-1 * rel_locus[1], -1 * rel_locus[0]), max_distance, grid_size)
                 else:
                     add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
+        if count_mode:
+            sys.stdout.write(str(num_nearby_cons) + "\n")
                     
     
     # output 2D histogram
