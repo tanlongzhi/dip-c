@@ -104,7 +104,7 @@ dip-c clean3 -c impute3.round4.con.gz impute3.round4.3dg > impute3.round4.clean.
 dip-c color -n color/hg19.chr.txt impute3.round4.clean.3dg | dip-c vis -c /dev/stdin impute3.round4.clean.3dg > impute3.round4.clean.n.cif
 ```
 
-##Interactive Visualization of Contacts
+## Interactive Visualization of Contacts
 A simple shell script, `con_to_juicer_pre_short.sh`, converts a `.con` file into the short format input for [Juicer Tools Pre](https://github.com/theaidenlab/juicer/wiki/Pre):
 
 ```sh
