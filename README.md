@@ -105,11 +105,18 @@ dip-c color -n color/hg19.chr.txt impute3.round4.clean.3dg | dip-c vis -c /dev/s
 ```
 
 ## Interactive Visualization of Contacts
-A simple shell script, `con_to_juicer_pre_short.sh`, converts a `.con` file into the short format input for [Juicer Tools Pre](https://github.com/theaidenlab/juicer/wiki/Pre):
+A simple shell script, `con_to_juicer_pre_short.sh`, converts a `.con` file into the short format input for [Juicer Tools Pre](https://github.com/theaidenlab/juicer/wiki/Pre) and, subsequently, into a `.hic` file:
 
 ```sh
-con_to_juicer_pre_short.sh dedup.con.gz # which generates dedup.txt.gz
-java -Xmx2g -jar juicer_tools.jar pre -n dedup.txt.gz dedup.hic hg19
+con_to_juicer_pre_short.sh dedup.con.gz # which generates dedup.juicer.txt.gz
+java -Xmx2g -jar juicer_tools.jar pre -n dedup.juicer.txt.gz dedup.hic hg19
+```
+
+Alternatively, another shell script, `con_imputed_to_juicer_pre_short.sh`, works on an imputed (haplotype-resolved) `.con` file:
+
+```sh
+con_imputed_to_juicer_pre_short.sh impute3.round4.con.gz # which generates impute3.round4.juicer.txt.gz
+java -Xmx2g -jar juicer_tools.jar pre -n impute3.round4.juicer.txt.gz impute3.round4.hic color/hg19.chr.hom.len
 ```
 
 The output `.hic` file can then be viewed interactively in [Juicebox](http://www.aidenlab.org/juicebox/) (the error message about the lack of normalization can be ignored).
