@@ -4,8 +4,13 @@
 ## Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
 
+An alternative (faster and more careful) implementation of the Dip-C algorithm is included in [hickit](https://github.com/lh3/hickit).
+
 ## Citation
-Tan, L.; Xing, D.; Chang, C.H., Li, H., Xie, X.S. "3D Genome Structures of Single Diploid Human Cells," *in press* (2018).
+Tan, Longzhi; Xing, Dong; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "3D Genome Structures of Single Diploid Human Cells," *Science* **in press** (2018).
+
+* Raw data: [SRP149125](https://www.ncbi.nlm.nih.gov/sra/SRP149125)
+* Processed data: [GSE117876](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE117876)
 
 ## Requirements
 ### Basic Requirements
