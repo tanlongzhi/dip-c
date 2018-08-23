@@ -47,6 +47,49 @@ HWI-D00433:595:HLYW7BCXY:1:1103:9994:47614      .,44,278,1,19116987,19117221,+,.
 HWI-D00433:595:HLYW7BCXY:2:1216:14071:49584     .,0,114,11,120680807,120680921,+,.      .,109,211,11,120689618,120689720,-,.    m,0,211,11,120689228,120689439,+,.
 ```
 
+### Contact Legs
+Here I define a "leg" as an endpoint of a read segment, so named because it will form one of the two legs of a chromatin contact. More generally, a leg can be any single point in the genome.
+
+Each leg is recorded as a comma-delimited string: chromosome, coordiante, haplotype.
+
+An example `.leg` file is:
+```
+1,948359,.
+1,1192624,.
+1,2561820,.
+1,2836242,.
+1,2954969,1
+1,3114198,.
+1,3343831,.
+1,3455767,.
+1,3518062,.
+1,3540154,1
+```
+
+### Contacts
+Chromatin contacts are a crucial concept in 3C/Hi-C. A contact refers to the proximity-based ligation of two genomic segments far away in the linear genome (or even from different chromosomes). Here I define a contact as the two adjoining endpoints (legs) of two different segments in a same read (or read pair).
+
+Each contact is recorded as a tab-delimited line: leg 1, leg 2.
+
+An example `.con` file is:
+```
+1,858641,.      1,861338,.
+1,861471,.      1,862872,.
+1,918037,.      1,1024147,.
+1,918249,1      1,1231502,.
+1,921617,0      1,956928,.
+1,922873,.      1,926783,.
+1,923319,.      1,957711,.
+1,946196,.      1,1235547,.
+1,948480,.      1,1133615,.
+1,959161,.      1,962343,.
+```
+There are some subtleties in this definition:
+* In some studies, contacts are defined only between adjacent segments and therefore corresponds exactly to ligation junctions. When a read (or read pair) contains more than two segments, however, I define contacts between all pairs of segments. This is similar to bulk studies of multi-way contacts.
+* The coordinate of a leg is exact (and most likely at a restriction digestion site, for example `GATC`) if it resides in the middle of read 1 or read 2. It is approximate if it resides in the unread gap between read 1 and read 2.
+* The two legs of a contact are interchangeable. To avoid ambiguity, I arbitarily impose that leg 1 < leg 2.
+* Here directionalities are ignored. In contrast, [hickit](https://github.com/lh3/hickit) preserves this additional information by adopting the [`.pairs` format](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) of the 4D Nucleome program as the contact file format.
+
 ## Requirements
 ### Basic Requirements
 Dip-C was tested on Python v2.7.13 (macOS and CentOS), with the following basic requirements:
