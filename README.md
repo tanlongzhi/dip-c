@@ -241,3 +241,11 @@ java -Xmx2g -jar juicer_tools.jar pre -n impute3.round4.juicer.txt.gz impute3.ro
 ```
 
 The output `.hic` file can then be viewed interactively in [Juicebox](http://www.aidenlab.org/juicebox/) (the error message about the lack of normalization can be ignored).
+
+Below is the visualization of an example `.con` file:
+
+<img src="images/juicebox.png" width="500">
+
+Below is the visualization of an example imputed `.con` file:
+
+<img src="images/juicebox_imputed.png" width="500">
