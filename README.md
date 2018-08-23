@@ -1,19 +1,37 @@
 # Dip-C
 ![logo](images/logo_small.png)
 
-## Introduction
+## Table of Contents
+
+* [Introduction](#intro)
+* [Citation](#cite)
+* [File Formats](#format)
+  - [Phased SNPs](#snp)
+  - [Read Segments](#seg)
+  - [Contact Legs](#leg)
+  - [Contacts](#con)
+  - [3D Genomes](#3dg)
+  - [Genomic Regions](#reg)
+* [Requirements](#require)
+  - [Basic Requirements](#basic_require)
+  - [Additional Requirements](#add_require)
+  - [Patching LIANTI](#patch_lianti)
+  - [Patching nuc_dynamics](#patch_nuc)
+* [Interactive Visualization of Contacts](#interact)
+
+## <a name="intro"></a>Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
 
 An alternative (faster and more careful) implementation of the Dip-C algorithm is included in [hickit](https://github.com/lh3/hickit).
 
-## Citation
+## <a name="cite"></a>Citation
 Tan, Longzhi; Xing, Dong; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "3D Genome Structures of Single Diploid Human Cells," *Science* **in press** (2018).
 
 * Raw data: [SRP149125](https://www.ncbi.nlm.nih.gov/sra/SRP149125)
 * Processed data: [GSE117876](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE117876)
 
-## File Formats
-### Phased SNPs
+## <a name="format"></a>File Formats
+### <a name="snp"></a>Phased SNPs
 To resolve the two haplotypes, a list of phased single-nucleotide polymorphisms (SNPs) is required in a tab-delimited format (chromosome, coordinate, paternal nucleotide, maternal nucleotide).
 
 An example SNP file for the GM12878 cell line (in hg19 coordinates), based on the 2016-1.0 release of [Illumina Platinum Genomes](https://www.illumina.com/platinumgenomes.html), is provided as `snps/NA12878.txt.gz`. The first few lines are shown below:
@@ -31,7 +49,7 @@ An example SNP file for the GM12878 cell line (in hg19 coordinates), based on th
 1	742825	A	G
 ```
 
-### Read Segments
+### <a name="seg"></a>Read Segments
 The basic output of a chromatin conformation capture (3C/Hi-C) experiment is sequencing reads (or read pairs) containing more than one genomic segments. In each of these reads (sometimes known as *chimeric* reads), genomic segments far away in the linear genome (or even from different chromosomes) are joined by proximity-based ligation.
 
 These segments are recorded in a `.seg` file as an intermediate format. Each line represents a read (or read pair) in a tab-delimited format (read name, segment 1, segment 2 ...).
@@ -47,7 +65,7 @@ HWI-D00433:595:HLYW7BCXY:1:1103:9994:47614      .,44,278,1,19116987,19117221,+,.
 HWI-D00433:595:HLYW7BCXY:2:1216:14071:49584     .,0,114,11,120680807,120680921,+,.      .,109,211,11,120689618,120689720,-,.    m,0,211,11,120689228,120689439,+,.
 ```
 
-### Contact Legs
+### <a name="leg"></a>Contact Legs
 Here I define a "leg" as an endpoint of a read segment, so named because it will form one of the two legs of a chromatin contact. More generally, a leg can be any single point in the genome.
 
 Each leg is recorded as a comma-delimited string: chromosome, coordiante, haplotype.
@@ -66,7 +84,7 @@ An example `.leg` file is:
 1,3540154,1
 ```
 
-### Contacts
+### <a name="con"></a>Contacts
 Chromatin contacts are a crucial concept in 3C/Hi-C. A contact refers to the proximity-based ligation of two genomic segments far away in the linear genome (or even from different chromosomes). Here I define a contact as the two adjoining endpoints (legs) of two different segments in a same read (or read pair).
 
 Each contact is recorded as a tab-delimited line: leg 1, leg 2.
@@ -91,7 +109,7 @@ There are some subtleties in this definition:
 * The two legs of a contact are interchangeable. To avoid ambiguity, I arbitarily impose that leg 1 < leg 2.
 * Here directionalities are ignored. In contrast, [hickit](https://github.com/lh3/hickit) preserves this additional information by adopting the [`.pairs` format](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) of the 4D Nucleome program as the contact file format.
 
-### 3D Genomes
+### <a name="3dg"></a>3D Genomes
 The primary output of the Dip-C algorithm is the 3D structure of a single-cell genome. Following the definition in [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics), the 3D structure of each chromosome is represented by 3D coordinates of regularly spaced points (0 kb, 10 kb, 20 kb, 30 kb ...) along the chromosome. 3D coordinates of points elsewhere will be linearly interpolated from the given points. Each 3D genome is recorded in a tab-delimited format (chromosome with `pat` for paternal and `mat` for maternal, coordinate, x, y, z).
 
 An example `.3dg` (short for "3D genome") file is:
@@ -108,7 +126,7 @@ An example `.3dg` (short for "3D genome") file is:
 1(mat)  1600000 -3.52093948201  13.1850935438   -12.4118684428
 ```
 
-### Genomic Regions
+### <a name="reg"></a>Genomic Regions
 A `.reg` (short for "region") file performs a similar role to a [BED file](https://genome.ucsc.edu/FAQ/FAQformat.html#format1), but with haplotype information. This format can be used to exclude regions of copy-number (CN) gains or losses of heterozygosity (LOHs) from a `.con` file, to set haplotypes in regions of CN losses in a `.con` file, or to extract regions of interest from a `.3dg` file.
 
 Each region is recorded as a tab-delimited line: chromosome, haplotype, start coordinate ('.' for the start of the chromosome), end coordinate ('.' for the end of the chromosome).
@@ -127,14 +145,14 @@ An example `.reg` file is:
 19	.	.	.
 ```
 
-## Requirements
-### Basic Requirements
+## <a name="require"></a>Requirements
+### <a name="basic_require"></a>Basic Requirements
 Dip-C was tested on Python v2.7.13 (macOS and CentOS), with the following basic requirements:
 
 * NumPy (tested on v1.12.1)
 * SciPy (tested on v0.13.3)
 
-### Additional Requirements
+### <a name="add_require"></a>Additional Requirements
 Some Dip-C commands have additional requirements:
 
 * Read preprocessing for META: [LIANTI](https://github.com/lh3/lianti) (patch needed), which requires [seqtk](https://github.com/lh3/seqtk) for paired-end reads
@@ -144,14 +162,14 @@ Some Dip-C commands have additional requirements:
 * `vis` and other mmCIF scripts: [PDBx Python Parser](http://mmcif.wwpdb.org/docs/sw-examples/python/html/index.html)
 * mmCIF viewing: [PyMol](https://pymol.org/2/)
 
-### Patching LIANTI
+### <a name="patch_lianti"></a>Patching LIANTI
 For META read preprocessing, [LIANTI](https://github.com/lh3/lianti) needs a patch to replace the LIANTI adapters with the META ones:
 
 1. Download the [LIANTI](https://github.com/lh3/lianti) source code.
 2. Replace LIANTI's `trim.c` with Dip-C's `patch/trim.c`.
 3. Compile LIANTI.
 
-### Patching nuc_dynamics
+### <a name="patch_nuc"></a>Patching nuc_dynamics
 For 3D reconstruction, [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) needs a patch to (1) change the backbone energy function, (2) skip the removal of isolated contacts, and (3) output in the 3D Genome (3DG) format instead of the original PDB format (which has a 99,999-atom limit):
 
 1. Download the [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) source code.
@@ -160,7 +178,7 @@ For 3D reconstruction, [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics
 
 The above was tested in [May 2017](https://github.com/TheLaueLab/nuc_dynamics/commit/55148e68b919a59c2354d9157131f729495424c9). In Jun 2017, nuc_dynamics also changed its output format, along with other improvements. We have yet to update our patch.
 
-## Typical Workflow
+## <a name="workflow"></a>Typical Workflow
 Below is a typical workflow starting from paired-end META data (FASTQ), part of which is also included in `dip-c.sh`:
 
 ```sh
@@ -206,7 +224,7 @@ dip-c clean3 -c impute3.round4.con.gz impute3.round4.3dg > impute3.round4.clean.
 dip-c color -n color/hg19.chr.txt impute3.round4.clean.3dg | dip-c vis -c /dev/stdin impute3.round4.clean.3dg > impute3.round4.clean.n.cif
 ```
 
-## Interactive Visualization of Contacts
+## <a name="interact"></a>Interactive Visualization of Contacts
 A simple shell script, `con_to_juicer_pre_short.sh`, converts a `.con` file into the short format input for [Juicer Tools Pre](https://github.com/theaidenlab/juicer/wiki/Pre) and, subsequently, into a `.hic` file:
 
 ```sh
