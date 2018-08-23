@@ -12,6 +12,41 @@ Tan, Longzhi; Xing, Dong; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "3D Genome St
 * Raw data: [SRP149125](https://www.ncbi.nlm.nih.gov/sra/SRP149125)
 * Processed data: [GSE117876](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE117876)
 
+## File Formats
+### Phased SNPs
+To resolve the two haplotypes, a list of phased single-nucleotide polymorphisms (SNPs) is required in a tab-delimited format (chromosome, coordinate, paternal nucleotide, maternal nucleotide).
+
+An example SNP file for the GM12878 cell line (in hg19 coordinates), based on the 2016-1.0 release of [Illumina Platinum Genomes](https://www.illumina.com/platinumgenomes.html), is provided as `snps/NA12878.txt.gz`. The first few lines are shown below:
+
+```
+1	534324	G	T
+1	550515	T	C
+1	565419	G	C
+1	655642	G	A
+1	666543	G	A
+1	676118	T	C
+1	705882	A	G
+1	727529	A	G
+1	732772	G	A
+1	742825	A	G
+```
+
+### Read Segments
+The basic output of a chromatin conformation capture (3C/Hi-C) experiment is sequencing reads (or read pairs) containing more than one genomic segments. In each of these reads (sometimes known as *chimeric* reads), genomic segments far away in the linear genome (or even from different chromosomes) are joined by proximity-based ligation.
+
+These segments are recorded in a `.seg` file as an intermediate format. Each line represents a read (or read pair) in a tab-delimited format (read name, segment 1, segment 2 ...).
+
+Each segment is recorded as a comma-delimited string: ``.`` for read 1 and ``m`` (short for "mate") for read 2, start coordinate in the read, end coordinate in the read, chromosome, start coordinate in the genome, end coordinate in the genome, strand of the genome (`+` or `-`), haplotype (`.` for unknown, `0` for paternal, and `1` for maternal). A segment has a known haplotype if it carries one or more phased SNPs.
+
+An example `.seg` file is:
+```
+HWI-D00433:595:HLYW7BCXY:1:1209:15116:100489    .,0,211,5,94770308,94770519,+,. m,57,211,5,97167374,97167528,-,0        m,0,61,5,94770541,94770602,-,.
+HWI-D00433:595:HLYW7BCXY:1:1113:20520:48210     .,0,193,21,23683758,23683951,-,0        .,188,255,21,25124149,25124216,-,.
+HWI-D00433:595:HLYW7BCXY:2:2207:6749:75115      .,39,92,15,71782216,71782269,-,.        .,0,43,15,62676681,62676724,+,.
+HWI-D00433:595:HLYW7BCXY:1:1103:9994:47614      .,44,278,1,19116987,19117221,+,.        .,0,48,1,19108099,19108147,-,.
+HWI-D00433:595:HLYW7BCXY:2:1216:14071:49584     .,0,114,11,120680807,120680921,+,.      .,109,211,11,120689618,120689720,-,.    m,0,211,11,120689228,120689439,+,.
+```
+
 ## Requirements
 ### Basic Requirements
 Dip-C was tested on Python v2.7.13 (macOS and CentOS), with the following basic requirements:
@@ -44,24 +79,6 @@ For 3D reconstruction, [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics
 3. Compile nuc_dynamics.
 
 The above was tested in [May 2017](https://github.com/TheLaueLab/nuc_dynamics/commit/55148e68b919a59c2354d9157131f729495424c9). In Jun 2017, nuc_dynamics also changed its output format, along with other improvements. We have yet to update our patch.
-
-## List of Phased SNPs
-To resolve the two haplotypes, a list of phased single-nucleotide polymorphisms (SNPs) is required in a tab-delimited format (chromosome, coordinate, paternal nucleotide, maternal nucleotide).
-
-An example SNP file for the GM12878 cell line (in hg19 coordinates), based on the 2016-1.0 release of [Illumina Platinum Genomes](https://www.illumina.com/platinumgenomes.html), is provided as `snps/NA12878.txt.gz`. The first few lines are shown below:
-
-```
-1	534324	G	T
-1	550515	T	C
-1	565419	G	C
-1	655642	G	A
-1	666543	G	A
-1	676118	T	C
-1	705882	A	G
-1	727529	A	G
-1	732772	G	A
-1	742825	A	G
-```
 
 ## Typical Workflow
 Below is a typical workflow starting from paired-end META data (FASTQ), part of which is also included in `dip-c.sh`:
