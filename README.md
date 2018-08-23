@@ -17,6 +17,7 @@
   - [Additional Requirements](#add_require)
   - [Patching LIANTI](#patch_lianti)
   - [Patching nuc_dynamics](#patch_nuc)
+* [Typical Workflow](#workflow)
 * [Interactive Visualization of Contacts](#interact)
 
 ## <a name="intro"></a>Introduction
