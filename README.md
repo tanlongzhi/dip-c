@@ -111,7 +111,9 @@ There are some subtleties in this definition:
 * Here directionalities are ignored. In contrast, [hickit](https://github.com/lh3/hickit) preserves this additional information by adopting the [`.pairs` format](https://github.com/4dn-dcic/pairix/blob/master/pairs_format_specification.md) of the 4D Nucleome program as the contact file format.
 
 ### <a name="3dg"></a>3D Genomes
-The primary output of the Dip-C algorithm is the 3D structure of a single-cell genome. Following the definition in [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics), the 3D structure of each chromosome is represented by 3D coordinates of regularly spaced points (0 kb, 10 kb, 20 kb, 30 kb ...) along the chromosome. 3D coordinates of points elsewhere will be linearly interpolated from the given points. Each 3D genome is recorded in a tab-delimited format (chromosome with `pat` for paternal and `mat` for maternal, coordinate, x, y, z).
+The primary output of the Dip-C algorithm is the 3D structure of a single-cell genome. Following the definition in [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics), the 3D structure of each chromosome is represented by 3D coordinates of regularly spaced points (0 kb, 10 kb, 20 kb, 30 kb ...) along the chromosome. 3D coordinates of points elsewhere will be linearly interpolated from the given points.
+
+Each 3D genome is recorded in a tab-delimited format (chromosome with `(pat)` for paternal and `(mat)` for maternal, coordinate, x, y, z).
 
 An example `.3dg` (short for "3D genome") file is:
 ```
@@ -130,7 +132,7 @@ An example `.3dg` (short for "3D genome") file is:
 ### <a name="reg"></a>Genomic Regions
 A `.reg` (short for "region") file performs a similar role to a [BED file](https://genome.ucsc.edu/FAQ/FAQformat.html#format1), but with haplotype information. This format can be used to exclude regions of copy-number (CN) gains or losses of heterozygosity (LOHs) from a `.con` file, to set haplotypes in regions of CN losses in a `.con` file, or to extract regions of interest from a `.3dg` file.
 
-Each region is recorded as a tab-delimited line: chromosome, haplotype, start coordinate ('.' for the start of the chromosome), end coordinate ('.' for the end of the chromosome).
+Each region is recorded as a tab-delimited line: chromosome, haplotype, start coordinate (`.` for the start of the chromosome), end coordinate (`.` for the end of the chromosome).
 
 An example `.reg` file is:
 ```
