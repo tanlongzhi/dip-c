@@ -26,8 +26,9 @@
 An alternative (faster and more careful) implementation of the Dip-C algorithm is included in [hickit](https://github.com/lh3/hickit).
 
 ## <a name="cite"></a>Citation
-Tan, Longzhi; Xing, Dong; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "3D Genome Structures of Single Diploid Human Cells," *Science* **in press** (2018).
+Tan, Longzhi; Xing, Dong; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "Three-dimensional genome structures of single diploid human cells," *Science* (2018).
 
+* [Link](http://science.sciencemag.org/content/361/6405/924)
 * Raw data: [SRP149125](https://www.ncbi.nlm.nih.gov/sra/SRP149125)
 * Processed data: [GSE117876](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE117876)
 
