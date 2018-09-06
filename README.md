@@ -19,6 +19,8 @@
   - [Patching nuc_dynamics](#patch_nuc)
 * [Typical Workflow](#workflow)
 * [Interactive Visualization of Contacts](#interact)
+* [Interactive Visualization of 3D Genomes](#view3d)
+
 
 ## <a name="intro"></a>Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
@@ -252,3 +254,9 @@ Below is the visualization of an example `.con` file:
 Below is the visualization of an example imputed `.con` file:
 
 <img src="images/juicebox_imputed.png" width="500">
+
+## <a name="view3d"></a>Interactive Visualization of 3D Genomes
+Before viewing, the following line must be added to the start-up script (`.pymolrc`) of PyMol. Otherwise, PyMol may create bonds between numerous pairs of particles, consuming a large amount of CPU and memory.
+```python
+set connect_mode, 4
+```
