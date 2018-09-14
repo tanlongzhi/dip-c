@@ -18,10 +18,11 @@ def vis(argv):
     # default parameters
     color_file_name = None
     missing_value = -1.0
+    discard_missing = False
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:m:")
+        opts, args = getopt.getopt(argv[1:], "c:m:M")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -29,7 +30,8 @@ def vis(argv):
         sys.stderr.write("Usage: dip-c vis [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: homolog, locus, color)\n")
-        sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n\n")
+        sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n")
+        sys.stderr.write("  -M.               discard particles that are missing from the color scheme\n\n")
         sys.stderr.write("Output mmCIF format:\n")
         sys.stderr.write("  label_asym_id     homolog name (e.g. \"1(mat)\")\n")
         sys.stderr.write("  label_comp_id     locus // 1 Mb, 3 digits with leading zeros\n")
@@ -45,7 +47,9 @@ def vis(argv):
             missing_value = float(a)
         elif o == "-c":
             color_file_name = a
-                    
+        elif o == "-M":
+            discard_missing = True
+                                
     # read 3DG file
     g3d_data = file_to_g3d_data(open(args[0], "rb"))
     g3d_data.sort_g3d_particles()
@@ -97,6 +101,8 @@ def vis(argv):
         try:
             color = color_data[(g3d_particle.get_hom_name(), g3d_particle.get_ref_locus())]
         except KeyError:
+            if discard_missing:
+                continue
             color = missing_value    
         aCat.append(g3d_particle_to_atom_data(g3d_particle, atom_id, color))
     
