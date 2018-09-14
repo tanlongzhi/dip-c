@@ -31,7 +31,7 @@ def vis(argv):
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: homolog, locus, color)\n")
         sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n")
-        sys.stderr.write("  -M.               discard particles that are missing from the color scheme\n\n")
+        sys.stderr.write("  -M                discard particles that are missing from the color scheme\n\n")
         sys.stderr.write("Output mmCIF format:\n")
         sys.stderr.write("  label_asym_id     homolog name (e.g. \"1(mat)\")\n")
         sys.stderr.write("  label_comp_id     locus // 1 Mb, 3 digits with leading zeros\n")
