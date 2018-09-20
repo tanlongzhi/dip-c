@@ -13,6 +13,8 @@ def leg_to_matrix_index(leg, hom_offsets, matrix_bin_size, merge_haplotypes):
         haplotype = Haplotypes.paternal
     hom_name = ref_name_haplotype_to_hom_name((ref_name, haplotype))
     ref_locus = leg.get_ref_locus()
+    if hom_name not in hom_offsets:
+        return None
     return hom_offsets[hom_name] + int(round(float(ref_locus) / matrix_bin_size))
 
 def con_to_matrix_index(con, hom_offsets, matrix_bin_size, merge_haplotypes):
@@ -30,6 +32,8 @@ def con_data_to_matrix(con_data, hom_offsets, matrix_bin_size, matrix_size, merg
         if num_cons % display_num_cons == 0:
             sys.stderr.write("[M::" + __name__ + "] processed " + str(num_cons) + " contacts\n")
         matrix_index_1, matrix_index_2 = con_to_matrix_index(con, hom_offsets, matrix_bin_size, merge_haplotypes)
+        if matrix_index_1 is None or matrix_index_2 is None:
+            continue
         matrix_data[matrix_index_1, matrix_index_2] += 1
         matrix_data[matrix_index_2, matrix_index_1] += 1
     return matrix_data
@@ -53,7 +57,7 @@ def bincon(argv):
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: dip-c bincon [options] -l <chr.len> <in.3dg>\n")
+        sys.stderr.write("Usage: dip-c bincon [options] -l <chr.len> <in.con>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -l <chr.len>   file containing chromosome lengths (tab-delimited: chr, len)\n")
         sys.stderr.write("  -L             analyze LEG instead of CON\n")

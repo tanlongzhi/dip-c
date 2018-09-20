@@ -23,6 +23,8 @@
   - [Getting Started: Color by Chromosome](#basic_color_chr)
   - [Expand a Nucleus into Separate Chromosomes](#exp_chr)
   - [Color by CpG Frequency](#color_cpg)
+* [Generation of Contact Matrices](#con_mat)
+
 
 ## <a name="intro"></a>Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
@@ -418,3 +420,57 @@ clip move, 15
 Below is an example image:
 
 <img src="images/pymol.cpg.png" width="400">
+
+## <a name="con_mat"></a>Generation of Contact Matrices
+
+In some cases, it might be desirable to convert a `.con` file into a genome-wide contact matrix. This can be achieved with `dip-c bincon`. For example, the code below generates a matrix with 5-Mb bins:
+
+```sh
+dip-c bincon -b 5000000 -H -l color/hg19.chr.len dedup.con.gz > dedup.bincon.txt
+dip-c bincon -i -b 5000000 -H -l color/hg19.chr.len . > dedup.bincon.info
+```
+
+The primary output file, `dedup.bincon.txt`, contains the contact matrix:
+
+<img src="images/bincon.png" width="400">
+
+The secondary output file, `dedup.bincon.info`, contains the genomic cooridinates of all bin centers. The first few lines are:
+
+```
+1	0
+1	5000000
+1	10000000
+1	15000000
+1	20000000
+1	25000000
+1	30000000
+1	35000000
+1	40000000
+1	45000000
+```
+
+Similarly, an imputed (haplotype-resolved) `.con` file can be converted to a contact matrix with the following code:
+
+```sh
+dip-c bincon -b 5000000 -l color/hg19.chr.len impute3.round4.con.gz > impute3.round4.bincon.txt
+dip-c bincon -i -b 5000000 -l color/hg19.chr.len . > impute3.round4.bincon.info
+```
+
+The primary output file contains the contact matrix:
+
+<img src="images/bincon_imputed.png" width="400">
+
+The first few lines of the secondary output file are:
+
+```
+1(pat)	0
+1(pat)	5000000
+1(pat)	10000000
+1(pat)	15000000
+1(pat)	20000000
+1(pat)	25000000
+1(pat)	30000000
+1(pat)	35000000
+1(pat)	40000000
+1(pat)	45000000
+```
