@@ -311,6 +311,56 @@ In PyMol, this `.cif` can be styled and printed in the same way as above. Below 
 
 <img src="images/pymol.exp.n.png" width="400">
 
+To label each chromosome, we first need to store the current camera position in PyMol:
+
+```python
+get_view
+```
+
+Below is an example printout:
+
+```python
+### cut below here and paste into script ###
+set_view (\
+     0.707233906,    0.091803670,   -0.700993419,\
+    -0.206852838,    0.975012839,   -0.081004508,\
+     0.676041245,    0.202291712,    0.708551943,\
+     0.000000000,    0.000000000, -1053.545166016,\
+     0.212142944,    0.067672729,    0.137741089,\
+   830.623046875, 1276.467285156,  -20.000000000 )
+### cut above here and paste into script ###
+```
+
+Going back to the original `.3dg` file, we will shrink each chromosome into a single particle after moving them:
+
+```sh
+dip-c exp -c cell.3dg > cell.exp_c.3dg
+dip-c vis cell.exp_c.3dg | sed 's/(mat)/♀/g; s/(pat)/♂/g' > cell.exp_c.cif
+```
+
+This new `.cif` file can be dragged into another PyMol window and styled with the above `get_view` printout:
+
+```python
+viewport 800, 800
+set_view (\
+     0.707233906,    0.091803670,   -0.700993419,\
+    -0.206852838,    0.975012839,   -0.081004508,\
+     0.676041245,    0.202291712,    0.708551943,\
+     0.000000000,    0.000000000, -1053.545166016,\
+     0.212142944,    0.067672729,    0.137741089,\
+   830.623046875, 1276.467285156,  -20.000000000 )
+set ray_shadows,0
+hide all
+label all, chain
+set label_size, 10
+set label_bg_color, white
+set label_bg_transparency, 0.4
+png ~/Downloads/out.png, 800, 800, ray=1
+```
+
+The output image can then be overlaid onto the previous image to label each chromosome. Below is the final overlay:
+
+<img src="images/pymol.exp.n.label.png" width="400">
 
 ### <a name="color_cpg"></a>Color by CpG Frequency
 
