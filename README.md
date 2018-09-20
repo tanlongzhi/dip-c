@@ -20,7 +20,9 @@
 * [Typical Workflow](#workflow)
 * [Interactive Visualization of Contacts](#interact)
 * [Interactive Visualization of 3D Genomes](#view3d)
-
+  - [Getting Started: Color by Chromosome](#basic_color_chr)
+  - [Expand a Nucleus into Separate Chromosomes](#exp_chr)
+  - [Color by CpG Frequency](#color_cpg)
 
 ## <a name="intro"></a>Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
@@ -257,7 +259,159 @@ Below is the visualization of an example imputed `.con` file:
 <img src="images/juicebox_imputed.png" width="500">
 
 ## <a name="view3d"></a>Interactive Visualization of 3D Genomes
+### <a name="basic_color_chr"></a>Getting Started: Color by Chromosome
+We will get started with a simple example: visualize a single cell colored by chromosome (rainbow with blue = chromosome 1 and red = chromosome X/Y).
+
 Before viewing, the following line must be added to the start-up script (`.pymolrc`) of PyMol. Otherwise, PyMol may create bonds between numerous pairs of particles, consuming a large amount of CPU and memory.
 ```python
 set connect_mode, 4
 ```
+
+First, the `.3dg` file is colored by chromosome with `dip-c color -n` and converted into a `.cif` file with `dip-c vis`, which takes a minute:
+
+```sh
+dip-c color -n color/hg19.chr.txt cell.3dg | dip-c vis -c /dev/stdin cell.3dg > cell.n.cif
+```
+
+The resulting file, `cell.n.cif`, can now be dragged into an opened PyMol window, and styled as follows:
+
+```python
+viewport 800, 800
+set ray_shadows,0
+as sticks, all
+set_bond stick_radius, 0.5, all
+spectrum b, rainbow, all, 1, 20
+```
+
+The image can be stored as a `.png` file by running:
+
+```python
+png cell.n.png, 800, 800, ray=1
+```
+
+Below is the final image:
+
+<img src="images/pymol.n.png" width="400">
+
+### <a name="exp_chr"></a>Expand a Nucleus into Separate Chromosomes
+Sometimes it is desirable to move chromosomes apart, and in some cases to label each one, for better visualization. Chromosomes can be moved apart with `dip-c exp`:
+
+```sh
+dip-c exp cell.3dg > cell.exp.3dg 2> cell.exp.py
+```
+
+The additional output file, `cell.exp.py`, contains some PyMol scripts to help generate a movie of slowly moving the chromosomes apart, if needed.
+
+The main output file, `cell.exp.3dg`, can now be colored and converted:
+
+```sh
+dip-c color -n color/hg19.chr.txt cell.exp.3dg | dip-c vis -c /dev/stdin cell.exp.3dg > cell.exp.n.cif
+```
+
+In PyMol, this `.cif` can be styled and printed in the same way as above. Below is the image:
+
+<img src="images/pymol.exp.n.png" width="400">
+
+To label each chromosome, we first need to store the current camera position in PyMol:
+
+```python
+get_view
+```
+
+Below is an example printout:
+
+```python
+### cut below here and paste into script ###
+set_view (\
+     0.707233906,    0.091803670,   -0.700993419,\
+    -0.206852838,    0.975012839,   -0.081004508,\
+     0.676041245,    0.202291712,    0.708551943,\
+     0.000000000,    0.000000000, -1053.545166016,\
+     0.212142944,    0.067672729,    0.137741089,\
+   830.623046875, 1276.467285156,  -20.000000000 )
+### cut above here and paste into script ###
+```
+
+Going back to the original `.3dg` file, we will shrink each chromosome into a single particle after moving them:
+
+```sh
+dip-c exp -c cell.3dg > cell.exp_c.3dg
+dip-c vis cell.exp_c.3dg | sed 's/(mat)/♀/g; s/(pat)/♂/g' > cell.exp_c.cif
+```
+
+This new `.cif` file can be dragged into another PyMol window and styled with the above `get_view` printout:
+
+```python
+viewport 800, 800
+set_view (\
+     0.707233906,    0.091803670,   -0.700993419,\
+    -0.206852838,    0.975012839,   -0.081004508,\
+     0.676041245,    0.202291712,    0.708551943,\
+     0.000000000,    0.000000000, -1053.545166016,\
+     0.212142944,    0.067672729,    0.137741089,\
+   830.623046875, 1276.467285156,  -20.000000000 )
+set ray_shadows,0
+hide all
+label all, chain
+set label_size, 10
+set label_bg_color, white
+set label_bg_transparency, 0.4
+png cell.exp.label.png, 800, 800, ray=1
+```
+
+The output image can then be overlaid onto the previous image to label each chromosome. Below is the final overlay:
+
+<img src="images/pymol.exp.n.label.png" width="400">
+
+### <a name="color_cpg"></a>Color by CpG Frequency
+We begin by calculating the CpG frequency of each 20 kb bin along the human genome with `cpg.sh`, which requires [bedtools](https://bedtools.readthedocs.io/en/latest/) and takes a while:
+
+```sh
+cpg.sh genome.fa 20000 > hg19.cpg.20k.txt
+```
+
+Some precomputed files are provided. For example, the first few lines of `color/hg19.cpg.20k.txt` are:
+
+```
+1	20000	0.0279
+1	40000	0.0082
+1	60000	0.00725
+1	80000	0.00715
+1	100000	0.0072
+1	120000	0.00585
+1	140000	0.01945
+1	160000	0.00995
+1	180000	0.0138889
+1	220000	0.0162602
+```
+
+This file can then be used to color a cell with `dip-c color -c`:
+
+```sh
+dip-c color -c color/hg19.cpg.20k.txt cell.3dg | dip-c vis -M -c /dev/stdin cell.3dg > cell.cpg.cif
+```
+
+The resulting `.cif` file can be styled in PyMol to show a single slice, whose coloring requires the [spectrumany](https://pymolwiki.org/index.php/Spectrumany) plugin:
+
+```python
+viewport 800, 800
+clip slab, 10
+set ray_shadows,0
+set ambient, 1
+set specular, off
+set ray_opaque_background, off
+as sticks, all
+set_bond stick_radius, 0.5, all
+spectrumany b, magenta green, all, 0.005, 0.02
+png cell.cpg.png, 800, 800, ray=1
+```
+
+Note that the cell can be serially sliced by moving the clipping planes:
+
+```python
+clip move, 15
+```
+
+Below is an example image:
+
+<img src="images/pymol.cpg.png" width="400">
