@@ -292,8 +292,25 @@ Below is the final image:
 
 <img src="images/pymol.n.png" width="400">
 
-
 ### <a name="exp_chr"></a>Expand a Nucleus into Separate Chromosomes
+Sometimes it is desirable to move chromosomes apart, and in some cases to label each one, for better visualization. Chromosomes can be moved apart with `dip-c exp`:
+
+```sh
+dip-c exp cell.3dg > cell.exp.3dg 2> cell.exp.py
+```
+
+The additional output file, `cell.exp.py`, contains some PyMol scripts to help generate a movie of slowly moving the chromosomes apart, if needed.
+
+The main output file, `cell.exp.3dg`, can now be colored and converted:
+
+```sh
+dip-c color -n color/hg19.chr.txt cell.exp.3dg | dip-c vis -c /dev/stdin cell.exp.3dg > cell.exp.n.cif
+```
+
+In PyMol, this `.cif` can be styled and printed in the same way as above. Below is the image:
+
+<img src="images/pymol.exp.n.png" width="400">
+
 
 ### <a name="color_cpg"></a>Color by CpG Frequency
 
