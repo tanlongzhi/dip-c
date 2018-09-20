@@ -355,7 +355,7 @@ label all, chain
 set label_size, 10
 set label_bg_color, white
 set label_bg_transparency, 0.4
-png ~/Downloads/out.png, 800, 800, ray=1
+png cell.exp.label.png, 800, 800, ray=1
 ```
 
 The output image can then be overlaid onto the previous image to label each chromosome. Below is the final overlay:
@@ -363,4 +363,54 @@ The output image can then be overlaid onto the previous image to label each chro
 <img src="images/pymol.exp.n.label.png" width="400">
 
 ### <a name="color_cpg"></a>Color by CpG Frequency
+We begin by calculating the CpG frequency of each 20 kb bin along the human genome with `cpg.sh`, which requires [bedtools](https://bedtools.readthedocs.io/en/latest/) and takes a while:
 
+```sh
+cpg.sh genome.fa 20000 > hg19.cpg.20k.txt
+```
+
+Some precomputed files are provided. For example, the first few lines of `color/hg19.cpg.20k.txt` are:
+
+```
+1	20000	0.0279
+1	40000	0.0082
+1	60000	0.00725
+1	80000	0.00715
+1	100000	0.0072
+1	120000	0.00585
+1	140000	0.01945
+1	160000	0.00995
+1	180000	0.0138889
+1	220000	0.0162602
+```
+
+This file can then be used to color a cell with `dip-c color -c`:
+
+```sh
+dip-c color -c color/hg19.cpg.20k.txt cell.3dg | dip-c vis -M -c /dev/stdin cell.3dg > cell.cpg.cif
+```
+
+The resulting `.cif` file can be styled in PyMol to show a single slice, whose coloring requires the [spectrumany](https://pymolwiki.org/index.php/Spectrumany) plugin:
+
+```python
+viewport 800, 800
+clip slab, 10
+set ray_shadows,0
+set ambient, 1
+set specular, off
+set ray_opaque_background, off
+as sticks, all
+set_bond stick_radius, 0.5, all
+spectrumany b, magenta green, all, 0.005, 0.02
+png cell.cpg.png, 800, 800, ray=1
+```
+
+Note that the cell can be serially sliced by moving the clipping planes:
+
+```python
+clip move, 15
+```
+
+Below is an example image:
+
+<img src="images/pymol.cpg.png" width="400">
