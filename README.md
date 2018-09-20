@@ -20,7 +20,9 @@
 * [Typical Workflow](#workflow)
 * [Interactive Visualization of Contacts](#interact)
 * [Interactive Visualization of 3D Genomes](#view3d)
-
+  - [Getting Started: Color by Chromosome](#basic_color_chr)
+  - [Expand a Nucleus into Separate Chromosomes](#exp_chr)
+  - [Color by CpG Frequency](#color_cpg)
 
 ## <a name="intro"></a>Introduction
 **Dip**loid **C**hromatin Conformation Capture (Dip-C) reconstructs 3D diploid genomes from single cells by imputing the two chromosome haplotypes linked by each genomic contact.
@@ -256,7 +258,42 @@ Below is the visualization of an example imputed `.con` file:
 <img src="images/juicebox_imputed.png" width="500">
 
 ## <a name="view3d"></a>Interactive Visualization of 3D Genomes
+### <a name="basic_color_chr"></a>Getting Started: Color by Chromosome
+We will get started with a simple example: visualize a single cell colored by chromosome (rainbow with blue = chromosome 1 and red = chromosome X/Y).
+
 Before viewing, the following line must be added to the start-up script (`.pymolrc`) of PyMol. Otherwise, PyMol may create bonds between numerous pairs of particles, consuming a large amount of CPU and memory.
 ```python
 set connect_mode, 4
 ```
+
+First, the `.3dg` file is colored by chromosome with `dip-c color -n` and converted into a `.cif` file with `dip-c vis`, which takes a minute:
+
+```sh
+dip-c color -n color/hg19.chr.txt cell.3dg | dip-c vis -c /dev/stdin cell.3dg > cell.n.cif
+```
+
+The resulting file, `cell.n.cif`, can now be dragged into an opened PyMol window, and styled as follows:
+
+```python
+viewport 800, 800
+set ray_shadows,0
+as sticks, all
+set_bond stick_radius, 0.5, all
+spectrum b, rainbow, all, 1, 20
+```
+
+The image can be stored as a `.png` file by running:
+
+```python
+png cell.n.png, 800, 800, ray=1
+```
+
+Below is the final image:
+
+<img src="images/pymol.n.png" width="400">
+
+
+### <a name="exp_chr"></a>Expand a Nucleus into Separate Chromosomes
+
+### <a name="color_cpg"></a>Color by CpG Frequency
+
