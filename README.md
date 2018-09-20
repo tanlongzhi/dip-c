@@ -279,7 +279,7 @@ viewport 800, 800
 set ray_shadows,0
 as sticks, all
 set_bond stick_radius, 0.5, all
-spectrum b, rainbow, all, 1, 20
+spectrum b, rainbow, all, 1, 23
 ```
 
 The image can be stored as a `.png` file by running:
