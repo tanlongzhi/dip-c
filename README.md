@@ -171,6 +171,7 @@ Some Dip-C commands have additional requirements:
 * 3D reconstruction: [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) (patch needed)
 * `vis` and other mmCIF scripts: [PDBx Python Parser](http://mmcif.wwpdb.org/docs/sw-examples/python/html/index.html)
 * mmCIF viewing: [PyMol](https://pymol.org/2/)
+* `align`: [rmsd](https://pypi.org/project/rmsd/)
 
 ### <a name="patch_lianti"></a>Patching LIANTI
 For META read preprocessing, [LIANTI](https://github.com/lh3/lianti) needs a patch to replace the LIANTI adapters with the META ones:
