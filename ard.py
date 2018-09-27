@@ -65,8 +65,6 @@ def ard(argv):
             leg_file_1_name = a
         elif o == "-2":
             leg_file_2_name = a
-    if leg_file_2_name is None:
-        leg_file_2_name = leg_file_1_name
 
     # read CON file
     con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
@@ -143,7 +141,10 @@ def ard(argv):
         # pairwise leg mode
         # read legs
         legs_1 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_1_name, "rb")]
-        legs_2 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_2_name, "rb")]
+        if leg_file_2_name is None:
+            legs_2 = legs_1
+        else:
+            legs_2 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_2_name, "rb")]
     
         # initilize pariwise count matrix
         num_legs_1 = len(legs_1)
@@ -154,7 +155,7 @@ def ard(argv):
         # for each pair of legs
         num_ref_cons = 0
         for i in range(num_legs_1):
-            for j in range(num_legs_2):
+            for j in (range(i + 1, num_legs_2) if leg_file_2_name is None else range(num_legs_2)):
                 ref_con = Con(legs_1[i], legs_2[j])
                 if min_separation is None:
                     # inter-chromosomal only
@@ -173,6 +174,8 @@ def ard(argv):
                 for con in (con_data.get_cons_near(ref_con, max_distance) if superellipse_mode else con_data.get_cons_near_inf(ref_con, max_distance)):
                     num_nearby_cons += 1
                 count_matrix[i, j] = num_nearby_cons
+                if leg_file_2_name is None:
+                    count_matrix[j, i] = num_nearby_cons
                 
         # write pariwise count matrix
         sys.stderr.write("[M::" + __name__ + "] writing output for pairwise count matrix\n")
