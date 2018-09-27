@@ -13,7 +13,7 @@ def pd(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "1:2:m:")
+        opts, args = getopt.getopt(argv[1:], "1:2:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -28,8 +28,6 @@ def pd(argv):
             leg_file_1_name = a
         elif o == "-2":
             leg_file_2_name = a
-        elif o == "-m":
-            leg_file_2_name = float(a)
     if leg_file_1_name is None:
         sys.stderr.write("[E::" + __name__ + "] -1 is required\n")
         return 1
