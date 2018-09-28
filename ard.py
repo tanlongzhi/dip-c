@@ -163,7 +163,7 @@ def ard(argv):
                         continue
                 else:
                     # intra-chromosmal only, remove small separations
-                    if ~ref_con.is_intra_chr() or ref_con.separation() <= min_separation:
+                    if not ref_con.is_intra_chr() or ref_con.separation() < min_separation:
                         continue
                 num_ref_cons += 1
                 if num_ref_cons % display_num_ref_cons == 0:
