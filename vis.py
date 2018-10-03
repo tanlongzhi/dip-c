@@ -19,10 +19,11 @@ def vis(argv):
     color_file_name = None
     missing_value = -1.0
     discard_missing = False
+    connect_adjacent = False
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:m:M")
+        opts, args = getopt.getopt(argv[1:], "c:m:Ma")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -32,6 +33,7 @@ def vis(argv):
         sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: homolog, locus, color)\n")
         sys.stderr.write("  -m FLOAT          color for particles that are missing from the color scheme [" + str(missing_value) + "]\n")
         sys.stderr.write("  -M                discard particles that are missing from the color scheme\n\n")
+        sys.stderr.write("  -a                connect adjacent beads regardless of their genomic separation (bp)\n\n")
         sys.stderr.write("Output mmCIF format:\n")
         sys.stderr.write("  label_asym_id     homolog name (e.g. \"1(mat)\")\n")
         sys.stderr.write("  label_comp_id     locus // 1 Mb, 3 digits with leading zeros\n")
@@ -49,7 +51,9 @@ def vis(argv):
             color_file_name = a
         elif o == "-M":
             discard_missing = True
-                                
+        elif o == "-a":
+            connect_adjacent = True
+                                            
     # read 3DG file
     g3d_data = file_to_g3d_data(open(args[0], "rb"))
     g3d_data.sort_g3d_particles()
@@ -108,7 +112,7 @@ def vis(argv):
     
     # write backbond bonds
     conn_id = 0
-    for g3d_particle_tuple in g3d_data.get_adjacent_g3d_particle_tuples(g3d_resolution):
+    for g3d_particle_tuple in (g3d_data.get_adjacent_g3d_particle_tuples() if connect_adjacent else g3d_data.get_adjacent_g3d_particle_tuples_given_separation(g3d_resolution)):
         conn_id += 1
         sCat.append(g3d_particle_tuple_to_conn_data(g3d_particle_tuple, conn_id))
  

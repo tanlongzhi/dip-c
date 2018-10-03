@@ -1288,10 +1288,14 @@ class G3dList:
     def get_g3d_particles(self):
         for g3d_particle in self.g3d_particles:
             yield g3d_particle
-    def get_adjacent_g3d_particle_tuples(self, resolution): # assume sorted
+    def get_adjacent_g3d_particle_tuples(self): # assume sorted
         for i in range(len(self.g3d_particles) - 1):
             g3d_particle_tuple = (self.g3d_particles[i], self.g3d_particles[i + 1])
-            if g3d_particle_tuple[1].get_ref_locus() - g3d_particle_tuple[0].get_ref_locus() == resolution:
+            yield g3d_particle_tuple
+    def get_adjacent_g3d_particle_tuples_given_separation(self, separation): # assume sorted
+        for i in range(len(self.g3d_particles) - 1):
+            g3d_particle_tuple = (self.g3d_particles[i], self.g3d_particles[i + 1])
+            if g3d_particle_tuple[1].get_ref_locus() - g3d_particle_tuple[0].get_ref_locus() == separation:
                 yield g3d_particle_tuple
     
     def apply_regs(self, inc_regs, exc_regs):
@@ -1387,9 +1391,13 @@ class G3dData:
         for hom_name in sorted(self.g3d_lists.keys()):
             for g3d_particle in self.g3d_lists[hom_name].get_g3d_particles():
                 yield g3d_particle
-    def get_adjacent_g3d_particle_tuples(self, resolution): # assume sorted
+    def get_adjacent_g3d_particle_tuples(self): # assume sorted
         for hom_name in sorted(self.g3d_lists.keys()):
-            for g3d_particle_tuple in self.g3d_lists[hom_name].get_adjacent_g3d_particle_tuples(resolution):
+            for g3d_particle_tuple in self.g3d_lists[hom_name].get_adjacent_g3d_particle_tuples():
+                yield g3d_particle_tuple
+    def get_adjacent_g3d_particle_tuples_given_separation(self, separation): # assume sorted
+        for hom_name in sorted(self.g3d_lists.keys()):
+            for g3d_particle_tuple in self.g3d_lists[hom_name].get_adjacent_g3d_particle_tuples_given_separation(separation):
                 yield g3d_particle_tuple
     def to_np_arrays(self):
         hom_names = []
