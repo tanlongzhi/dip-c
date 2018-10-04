@@ -81,8 +81,7 @@ def ard(argv):
             # open another file
             ref_con_file = gzip.open(reference_file_name, "rb") if reference_file_name.endswith(".gz") else open(reference_file_name, "rb")
             ref_con_data = file_to_con_data(ref_con_file)
-            
-            sys.stderr.write("[M::" + __name__ + "] read " + str(ref_con_data.num_cons()) + " reference points (" + str(round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2)) + "% intra-chromosomal)\n")
+        sys.stderr.write("[M::" + __name__ + "] read " + str(ref_con_data.num_cons()) + " reference points (" + str(round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2)) + "% intra-chromosomal)\n")
 
         # keep only desired reference points
         if min_separation is None:
@@ -92,47 +91,47 @@ def ard(argv):
             # intra-chromosmal only, remove small separations
             ref_con_data.clean_inter_chr()
             ref_con_data.clean_separation(min_separation)
-            sys.stderr.write("[M::" + __name__ + "] kept " + str(ref_con_data.num_cons()) + " reference points (" + str(round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2)) + "% intra-chromosomal)\n")
+        sys.stderr.write("[M::" + __name__ + "] kept " + str(ref_con_data.num_cons()) + " reference points (" + str(round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2)) + "% intra-chromosomal)\n")
 
         # initialize 2D histogram
         if not grid_size is None:
             grid_num = 2 * max_distance / grid_size
             around_hist = np.zeros((grid_num, grid_num), dtype = np.int)
     
-            # find relation positions
-            con_data.sort_cons()
-            num_ref_cons = 0
-            for ref_con in ref_con_data.get_cons():
-                num_ref_cons += 1
-                if num_ref_cons % display_num_ref_cons == 0:
-                    sys.stderr.write("[M::" + __name__ + "] analyzed " + str(num_ref_cons) + " reference points\n")
-                num_nearby_cons = 0
-                for con in (con_data.get_cons_near(ref_con, max_distance) if superellipse_mode else con_data.get_cons_near_inf(ref_con, max_distance)):
-                    num_nearby_cons += 1
-                    if count_mode:
-                        continue
-                    if grid_size is None:
-                        # output relative positions
-                        sys.stdout.write(con.to_string_around(ref_con) + "\n")
-                    else:
-                        # calculate histogram
-                        rel_locus = con.to_rel_locus_around(ref_con)
-                        if is_symmetrical:
-                            # symmetrize
-                            if min_separation is None:
-                                # inter-chromosomal: 8 copies
-                                for sign_1 in [-1, 1]:
-                                    for sign_2 in [-1, 1]:
-                                        add_ref_locus_to_hist(around_hist, (sign_1 * rel_locus[0], sign_2 * rel_locus[1]), max_distance, grid_size)
-                                        add_ref_locus_to_hist(around_hist, (sign_2 * rel_locus[1], sign_1 * rel_locus[0]), max_distance, grid_size)
-                            else:
-                                # intra-chromosomal: 2 copies
-                                add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
-                                add_ref_locus_to_hist(around_hist, (-1 * rel_locus[1], -1 * rel_locus[0]), max_distance, grid_size)
-                        else:
-                            add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
+        # find relation positions
+        con_data.sort_cons()
+        num_ref_cons = 0
+        for ref_con in ref_con_data.get_cons():
+            num_ref_cons += 1
+            if num_ref_cons % display_num_ref_cons == 0:
+                sys.stderr.write("[M::" + __name__ + "] analyzed " + str(num_ref_cons) + " reference points\n")
+            num_nearby_cons = 0
+            for con in (con_data.get_cons_near(ref_con, max_distance) if superellipse_mode else con_data.get_cons_near_inf(ref_con, max_distance)):
+                num_nearby_cons += 1
                 if count_mode:
-                    sys.stdout.write(str(num_nearby_cons) + "\n")
+                    continue
+                if grid_size is None:
+                    # output relative positions
+                    sys.stdout.write(con.to_string_around(ref_con) + "\n")
+                else:
+                    # calculate histogram
+                    rel_locus = con.to_rel_locus_around(ref_con)
+                    if is_symmetrical:
+                        # symmetrize
+                        if min_separation is None:
+                            # inter-chromosomal: 8 copies
+                            for sign_1 in [-1, 1]:
+                                for sign_2 in [-1, 1]:
+                                    add_ref_locus_to_hist(around_hist, (sign_1 * rel_locus[0], sign_2 * rel_locus[1]), max_distance, grid_size)
+                                    add_ref_locus_to_hist(around_hist, (sign_2 * rel_locus[1], sign_1 * rel_locus[0]), max_distance, grid_size)
+                        else:
+                            # intra-chromosomal: 2 copies
+                            add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
+                            add_ref_locus_to_hist(around_hist, (-1 * rel_locus[1], -1 * rel_locus[0]), max_distance, grid_size)
+                    else:
+                        add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
+            if count_mode:
+                sys.stdout.write(str(num_nearby_cons) + "\n")
         # output 2D histogram
         if not grid_size is None:
             sys.stderr.write("[M::" + __name__ + "] writing output for 2D histogram\n")
