@@ -66,5 +66,5 @@ for m in range(num_comps):
         comp_names.append(node_names[index_1])
         comp_hom_names.append(node_hom_names[index_1])
             
-    sys.stdout.write("\t".join([str(comp_num_nodes), str(comp_num_edge_inter), str(comp_num_edge_long_intra), str(comp_num_edge_short_intra), ",".join(comp_hom_names), ",".join(comp_names)]) + "\n")
+    sys.stdout.write("\t".join([str(comp_num_nodes), str(comp_num_edge_inter), str(comp_num_edge_long_intra), str(comp_num_edge_short_intra), str(len(set(comp_hom_names))), ",".join(comp_hom_names), ",".join(comp_names)]) + "\n")
     
