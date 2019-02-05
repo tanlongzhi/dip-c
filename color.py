@@ -72,13 +72,18 @@ def color(argv):
     max_distance = None
     smooth_distance = None
     max_separation = None
+    radial_mode = False
+    radial_min_num_particles = 10
+    radial_missing_value = -1.0
+    radial_max_r = 3.0
+    radial_bin_r = 0.05
     
     # display parameters
     disp_num_particles = 1000
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:CD:")
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:CD:R", ["--min-num=", "--missing=", "--max-r=", "--bin-size="])
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -97,9 +102,15 @@ def color(argv):
         sys.stderr.write("  -r FLOAT          color by homolog richness within a given distance\n\n")
         sys.stderr.write("  -C                color by distance to the nuclear center of mass\n")
         sys.stderr.write("  -D <in.leg>       color by distance to a given locus (only the first line of the LEG file will be used)\n\n")
-        sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n")
+        sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n\n")
+        sys.stderr.write("  -R                special: output average color for different radial distances (normalized to 1.0)\n")
+        sys.stderr.write("  --min-num=INT     (with \"-R\") min number of particles per bin [" + str(radial_min_num_particles) + "]\n")
+        sys.stderr.write("  --missing=FLOAT   (with \"-R\") output value when \"--min-num\" is not met [" + str(radial_missing_value) + "]\n")
+        sys.stderr.write("  --max-r=FLOAT     (with \"-R\") max radial distance [" + str(radial_max_r) + "]\n")
+        sys.stderr.write("  --bin-size=FLOAT  (with \"-R\") bin size of radial distances [" + str(radial_bin_r) + "]\n\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
+        sys.stderr.write("  (with \"-R\") tab-delimited: radial distance, average color\n")
         return 1
         
     num_color_schemes = 0
@@ -112,6 +123,16 @@ def color(argv):
             smooth_distance = float(a)
         elif o == "-S":
             max_separation = int(a)
+        elif o == "--min-num":
+            radial_min_num_particles = int(a)
+        elif o == "--missing":
+            radial_missing_value = float(a)
+        elif o == "--max-r":
+            radial_max_r = float(a)
+        elif o == "--bin-size":
+            radial_bin_r = float(a)
+        elif o == "-R":
+            radial_mode = True
         else:
             num_color_schemes += 1
             color_mode = o[1:]
@@ -246,6 +267,45 @@ def color(argv):
             if not color is None:
                 smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         color_data = smooth_color_data
+
+    # radial
+    if radial_mode:
+        num_radial_bins = int(radial_max_r / radial_bin_r) + 1
+        radial_color_sums = [0.0] * num_radial_bins
+        radial_color_nums = [0] * num_radial_bins
+        
+        # calculate center of mass, and normalization factor
+        hom_names, loci_np_array, position_np_array = g3d_data.to_np_arrays()
+        ref_pos = np.mean(position_np_array, axis = 0)
+        mean_radial = np.mean(np.sum((position_np_array - ref_pos) ** 2, axis = -1) ** 0.5, axis = 0)
+        sys.stderr.write("[M::" + __name__ + "] radial mode: average radial distance = " + str(mean_radial) + ", which will be normalize to 1.0\n")
+        
+        # examine each particle
+        for g3d_particle in g3d_data.get_g3d_particles():
+            atom_id += 1
+            if atom_id % disp_num_particles == 0:
+                sys.stderr.write("[M::" + __name__ + "] radial mode for " + str(atom_id) + " particles (" + str(round(100.0 * atom_id / g3d_data.num_g3d_particles(), 2)) + "%)\n")
+            if (g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()) not in color_data:
+                continue
+            color = color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()]
+            radial = math.sqrt((g3d_particle.get_x() - ref_pos[0]) ** 2 + (g3d_particle.get_y() - ref_pos[1]) ** 2 + (g3d_particle.get_z() - ref_pos[2]) ** 2) / mean_radial
+            radial_bin_id = int(radial / radial_bin_r + 0.5)
+            #sys.stderr.write(str(radial)+", " + str(radial_bin_id) + "=" + str(radial_bin_id*radial_bin_r)+ ", "+ str(color)+"\n")
+            if radial_bin_id >= num_radial_bins:
+                continue # out of bound, skip
+            radial_color_sums[radial_bin_id] += color
+            radial_color_nums[radial_bin_id] += 1
+        
+        # output
+        sys.stderr.write("[M::" + __name__ + "] writing radial mode output\n")
+        for radial_bin_id in range(num_radial_bins):
+            if radial_color_nums[radial_bin_id] < radial_min_num_particles:
+                output_value = radial_missing_value
+            else:
+                output_value = radial_color_sums[radial_bin_id] / radial_color_nums[radial_bin_id]
+            sys.stdout.write("\t".join([str(radial_bin_id * radial_bin_r), str(output_value)]) + "\n")
+    
+        return 0        
             
     # output
     sys.stderr.write("[M::" + __name__ + "] writing " + str(len(color_data)) + " colors (" + str(round(100.0 * len(color_data) / g3d_data.num_g3d_particles(), 2)) + "%)\n")
