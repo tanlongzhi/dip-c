@@ -83,7 +83,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:CD:R", ["--min-num=", "--missing=", "--max-r=", "--bin-size="])
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:CD:R", ["min-num=", "missing=", "max-r=", "bin-size="])
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -110,7 +110,7 @@ def color(argv):
         sys.stderr.write("  --bin-size=FLOAT  (with \"-R\") bin size of radial distances [" + str(radial_bin_r) + "]\n\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
-        sys.stderr.write("  (with \"-R\") tab-delimited: radial distance, average color\n")
+        sys.stderr.write("  (with \"-R\") tab-delimited: radial distance, average color, #particles\n")
         return 1
         
     num_color_schemes = 0
@@ -303,7 +303,7 @@ def color(argv):
                 output_value = radial_missing_value
             else:
                 output_value = radial_color_sums[radial_bin_id] / radial_color_nums[radial_bin_id]
-            sys.stdout.write("\t".join([str(radial_bin_id * radial_bin_r), str(output_value)]) + "\n")
+            sys.stdout.write("\t".join([str(radial_bin_id * radial_bin_r), str(output_value), str(radial_color_nums[radial_bin_id])]) + "\n")
     
         return 0        
             
