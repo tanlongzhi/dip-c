@@ -186,7 +186,7 @@ Some Dip-C commands have additional requirements:
 * `align`: [rmsd](https://pypi.org/project/rmsd/)
 
 ## <a name="workflow"></a>Typical Workflow
-In our latest work, both the main Dip-C algorithm and 3D modeling are now carried out with [hickit](https://github.com/lh3/hickit), a much faster and more careful implementation. Below is a typical workflow of such combined use of [hickit](https://github.com/lh3/hickit) and this repo:
+In our latest work, both the main Dip-C algorithm and 3D modeling are now carried out with [hickit](https://github.com/lh3/hickit), a much faster and more careful implementation. Below is a typical workflow of such combined use of [hickit](https://github.com/lh3/hickit) and this repo (with mm10 as an example genome):
 
 ```sh
 # align reads
@@ -207,7 +207,7 @@ do
   hickit -s${rep} -M -i impute.pairs.gz -Sr1m -c1 -r10m -c2 -b4m -b1m -O 1m.${rep}.3dg -b200k -O 200k.${rep}.3dg -D5 -b50k -O 50k.${rep}.3dg -D5 -b20k -O 20k.${rep}.3dg
 done
 
-# convert from hickit to dip-c formats, and remove repetitive regions from 3d structures
+# convert from hickit to dip-c formats, and remove repetitive regions from 3D structures
 scripts/hickit_pairs_to_con.sh contacts.pairs.gz
 scripts/hickit_impute_pairs_to_con.sh impute.pairs.gz
 for rep in `seq 1 3`
@@ -238,7 +238,7 @@ dip-c color -n color/mm10.chr.txt 20k.1.clean.3dg | dip-c vis -c /dev/stdin 20k.
 ```
 
 ## <a name="workflow_old"></a>Stand-alone Workflow (Old)
-The original workflow, which was before the development of [hickit](https://github.com/lh3/hickit) and uses a slightly modified version of [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) for 3D modeling, can be found in an archived [document](README_old).
+The original workflow, which was before the development of [hickit](https://github.com/lh3/hickit) and uses a slightly modified version of [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) for 3D modeling, can be found in an archived [document](README_old.md).
 
 ## <a name="interact"></a>Interactive Visualization of Contacts
 A simple shell script, `con_to_juicer_pre_short.sh`, converts a `.con` file into the short format input for [Juicer Tools Pre](https://github.com/theaidenlab/juicer/wiki/Pre) and, subsequently, into a `.hic` file:
