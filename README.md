@@ -4,7 +4,9 @@
 ## Table of Contents
 
 * [Introduction](#intro)
-* [Citation](#cite)
+* [Citations](#cite)
+  - [Original Paper](#cite_science_2018)
+  - [Mouse Eye and Nose](#cite_nsmb_2019)
 * [File Formats](#format)
   - [Phased SNPs](#snp)
   - [Read Segments](#seg)
@@ -32,12 +34,23 @@
 
 An alternative (faster and more careful) implementation of the Dip-C algorithm is included in [hickit](https://github.com/lh3/hickit).
 
-## <a name="cite"></a>Citation
+## <a name="cite"></a>Citations
+### <a name="cite_science_2018"></a>Original Paper
+Please cite the original Dip-C paper, which described the Dip-C method and algorithm. This work studied a human B-lymphoblastoid cell line (LCL; [GM12878](https://www.coriell.org/0/Sections/Search/Sample_Detail.aspx?Ref=GM12878&Product=CC)), peripheral blood mononuclear cells (PBMCs), and mouse embryonic stem cells (mESCs; raw data from a previous [study](https://www.nature.com/articles/nature23001)):
+
 Tan, Longzhi*; Xing, Dong*; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "Three-dimensional genome structures of single diploid human cells," *Science* **43**, 924-928. DOI:10.1126/science.aat5641 (2018).
 
 * [Link](http://science.sciencemag.org/content/361/6405/924)
 * Raw data: [SRP149125](https://www.ncbi.nlm.nih.gov/sra/SRP149125)
 * Processed data: [GSE117876](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE117876)
+
+### <a name="cite_nsmb_2019"></a>Mouse Eye and Nose
+Our second Dip-C paper included more detailed experimental protocols, the combined use of [hickit](https://github.com/lh3/hickit) and this repo, and a more convenient (yet less sensitive) version that uses homemade Nextera instead of multiplex end-tagging amplification (META). This work studied the mouse eye and nose during development, with a focus on rod photoceptors and olfactory sensory neurons (OSNs):
+
+Tan, Longzhi*; Xing, Dong*; Daley, Nicholas; Xie, X. Sunney "Three-dimensional genome structures of single sensory neurons in mouse visual and olfactory systems," *Nature Structural & Molecular Biology* **26**, 297-307. DOI:10.1038/s41594-019-0205-2 (2019).
+
+* [Link](https://www.nature.com/articles/s41594-019-0205-2)
+* Raw & processed data: [GSE121791](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE121791)
 
 ## <a name="format"></a>File Formats
 ### <a name="snp"></a>Phased SNPs
