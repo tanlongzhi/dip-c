@@ -17,9 +17,8 @@
 * [Requirements](#require)
   - [Basic Requirements](#basic_require)
   - [Additional Requirements](#add_require)
-  - [Patching LIANTI](#patch_lianti)
-  - [Patching nuc_dynamics](#patch_nuc)
 * [Typical Workflow](#workflow)
+* [Stand-alone Workflow (Old)](#workflow_old)
 * [Interactive Visualization of Contacts](#interact)
 * [Interactive Visualization of 3D Genomes](#view3d)
   - [Getting Started: Color by Chromosome](#basic_color_chr)
@@ -179,76 +178,67 @@ Dip-C was tested on Python v2.7.13 (macOS and CentOS), with the following basic 
 ### <a name="add_require"></a>Additional Requirements
 Some Dip-C commands have additional requirements:
 
-* Read preprocessing for META: [LIANTI](https://github.com/lh3/lianti) (patch needed), which requires [seqtk](https://github.com/lh3/seqtk) for paired-end reads
-* Read alignment: [BWA](https://github.com/lh3/bwa) (tested on v0.7.15), [SAMtools](http://www.htslib.org/download/) (tested on v1.3), and [Sambamba](https://github.com/biod/sambamba/releases) (tested on v0.6.3)
-* `seg`: pysam (tested on v0.11.1)
-* 3D reconstruction: [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) (patch needed)
+* Read pre-processing for META (not required for Nextera or other whole-genome amplification methods): pre-meta from [pre-pe](https://github.com/lh3/pre-pe), which requires [seqtk](https://github.com/lh3/seqtk) for paired-end reads
+* Read alignment: [BWA](https://github.com/lh3/bwa) (tested on v0.7.15), [SAMtools](http://www.htslib.org/download/) (tested on v1.3)
+* Contact pre-processing & 3D reconstruction: [hickit](https://github.com/lh3/hickit) (tested on v0.1.1)
 * `vis` and other mmCIF scripts: [PDBx Python Parser](http://mmcif.wwpdb.org/docs/sw-examples/python/html/index.html)
 * mmCIF viewing: [PyMol](https://pymol.org/2/)
 * `align`: [rmsd](https://pypi.org/project/rmsd/)
 
-### <a name="patch_lianti"></a>Patching LIANTI
-For META read preprocessing, [LIANTI](https://github.com/lh3/lianti) needs a patch to replace the LIANTI adapters with the META ones:
-
-1. Download the [LIANTI](https://github.com/lh3/lianti) source code.
-2. Replace LIANTI's `trim.c` with Dip-C's `patch/trim.c`.
-3. Compile LIANTI.
-
-### <a name="patch_nuc"></a>Patching nuc_dynamics
-For 3D reconstruction, [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) needs a patch to (1) change the backbone energy function, (2) skip the removal of isolated contacts, and (3) output in the 3D Genome (3DG) format instead of the original PDB format (which has a 99,999-atom limit):
-
-1. Download the [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) source code.
-2. Replace nuc_dynamics' `nuc_dynamics.py` with Dip-C's `patch/nuc_dynamics.py`.
-3. Compile nuc_dynamics.
-
-The above was tested in [May 2017](https://github.com/TheLaueLab/nuc_dynamics/commit/55148e68b919a59c2354d9157131f729495424c9). In Jun 2017, nuc_dynamics also changed its output format, along with other improvements. We have yet to update our patch.
-
 ## <a name="workflow"></a>Typical Workflow
-Below is a typical workflow starting from paired-end META data (FASTQ), part of which is also included in `dip-c.sh`:
+In our latest work, both the main Dip-C algorithm and 3D modeling are now carried out with [hickit](https://github.com/lh3/hickit), a much faster and more careful implementation. Below is a typical workflow of such combined use of [hickit](https://github.com/lh3/hickit) and this repo:
 
 ```sh
-# read preprocessing and alignment
-seqtk mergepe R1.fq.gz R2.fq.gz | lianti trim - | bwa mem -Cp hs37m.fa - | samtools view -uS | sambamba sort -o aln.bam /dev/stdin
+# align reads
+bwa mem -5SP genome.fa R1.fq.gz R2.fq.gz | gzip > aln.sam.gz # for Nextera
+#seqtk mergepe R1.fq.gz R2.fq.gz | pre-meta - | bwa mem -5SP -p genome.fa - | gzip > aln.sam.gz # for META
 
-# identify genomic contacts
-dip-c seg -v snp.txt.gz aln.bam | gzip -c > phased.seg.gz
-dip-c con phased.seg.gz | gzip -c > raw.con.gz
-dip-c dedup raw.con.gz | gzip -c > dedup.con.gz
-dip-c reg -p hf dedup.con.gz | gzip -c > reg.con.gz
-#dip-c reg -p hf -e bad.reg -h hap.reg dedup.con.gz | gzip -c > reg.con.gz # deal with CNVs
-dip-c clean reg.con.gz | gzip -c > clean.con.gz
+# extract segments
+hickit.js sam2seg -v snp.txt.gz aln.sam.gz | hickit.js chronly -y - | gzip > contacts.seg.gz # for female
+#hickit.js sam2seg -v snp.txt.gz aln.sam.gz | hickit.js chronly - | hickit.js bedflt par.bed - | gzip > contacts.seg.gz # for male
 
-# initial imputation of haplotypes
-dip-c impute clean.con.gz | gzip -c > impute.con.gz
+# resolve haplotypes via imputation
+hickit -i contacts.seg.gz -o - | bgzip > contacts.pairs.gz
+hickit -i contacts.pairs.gz -u -o - | bgzip > impute.pairs.gz
 
-# further imputation and 3d reconstruction 
-con_to_ncc.sh impute.con.gz
-nuc_dynamics.sh impute.ncc 0.1
-dip-c impute3 -3 impute.3dg clean.con.gz | gzip -c > impute3.round1.con.gz
-dip-c clean3 -c impute.con.gz impute.3dg > impute.clean.3dg
+# generate 3D structures (with 3 replicates)
+for rep in `seq 1 3`
+do
+  hickit -s${rep} -M -i impute.pairs.gz -Sr1m -c1 -r10m -c2 -b4m -b1m -O 1m.${rep}.3dg -b200k -O 200k.${rep}.3dg -D5 -b50k -O 50k.${rep}.3dg -D5 -b20k -O 20k.${rep}.3dg
+done
 
-con_to_ncc.sh impute3.round1.con.gz
-nuc_dynamics.sh impute3.round1.ncc 0.1
-dip-c impute3 -3 impute3.round1.3dg clean.con.gz | gzip -c > impute3.round2.con.gz
-dip-c clean3 -c impute3.round1.con.gz impute3.round1.3dg > impute3.round1.clean.3dg
+# convert from hickit to dip-c formats, and remove repetitive regions from 3d structures
+scripts/hickit_pairs_to_con.sh contacts.pairs.gz
+scripts/hickit_impute_pairs_to_con.sh impute.pairs.gz
+for rep in `seq 1 3`
+do
+  scripts/hickit_3dg_to_3dg_rescale_unit.sh 20k.${rep}.3dg
+  dip-c clean3 -c impute.con.gz 20k.${rep}.dip-c.3dg > 20k.${rep}.clean.3dg # remove repetitive (contact-less) regions
+done
 
-con_to_ncc.sh impute3.round2.con.gz
-nuc_dynamics.sh impute3.round2.ncc 0.1
-dip-c impute3 -3 impute3.round2.3dg clean.con.gz | gzip -c > impute3.round3.con.gz
-dip-c clean3 -c impute3.round2.con.gz impute3.round2.3dg > impute3.round2.clean.3dg
+# align replicate structures and calculate RMSD (overall value in .log file)
+dip-c align -o aligned.20k. 20k.[1-3].clean.3dg 2> 20k.align.log > 20k.align.color
 
-con_to_ncc.sh impute3.round3.con.gz
-nuc_dynamics.sh impute3.round3.ncc 0.02
-dip-c impute3 -3 impute3.round3.3dg clean.con.gz | gzip -c > impute3.round4.con.gz
-dip-c clean3 -c impute3.round3.con.gz impute3.round3.3dg > impute3.round3.clean.3dg
+# convert to juicebox format for interactive viewing
+# raw contacts
+java -Xmx2g -jar juicer_tools.jar pre -n contacts.pairs.gz contacts.hic mm10
+# haplotype-resolved contacts
+scripts/con_imputed_to_juicer_pre_short.sh impute.con.gz
+java -Xmx2g -jar juicer_tools.jar pre -n impute.juicer.txt.gz impute.hic color/mm10.chr.hom.len
 
-con_to_ncc.sh impute3.round4.con.gz
-nuc_dynamics.sh impute3.round4.ncc 0.02
-dip-c clean3 -c impute3.round4.con.gz impute3.round4.3dg > impute3.round4.clean.3dg
+# calculate single-cell chromatin compartment values along the genome
+dip-c color2 -b1000000 -H -c color/mm10.cpg.1m.txt -s contacts.con.gz > cpg_b1m.color2 # contact-based
+dip-c color -c color/mm10.cpg.20k.txt -s3 20k.1.clean.3dg > cpg_s3.color # 3D-structure-based
 
-# color by chromosome number and visualize as mmCIF
-dip-c color -n color/hg19.chr.txt impute3.round4.clean.3dg | dip-c vis -c /dev/stdin impute3.round4.clean.3dg > impute3.round4.clean.n.cif
+# calculate radial positioning
+dip-c color -C 20k.1.clean.3dg > C.color
+
+# color by chromosome number and visualize as mmCIF (viewable with pymol)
+dip-c color -n color/mm10.chr.txt 20k.1.clean.3dg | dip-c vis -c /dev/stdin 20k.1.clean.3dg > 20k.1.clean.n.cif
 ```
+
+## <a name="workflow_old"></a>Stand-alone Workflow (Old)
+The original workflow, which was before the development of [hickit](https://github.com/lh3/hickit) and uses a slightly modified version of [nuc_dynamics](https://github.com/TheLaueLab/nuc_dynamics) for 3D modeling, can be found in an archived [document](README_old).
 
 ## <a name="interact"></a>Interactive Visualization of Contacts
 A simple shell script, `con_to_juicer_pre_short.sh`, converts a `.con` file into the short format input for [Juicer Tools Pre](https://github.com/theaidenlab/juicer/wiki/Pre) and, subsequently, into a `.hic` file:
