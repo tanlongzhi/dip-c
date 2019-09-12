@@ -99,6 +99,7 @@ def mgcolor(argv):
             for color_file_line in color_file:
                 hom_name, ref_locus, color = color_file_line.strip().split("\t")
                 ref_locus = int(ref_locus)
+                color = [float(color)]
                 if diploid_mode:
                     ref_name, haplotype = hom_name_to_ref_name_haplotype(hom_name)
                     if haplotype == Haplotypes.paternal:
