@@ -21,6 +21,7 @@ def ard(argv):
     is_symmetrical = True
     superellipse_mode = False
     count_mode = False
+    normalize_by_num_cons = False
     leg_file_1_name = None
     leg_file_2_name = None
         
@@ -29,7 +30,7 @@ def ard(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:s:d:h:Sen1:2:")
+        opts, args = getopt.getopt(argv[1:], "c:s:d:h:Sent1:2:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -43,6 +44,7 @@ def ard(argv):
         sys.stderr.write("  -e              use L-1/2 norm (superellipse) instead\n")
         sys.stderr.write("  -S              does not symmetrize for \"-h\"\n\n")
         sys.stderr.write("  -n              output the number of nearby contacts for each reference point\n")
+        sys.stderr.write("  -t              normalize by the total number of contacts for \"-n\"\n\n")
         sys.stderr.write("  -1 <in1.leg>    generate a pairwise count matrix between reference legs\n")
         sys.stderr.write("  -2 <in2.leg>    generate a pairwise count matrix between two sets of reference legs [<in2.leg>]\n")
         return 1
@@ -61,6 +63,8 @@ def ard(argv):
             superellipse_mode = True     
         elif o == "-n":
             count_mode = True  
+        elif o == "-t":
+            normalize_by_num_cons = True  
         elif o == "-1":
             leg_file_1_name = a
         elif o == "-2":
@@ -131,7 +135,10 @@ def ard(argv):
                     else:
                         add_ref_locus_to_hist(around_hist, (rel_locus[0], rel_locus[1]), max_distance, grid_size)
             if count_mode:
-                sys.stdout.write(str(num_nearby_cons) + "\n")
+                if normalize_by_num_cons:
+                    sys.stdout.write(str(float(num_nearby_cons) / con_data.num_cons()) + "\n")
+                else:
+                    sys.stdout.write(str(num_nearby_cons) + "\n")
         # output 2D histogram
         if not grid_size is None:
             sys.stderr.write("[M::" + __name__ + "] writing output for 2D histogram\n")
