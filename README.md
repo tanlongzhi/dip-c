@@ -5,8 +5,9 @@
 
 * [Introduction](#intro)
 * [Citations](#cite)
-  - [Original Paper](#cite_science_2018)
+  - [Original Paper (Human Blood)](#cite_science_2018)
   - [Mouse Eye and Nose](#cite_nsmb_2019)
+  - [Mouse Brain (Cortex and Hippocampus)](#cite_2021)
 * [File Formats](#format)
   - [Phased SNPs](#snp)
   - [Read Segments](#seg)
@@ -34,7 +35,7 @@
 An alternative (faster and more careful) implementation of the Dip-C algorithm is included in [hickit](https://github.com/lh3/hickit).
 
 ## <a name="cite"></a>Citations
-### <a name="cite_science_2018"></a>Original Paper
+### <a name="cite_science_2018"></a>Original Paper (Human Blood)
 Please cite the original Dip-C paper, which described the Dip-C method and algorithm. This work studied a human B-lymphoblastoid cell line (LCL; [GM12878](https://www.coriell.org/0/Sections/Search/Sample_Detail.aspx?Ref=GM12878&Product=CC)), peripheral blood mononuclear cells (PBMCs), and mouse embryonic stem cells (mESCs; raw data from a previous [study](https://www.nature.com/articles/nature23001)):
 
 Tan, Longzhi*; Xing, Dong*; Chang, Chi-Han; Li, Heng; Xie, X. Sunney "Three-dimensional genome structures of single diploid human cells," *Science* **43**, 924-928. DOI:10.1126/science.aat5641 (2018).
@@ -50,6 +51,22 @@ Tan, Longzhi*; Xing, Dong*; Daley, Nicholas; Xie, X. Sunney "Three-dimensional g
 
 * [Link](https://www.nature.com/articles/s41594-019-0205-2)
 * Raw & processed data: [GSE121791](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE121791)
+
+### <a name="cite_2021"></a>Mouse Brain (Cortex and Hippocampus)
+Our third Dip-C paper included a positive control (purified gDNA), the potential use of low-cost, commerically available Tn5 transposome, multi-channel pipettes, and 384 Nextera barcodes. This work studied the mouse brain (in particular the forebrain: cortex and hippocampus) during postnatal development, and integrated with single-cell transcriptome and other omic data.
+
+Tan, Longzhi†; Ma, Wenping; Wu, Honggui; Zheng, Yinghui; Xing, Dong; Chen, Ritchie; Li, Xiang; Daley, Nicholas; Deisseroth, Karl; Xie, X. Sunney† "Changes in genome architecture and transcriptional dynamics progress independently of sensory experience during postnatal brain development," (2021)
+
+* [Link](https://www.biorxiv.org/content/10.1101/2020.04.02.022657v2)
+* Protocols:
+  - [Nuclei isolation and fixation](https://www.protocols.io/view/isolation-and-fixation-of-nuclei-from-the-mouse-br-bpsxmnfn)
+  - [Chromosome conformation capture](https://www.protocols.io/view/dip-c-part-1-chromosome-conformation-capture-for-f-bpt7mnrn)
+  - [Whole-genome amplification](https://www.protocols.io/view/dip-c-part-2-whole-genome-amplification-with-nexte-bpt8mnrw)
+* Raw data:
+  - [PRJNA679183](https://www.ncbi.nlm.nih.gov/sra/PRJNA679183) (scRNA-seq with MALBAC-DT)
+  - [PRJNA607329](https://www.ncbi.nlm.nih.gov/sra/PRJNA607329) (main Dip-C dataset)
+  - [PRJNA678567](https://www.ncbi.nlm.nih.gov/sra/PRJNA678567) (sensory deprivation Dip-C dataset)
+* Processed data: [GSE162511](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE162511)
 
 ## <a name="format"></a>File Formats
 ### <a name="snp"></a>Phased SNPs
