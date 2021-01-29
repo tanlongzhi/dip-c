@@ -55,9 +55,9 @@ Tan, Longzhi*; Xing, Dong*; Daley, Nicholas; Xie, X. Sunney "Three-dimensional g
 ### <a name="cite_2021"></a>Mouse Brain (Cortex and Hippocampus)
 Our third Dip-C paper included a positive control (purified gDNA), the potential use of low-cost, commerically available Tn5 transposome, multi-channel pipettes, and 384 Nextera barcodes. This work studied the mouse brain (in particular the forebrain: cortex and hippocampus) during postnatal development, and integrated with single-cell transcriptome and other omic data.
 
-Tan, Longzhi†; Ma, Wenping; Wu, Honggui; Zheng, Yinghui; Xing, Dong; Chen, Ritchie; Li, Xiang; Daley, Nicholas; Deisseroth, Karl; Xie, X. Sunney† "Changes in genome architecture and transcriptional dynamics progress independently of sensory experience during postnatal brain development," (2021)
+Tan, Longzhi†; Ma, Wenping; Wu, Honggui; Zheng, Yinghui; Xing, Dong; Chen, Ritchie; Li, Xiang; Daley, Nicholas; Deisseroth, Karl; Xie, X. Sunney† "Changes in genome architecture and transcriptional dynamics progress independently of sensory experience during post-natal brain development," *Cell* **184**, 1-18. DOI:10.1016/j.cell.2020.12.032 (2021).
 
-* [Link](https://www.biorxiv.org/content/10.1101/2020.04.02.022657v2)
+* [Link](https://authors.elsevier.com/c/1cSX0L7PXcMTc)
 * Protocols:
   - [Nuclei isolation and fixation](https://www.protocols.io/view/isolation-and-fixation-of-nuclei-from-the-mouse-br-bpsxmnfn)
   - [Chromosome conformation capture](https://www.protocols.io/view/dip-c-part-1-chromosome-conformation-capture-for-f-bpt7mnrn)
