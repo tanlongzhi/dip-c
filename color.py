@@ -38,7 +38,7 @@ def same_haplotype_fraction_excluding_same_homolog(g3d_particle, nearby_g3d_part
     hom_name = g3d_particle.get_hom_name()
     haplotype = g3d_particle.get_haplotype()
     num_g3d_particles = -1 # to exclude self
-    num_same_haplotype = -1 # to exclude self
+    num_same_haplotype = 0
     for nearby_g3d_particle in nearby_g3d_particles:
         nearby_hom_name = nearby_g3d_particle.get_hom_name()
         nearby_haplotype = nearby_g3d_particle.get_haplotype()
@@ -115,7 +115,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:CD:R:p:P", ["min-num=", "missing=", "max-r=", "bin-size="])
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:p:P:CD:R", ["min-num=", "missing=", "max-r=", "bin-size="])
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
