@@ -18,6 +18,38 @@ def intra_hom_fraction(g3d_particle, nearby_g3d_particles, max_separation):
         return None
     return float(num_intra_hom) / num_g3d_particles
 
+def same_haplotype_fraction(g3d_particle, nearby_g3d_particles):
+    hom_name = g3d_particle.get_hom_name()
+    haplotype = g3d_particle.get_haplotype()
+    num_g3d_particles = -1 # to exclude self
+    num_same_haplotype = -1 # to exclude self
+    for nearby_g3d_particle in nearby_g3d_particles:
+        num_g3d_particles += 1
+        nearby_hom_name = nearby_g3d_particle.get_hom_name()
+        nearby_haplotype = nearby_g3d_particle.get_haplotype()
+        if nearby_haplotype == haplotype:
+                num_same_haplotype += 1
+    if num_g3d_particles == 0:
+        return None
+    return float(num_same_haplotype) / num_g3d_particles
+
+
+def same_haplotype_fraction_excluding_same_homolog(g3d_particle, nearby_g3d_particles):
+    hom_name = g3d_particle.get_hom_name()
+    haplotype = g3d_particle.get_haplotype()
+    num_g3d_particles = -1 # to exclude self
+    num_same_haplotype = 0
+    for nearby_g3d_particle in nearby_g3d_particles:
+        nearby_hom_name = nearby_g3d_particle.get_hom_name()
+        nearby_haplotype = nearby_g3d_particle.get_haplotype()
+        if nearby_hom_name != hom_name:
+            num_g3d_particles += 1
+            if nearby_haplotype == haplotype:
+                    num_same_haplotype += 1
+    if num_g3d_particles == 0:
+        return None
+    return float(num_same_haplotype) / num_g3d_particles
+
 def intra_hom_count(g3d_particle, nearby_g3d_particles, max_separation):
     hom_name = g3d_particle.get_hom_name()
     num_intra_hom = -1 # to exclude self
@@ -83,7 +115,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:CD:R", ["min-num=", "missing=", "max-r=", "bin-size="])
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:p:P:CD:R", ["min-num=", "missing=", "max-r=", "bin-size="])
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -97,6 +129,8 @@ def color(argv):
         sys.stderr.write("  -h                color by distance to homologous locus\n\n")
         sys.stderr.write("  -i FLOAT          color by percentage of intra-homologous neighbors within a given distance\n")
         sys.stderr.write("  -I FLOAT          color by number of intra-homologous neighbors within a given distance\n")
+        sys.stderr.write("  -p FLOAT          color by percentage of same-haplotype neighbors within a given distance\n")
+        sys.stderr.write("  -P FLOAT          color by percentage of same-haplotype neighbors (excluding the same homolog neighbors) within a given distance\n")
         sys.stderr.write("  -S INT            (with \"-i\" or \"-I\") max separation (bp) for intra-homologous neighbors\n\n")
         sys.stderr.write("  -d FLOAT          color by homolog diversity within a given distance\n")
         sys.stderr.write("  -r FLOAT          color by homolog richness within a given distance\n\n")
@@ -115,7 +149,7 @@ def color(argv):
         
     num_color_schemes = 0
     for o, a in opts:
-        if o == "-i" or o == "-I" or o == "-d" or o == "-r":
+        if o == "-i" or o == "-I" or o == "-d" or o == "-r" or o == "-p" or o == "-P":
             num_color_schemes += 1
             color_mode = o[1:]
             max_distance = float(a)
@@ -187,7 +221,7 @@ def color(argv):
             ref_cen = int(ref_cen)
             ref_lens[ref_name] = ref_len
             ref_cens[ref_name] = ref_cen
-    elif color_mode == "i" or color_mode == "I" or color_mode == "d" or color_mode == "r":
+    elif color_mode == "i" or color_mode == "I" or color_mode == "d" or color_mode == "r" or color_mode == "p" or color_mode == "P":
         g3d_data.prepare_nearby()
     elif color_mode == "C":
         hom_names, loci_np_array, position_np_array = g3d_data.to_np_arrays()
@@ -240,6 +274,14 @@ def color(argv):
                 continue
         elif color_mode == "I":
             color = intra_hom_count(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance), max_separation)
+        elif color_mode == "p":
+            color = same_haplotype_fraction(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance))
+            if color is None:
+                continue
+        elif color_mode == "P":
+            color = same_haplotype_fraction_excluding_same_homolog(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), max_distance))
+            if color is None:
+                continue
         elif color_mode == "h":
             homologous_g3d_particle = g3d_data.get_g3d_particle_from_hom_name_ref_locus(homologous_hom_name(g3d_particle.get_hom_name()), g3d_particle.get_ref_locus())
             if homologous_g3d_particle is None:
@@ -313,4 +355,3 @@ def color(argv):
         sys.stdout.write("\t".join([hom_name, str(ref_locus), str(color_data[(hom_name, ref_locus)])]) + "\n")
     
     return 0
-    
