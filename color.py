@@ -123,7 +123,7 @@ def color(argv):
         sys.stderr.write("Usage: dip-c color [options] <in.3dg>\n")
         sys.stderr.write("Options:\n")
         sys.stderr.write("  -c <color.txt>    color by a list of locus-color pairs (tab-delimited: chr, locus, color)\n")
-        sys.stderr.write("  --c-hom=<color.txt>    color by a list of homolog specific locus-color pairs (tab-delimited: chr, locus, color)\n")
+        sys.stderr.write("  --c-hom=<color.txt>    color by a list of homolog specific locus-color pairs (tab-delimited: homolog, locus, color)\n")
         sys.stderr.write("  -n <chr.txt>      color by chromosome name (one chromosome per line)\n")
         sys.stderr.write("  -l <chr.len>      color by locus divided by chromosome length (tab-delimited: chr, len)\n")
         sys.stderr.write("  -L <chr.cen>      color by arm locus divided by arm length (tab-delimited: chr, len, center of centromere)\n")
@@ -206,12 +206,12 @@ def color(argv):
             color = float(color)
             ref_name_ref_locus_colors[(ref_name, ref_locus)] = color
     elif color_mode == "c-hom":
-        ref_name_ref_locus_colors = {}
+        hom_name_ref_locus_colors = {}
         for color_file_line in color_file:
-            ref_name, ref_locus, color = color_file_line.strip().split("\t")
+            hom_name, ref_locus, color = color_file_line.strip().split("\t")
             ref_locus = int(ref_locus)
             color = float(color)
-            ref_name_ref_locus_colors[(ref_name, ref_locus)] = color
+            hom_name_ref_locus_colors[(hom_name, ref_locus)] = color
     elif color_mode == "n":
         ref_name_colors = {}
         color_counter = 0
@@ -263,7 +263,7 @@ def color(argv):
                 continue
         elif color_mode == "c-hom":
             try:
-                color = ref_name_ref_locus_colors[(g3d_particle.get_hom_name(), g3d_particle.get_ref_locus())]
+                color = hom_name_ref_locus_colors[(g3d_particle.get_hom_name(), g3d_particle.get_ref_locus())]
             except KeyError:
                 continue
         elif color_mode == "n":
