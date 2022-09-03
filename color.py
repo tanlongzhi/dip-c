@@ -97,12 +97,38 @@ def smooth_color(g3d_particle, nearby_g3d_particles, color_data):
         return None
     return sum_color / num_g3d_particles
     
+def smooth_color_exc(g3d_particle, nearby_g3d_particles, color_data, g3d_resolution):
+    hom_name = g3d_particle.get_hom_name()
+    ref_locus = g3d_particle.get_ref_locus()
+    ref_locus_up = ref_locus + g3d_resolution
+    ref_locus_down = ref_locus - g3d_resolution
+    num_g3d_particles = 0 
+    sum_color = 0
+    for nearby_g3d_particle in nearby_g3d_particles:
+        nearby_hom_name = nearby_g3d_particle.get_hom_name()
+        nearby_ref_locus = nearby_g3d_particle.get_ref_locus()
+
+        if (nearby_hom_name == hom_name) and (nearby_ref_locus == ref_locus):
+            continue
+        elif (nearby_hom_name == hom_name) and (nearby_ref_locus == ref_locus_up):
+            continue
+        elif (nearby_hom_name == hom_name) and (nearby_ref_locus == ref_locus_down):
+            continue
+        elif (nearby_hom_name, nearby_ref_locus) in color_data:
+            num_g3d_particles += 1
+            sum_color += color_data[(nearby_hom_name, nearby_ref_locus)]
+        
+    if num_g3d_particles == 0:
+        return None
+    return sum_color / num_g3d_particles
+
 def color(argv):
     # default parameters
     color_file_name = None
     color_mode = None
     max_distance = None
     smooth_distance = None
+    smooth_distance_exc = None
     max_separation = None
     radial_mode = False
     radial_min_num_particles = 10
@@ -115,7 +141,7 @@ def color(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:p:P:CD:R", ["min-num=", "missing=", "max-r=", "bin-size=", "c-hom="])
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:p:P:CD:R", ["min-num=", "missing=", "max-r=", "bin-size=", "c-hom=", "s-exc="])
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -138,6 +164,7 @@ def color(argv):
         sys.stderr.write("  -C                color by distance to the nuclear center of mass\n")
         sys.stderr.write("  -D <in.leg>       color by distance to a given locus (only the first line of the LEG file will be used)\n\n")
         sys.stderr.write("  -s FLOAT          smooth color by averaging over a ball\n\n")
+        sys.stderr.write("  --s-exc=FLOAT     smooth color by averaging over a ball, excluding self and its two flanking particles\n")
         sys.stderr.write("  -R                special: output average color for different radial distances (normalized to 1.0)\n")
         sys.stderr.write("  --min-num=INT     (with \"-R\") min number of particles per bin [" + str(radial_min_num_particles) + "]\n")
         sys.stderr.write("  --missing=FLOAT   (with \"-R\") output value when \"--min-num\" is not met [" + str(radial_missing_value) + "]\n")
@@ -156,6 +183,8 @@ def color(argv):
             max_distance = float(a)
         elif o == "-s":
             smooth_distance = float(a)
+        elif o == "--s-exc":
+            smooth_distance_exc = float(a)
         elif o == "-S":
             max_separation = int(a)
         elif o == "--min-num":
@@ -327,7 +356,20 @@ def color(argv):
             if not color is None:
                 smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         color_data = smooth_color_data
-
+        
+    if not smooth_distance_exc is None:
+        g3d_data.prepare_nearby()
+        smooth_color_data = {}
+        atom_id = 0
+        for g3d_particle in g3d_data.get_g3d_particles():
+            atom_id += 1
+            if atom_id % disp_num_particles == 0:
+                sys.stderr.write("[M::" + __name__ + "] smoothed " + str(atom_id) + " particles (" + str(round(100.0 * atom_id / g3d_data.num_g3d_particles(), 2)) + "%)\n")
+            color = smooth_color_exc(g3d_particle, g3d_data.get_g3d_particles_near(g3d_particle.get_position(), smooth_distance_exc), color_data, g3d_resolution)
+            if not color is None:
+                smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
+        color_data = smooth_color_data
+        
     # radial
     if radial_mode:
         num_radial_bins = int(radial_max_r / radial_bin_r) + 1
