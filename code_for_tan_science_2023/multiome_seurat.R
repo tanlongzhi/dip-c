@@ -19,23 +19,24 @@ fragpath <- "/path/toatac_fragments.tsv.gz"
 annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)
 seqlevelsStyle(annotation) <- "UCSC"
 
-pbmc <- CreateSeuratObject(
+seurat_object <- CreateSeuratObject(
   counts = counts$`Gene Expression`,
   assay = "RNA"
 )
-pbmc[["ATAC"]] <- CreateChromatinAssay(
+seurat_object[["ATAC"]] <- CreateChromatinAssay(
   counts = counts$Peaks,
   sep = c(":", "-"),
   fragments = fragpath,
   annotation = annotation
 )
 
-DefaultAssay(pbmc) <- "ATAC"
-pbmc <- NucleosomeSignal(pbmc)
-pbmc <- TSSEnrichment(pbmc)
+DefaultAssay(seurat_object) <- "ATAC"
+seurat_object <- NucleosomeSignal(seurat_object)
+seurat_object <- TSSEnrichment(seurat_object)
 
-pbmc <- subset(
-  x = pbmc,
+seurat_object <- subset(
+  x = seurat_object
+,
   subset = nCount_ATAC < 100000 &
     nCount_RNA < 25000 &
     nCount_ATAC > 1000 &
@@ -44,47 +45,51 @@ pbmc <- subset(
     TSS.enrichment > 1
 )
 
-peaks <- CallPeaks(pbmc, macs2.path = "/path/to/macs2")
+peaks <- CallPeaks(seurat_object, macs2.path = "/path/to/macs2")
 # remove peaks on nonstandard chromosomes and in genomic blacklist regions
 peaks <- keepStandardChromosomes(peaks, pruning.mode = "coarse")
 peaks <- subsetByOverlaps(x = peaks, ranges = blacklist_hg38_unified, invert = TRUE)
 
 # quantify counts in each peak
 macs2_counts <- FeatureMatrix(
-  fragments = Fragments(pbmc),
+  fragments = Fragments(seurat_object
+),
   features = peaks,
-  cells = colnames(pbmc)
+  cells = colnames(seurat_object
+)
 )
 # create a new assay using the MACS2 peak set and add it to the Seurat object
-pbmc[["peaks"]] <- CreateChromatinAssay(
+seurat_object[["peaks"]] <- CreateChromatinAssay(
   counts = macs2_counts,
   fragments = fragpath,
   annotation = annotation
 )
 
-DefaultAssay(pbmc) <- "RNA"
-pbmc <- SCTransform(pbmc)
-pbmc <- RunPCA(pbmc)
+DefaultAssay(seurat_object) <- "RNA"
+seurat_object <- SCTransform(seurat_object)
+seurat_object <- RunPCA(seurat_object)
 
-DefaultAssay(pbmc) <- "peaks"
-pbmc <- FindTopFeatures(pbmc, min.cutoff = 5)
-pbmc <- RunTFIDF(pbmc)
-pbmc <- RunSVD(pbmc)
+DefaultAssay(seurat_object) <- "peaks"
+seurat_object <- FindTopFeatures(seurat_object, min.cutoff = 5)
+seurat_object <- RunTFIDF(seurat_object)
+seurat_object <- RunSVD(seurat_object)
 # build a joint UMAP visualization
-pbmc <- RunUMAP(
-  object = pbmc,
+seurat_object <- RunUMAP(
+  object = seurat_object
+,
   nn.name = "weighted.nn",
   assay = "RNA",
   verbose = TRUE
 )
-pbmc <- FindMultiModalNeighbors(
-  object = pbmc,
+seurat_object <- FindMultiModalNeighbors(
+  object = seurat_object
+,
   reduction.list = list("pca", "lsi"),
   dims.list = list(1:50, 2:40),
   modality.weight.name = "RNA.weight",
   verbose = TRUE
 )
-saveRDS(pbmc, file = "/path/to/sample.rds")
+saveRDS(seurat_object, file = "/path/to/sample.rds")
 
 # Creating a combined Seurat object --------------------------------------------------------------------------------------------------
 
