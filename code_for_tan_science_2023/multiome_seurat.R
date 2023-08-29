@@ -1,3 +1,8 @@
+'''
+Seurat & Signac 
+Code primarily follows https://stuartlab.org/signac/articles/pbmc_multiomic.html and https://satijalab.org/seurat/articles/integration_introduction.html
+'''
+
 library(Signac)
 library(Seurat)
 library(EnsDb.Hsapiens.v86)
@@ -6,10 +11,10 @@ library(dplyr)
 library(ggplot2)
 
 # Re-analysis of published data --------------------------------------------------------------------------------------------------------
-s <- readRDS("published_data/kozareva_2021/sn035.rds") 
+seurat_object <- readRDS("published_data/kozareva_2021/sn035.rds") 
 
 # example plot marker genes 
-FeaturePlot(s, features = "FOXP2", coord.fixed = TRUE, pt.size = 1, cols = CustomPalette(low = rgb(0.85,0.85,0.85), high = rgb(1,0,0)))
+FeaturePlot(seurat_object, features = "FOXP2", coord.fixed = TRUE, pt.size = 1, cols = CustomPalette(low = rgb(0.85,0.85,0.85), high = rgb(1,0,0)))
 
 
 # Defualt seurat pipeline for individual samples ----------------------------------------------------------------------------------------
