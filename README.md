@@ -8,6 +8,7 @@
   - [Original Paper (Human Blood)](#cite_science_2018)
   - [Mouse Eye and Nose](#cite_nsmb_2019)
   - [Mouse Brain (Cortex and Hippocampus)](#cite_2021)
+  - [Human and Mouse Brain (Cortex and Cerebellum)](#cite_2023)
 * [File Formats](#format)
   - [Phased SNPs](#snp)
   - [Read Segments](#seg)
@@ -67,6 +68,13 @@ Tan, Longzhi†; Ma, Wenping; Wu, Honggui; Zheng, Yinghui; Xing, Dong; Chen, Rit
   - [PRJNA607329](https://www.ncbi.nlm.nih.gov/sra/PRJNA607329) (main Dip-C dataset)
   - [PRJNA678567](https://www.ncbi.nlm.nih.gov/sra/PRJNA678567) (sensory deprivation Dip-C dataset)
 * Processed data: [GSE162511](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE162511)
+
+### <a name="cite_2023"></a>Human and Mouse Brain (Cortex and Cerebellum)
+Our fourth Dip-C paper introduced Pop-C and vDip-C.
+
+* [Link](https://www.science.org/doi/full/10.1126/science.adh3253)
+* Raw and processed data:
+  - [PRJNA933352](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA933352)
 
 ## <a name="format"></a>File Formats
 ### <a name="snp"></a>Phased SNPs
