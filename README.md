@@ -72,7 +72,7 @@ Tan, Longzhi†; Ma, Wenping; Wu, Honggui; Zheng, Yinghui; Xing, Dong; Chen, Rit
 ### <a name="cite_2023"></a>Human and Mouse Brain (Cortex and Cerebellum)
 Our fourth Dip-C paper introduced Pop-C and vDip-C.
 
-* [Link](https://www.biorxiv.org/content/10.1101/2023.02.25.530020v2)
+* [Link](https://www.science.org/doi/full/10.1126/science.adh3253)
 * Raw and processed data:
   - [PRJNA933352](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA933352)
 
