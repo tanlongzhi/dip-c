@@ -61,8 +61,8 @@ for inputPdbLine in inputPdbFile:
         incrementCounts[increment] += 1
     previousChr = inputChr
     previousPosValue = inputPosValue
-resolution = max(incrementCounts.iterkeys(), key=(lambda key: incrementCounts[key]))
-print "resolution: "+str(resolution)
+resolution = max(incrementCounts.keys(), key=(lambda key: incrementCounts[key]))
+print(f"resolution: {resolution}")
 
 # load gene info data
 infoData = {}
@@ -79,7 +79,11 @@ for inputInfoLine in inputInfoFile:
             inputChr = int(inputInfoFileData[1])
         except ValueError:
             continue
-    inputPosValue = int(round((int(inputInfoFileData[2])+int(inputInfoFileData[3]))/2/resolution))*resolution
+    region_start = int(inputInfoFileData[2])
+    region_end = int(inputInfoFileData[3])
+    region_midpoint = (region_start + region_end) // 2
+    midpoint_bin = int(round(region_midpoint // resolution))
+    inputPosValue = midpoint_bin * resolution
     infoData[inputInfoFileData[0]] = (inputChr, inputPosValue)
 
 # load RNA-Seq data for B factors

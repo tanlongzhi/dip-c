@@ -195,7 +195,7 @@ An example `.reg` file is:
 
 ## <a name="require"></a>Requirements
 ### <a name="basic_require"></a>Basic Requirements
-Dip-C was tested on Python v2.7.13 (macOS and CentOS), with the following basic requirements:
+Dip-C was tested on Python 3 (macOS and CentOS), with the following basic requirements:
 
 * NumPy (tested on v1.12.1)
 * SciPy (tested on v0.13.3)

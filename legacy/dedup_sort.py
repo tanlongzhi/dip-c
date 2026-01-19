@@ -18,7 +18,7 @@ counter = 0
 for inputLine in inputFile:
     counter += 1
     if counter % 10000 == 0:
-        print counter
+        print(counter)
     inputLineData = inputLine.strip().split("\t")
     for i in [1,2,4,5]:
         inputLineData[i] = int(inputLineData[i])

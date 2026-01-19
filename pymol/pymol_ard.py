@@ -1,3 +1,5 @@
+from pymol import cmd
+
 # chromatin near a contact
 resolution = 20e3
 max_sep = 10e6
@@ -51,24 +53,24 @@ end_2_string = str(end_2).rjust(9,'0')
 cmd.select("end_2", "chain \"" + hom_2 + "\" and resn " + end_2_string[0:3] + " and name " + end_2_string[3:6])
 cmd.select("subchain_2", "id " + str(cmd.id_atom("start_2")) + "-" + str(cmd.id_atom("end_2")))
 
-hide all
-color blue, hom_1
-color red, hom_2
-#as lines, hom_1 + hom_2
-as sticks, subchain_1 + subchain_2
-#spectrumany count, white blue, subchain_1
-#spectrumany count, red black, subchain_2
-set_bond stick_radius, 0.5, subchain_1 + subchain_2
+cmd.do("hide all")
+cmd.do("color blue, " + hom_1)
+cmd.do("color red, " + hom_2)
+#cmd.do("as lines, " + hom_1 + " + " + hom_2)
+cmd.do("as sticks, subchain_1 + subchain_2")
+#cmd.do("spectrumany count, white blue, subchain_1")
+#cmd.do("spectrumany count, red black, subchain_2")
+cmd.do("set_bond stick_radius, 0.5, subchain_1 + subchain_2")
 
 
-hide all
-#as lines, hom_1
-as sticks, subchain_1
-png ~/Downloads/chain_1.png, 600, 600, ray=1
-#as lines, hom_2
-as sticks, subchain_2
-png ~/Downloads/chains.png, 600, 600, ray=1
+cmd.do("hide all")
+#cmd.do("as lines, " + hom_1)
+cmd.do("as sticks, subchain_1")
+cmd.do("png ~/Downloads/chain_1.png, 600, 600, ray=1")
+#cmd.do("as lines, " + hom_2)
+cmd.do("as sticks, subchain_2")
+cmd.do("png ~/Downloads/chains.png, 600, 600, ray=1")
 
 
-print hom_1 + ": " + str(int(round(start_1/1e6))) + " – " + str(int(round(end_1/1e6))) + " Mb"
-print hom_2 + ": " + str(int(round(start_2/1e6))) + " – " + str(int(round(end_2/1e6))) + " Mb"
+print(f"{hom_1}: {int(round(start_1 / 1e6))} – {int(round(end_1 / 1e6))} Mb")
+print(f"{hom_2}: {int(round(start_2 / 1e6))} – {int(round(end_2 / 1e6))} Mb")

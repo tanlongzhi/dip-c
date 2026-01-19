@@ -11,10 +11,10 @@ inputData = []
 for inputFileLine in inputFile:
     inputFileLineData = inputFileLine.strip().split()
     inputLoci.append(int(inputFileLineData[1]))
-    inputData.append(map(float, inputFileLineData[2:]))
+    inputData.append(list(map(float, inputFileLineData[2:])))
 numOfLoci = len(inputLoci)
-numOfStructures = len(inputData[0])/3
-numOfPairs = numOfLoci*(numOfLoci-1)/2
+numOfStructures = len(inputData[0]) // 3
+numOfPairs = numOfLoci * (numOfLoci - 1) // 2
 sys.stderr.write('read '+str(numOfLoci)+' loci from '+str(numOfStructures)+' structures\n')
 inputLociNumpy = np.array(inputLoci, dtype=int)
 inputDataNumpy = np.array(inputData, dtype=float)

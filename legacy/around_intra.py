@@ -43,7 +43,7 @@ for chr1 in contactData:
         contactData[chr1][chr2] = sorted(contactData[chr1][chr2])
         if chr1 != chr2:
             continue # skip inter
-        print chr1+', '+chr2
+        print(f"{chr1}, {chr2}")
         for i in range(len(contactData[chr1][chr2])):
             contact1 = contactData[chr1][chr2][i]
             for j in range(i,len(contactData[chr1][chr2])):

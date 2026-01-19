@@ -32,14 +32,14 @@ def pos(argv):
         return 1
         
     # read 3DG file
-    g3d_data = file_to_g3d_data(open(args[0], "rb"))
+    g3d_data = file_to_g3d_data(open(args[0], "r"))
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
     g3d_data.prepare_interpolate()
                             
     # convert LEG file to 3DG particles
-    for leg_file_line in open(leg_file_name, "rb"):
+    for leg_file_line in open(leg_file_name, "r"):
         is_out, position = g3d_data.interpolate_leg(string_to_leg(leg_file_line.strip()))
         if position is None or (is_out and in_only):
             sys.stdout.write("None\n")

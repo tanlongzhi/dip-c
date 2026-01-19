@@ -34,7 +34,7 @@ def con(argv):
             adjacent_only = True
                
     # read SEG file
-    seg_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+    seg_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     num_reads = 0   
     con_data = ConData()
     for seg_file_line in seg_file:

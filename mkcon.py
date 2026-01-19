@@ -41,9 +41,9 @@ def mkcon(argv):
     
                             
     # read input file
-    leg_list_1 = phased_leg_list_from_file(open(args[0], "rb"))
+    leg_list_1 = phased_leg_list_from_file(open(args[0], "r"))
     sys.stderr.write("[M::" + __name__ + "] leg 1: read " + str(leg_list_1.num_legs()) + " legs\n")
-    leg_list_2 = phased_leg_list_from_file(open(args[1], "rb"))
+    leg_list_2 = phased_leg_list_from_file(open(args[1], "r"))
     sys.stderr.write("[M::" + __name__ + "] leg 2: read " + str(leg_list_2.num_legs()) + " legs\n")
     
     # make CON

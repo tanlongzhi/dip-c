@@ -30,4 +30,5 @@ for inputPdbChr in inputPdbData:
 
 # print
 for inputPdbChr in chrData:
-    print str(inputPdbChr)+'\t'+str(chrData[inputPdbChr][0])+'\t'+str(chrData[inputPdbChr][1])+'\t'+str(chrData[inputPdbChr][2])
+    chr_values = chrData[inputPdbChr]
+    print(f"{inputPdbChr}\t{chr_values[0]}\t{chr_values[1]}\t{chr_values[2]}")

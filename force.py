@@ -100,7 +100,7 @@ def force(argv):
         return 1
                                                         
     # read CON file
-    con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+    con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
 
@@ -119,7 +119,7 @@ def force(argv):
     ref_locus_list = []
     
     # read each chromosome and add backbone to force matrix (each row: id_1, id_2, with id_1 < id_2)
-    chr_len_file = open(chr_len_file_name, "rb")
+    chr_len_file = open(chr_len_file_name, "r")
     for chr_len_file_line in chr_len_file:
         ref_name, ref_len = chr_len_file_line.strip().split("\t")
         ref_len = int(ref_len)

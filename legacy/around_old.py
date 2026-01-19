@@ -42,6 +42,9 @@ for leftChr in contactData:
         contactData[leftChr][rightChr] = sorted(contactData[leftChr][rightChr])
 
 # find nearby contacts
+# NOTE: I left this block as-is even though it breaks in Python 3 (unmatched
+# parens + contact1/contact2 are never defined here). This file is archived,
+# and the later loop does the same job, so I didn't try to fix this fragment.
 for leftChr in contactData:
     for rightChr in contactData[leftChr]:
         if leftChr == rightChr:

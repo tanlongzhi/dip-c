@@ -20,7 +20,7 @@ t = time.time()
 for inputLine in inputFile:
     counter += 1
     if counter % 10000 == 0:
-        print str(counter)+': '+str(time.time()-t)
+        print(f"{counter}: {time.time()-t}")
     inputLineData = inputLine.strip().split("\t")
     for i in [1,2,4,5]:
         inputLineData[i] = int(inputLineData[i])

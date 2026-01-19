@@ -39,7 +39,7 @@ def imputeContact (contactData, evidenceData, imputeDistance, minVotes, minVoteF
         imputeData[leftChr] = {}
         for rightChr in contactData[leftChr]:
             imputeData[leftChr][rightChr] = []
-            print 'imputing '+leftChr+', '+rightChr
+            print(f"imputing {leftChr}, {rightChr}")
             isIntra = (leftChr == rightChr)
             
             # impute each contact
@@ -93,7 +93,7 @@ def cleanImputedContact (contactData, cleanDistance, minAgreeCounts):
         cleanData[leftChr] = {}
         for rightChr in contactData[leftChr]:
             cleanData[leftChr][rightChr] = []
-            print 'cleaning '+leftChr+', '+rightChr
+            print(f"cleaning {leftChr}, {rightChr}")
             numOfContacts = len(contactData[leftChr][rightChr])
             for i in range(numOfContacts):
                 agreeCounts = 0
@@ -136,7 +136,7 @@ def imputeEmptyContact (contactData, evidenceData, imputeDistance, minVotes, min
             imputeData[leftChr][rightChr] = []
             if leftChr == rightChr: # skip intra
                 continue
-            print 'imputing empty contacts '+leftChr+', '+rightChr
+            print(f"imputing empty contacts {leftChr}, {rightChr}")
             
             for contact in contactData[leftChr][rightChr]:
                 # count votes
