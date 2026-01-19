@@ -27,7 +27,7 @@ for inputLine in inputFile:
     # swap two partners of a contact if out of order
     if inputLineData[0] > inputLineData[3] or (inputLineData[0] == inputLineData[3] and inputLineData[1] > inputLineData[4]):
         inputLineData = [inputLineData[3], inputLineData[4], inputLineData[5], inputLineData[0], inputLineData[1], inputLineData[2], inputLineData[6]]
-    
+
     # add to contact list and merge
     if not inputLineData[0] in contactData:
         contactData[inputLineData[0]] = {}
@@ -41,7 +41,7 @@ for inputLine in inputFile:
         if inputLineData[1]<=cluster[1]+maxDistance and inputLineData[1]>=cluster[0]-maxDistance and inputLineData[4]<=cluster[3]+maxDistance and inputLineData[4]>=cluster[2]-maxDistance:
             newHaplo1 = max(newCluster[7],cluster[7])
             if newCluster[7] == -2 or cluster[7] == -2 or (newCluster[7] == 1 and cluster[7] == 2) or (newCluster[7] == 2 and cluster[7] == 1):
-                newHaplo1 = -2                   
+                newHaplo1 = -2
             newHaplo2 = max(newCluster[8],cluster[8])
             if newCluster[8] == -2 or cluster[8] == -2 or (newCluster[8] == 1 and cluster[8] == 2) or (newCluster[8] == 2 and cluster[8] == 1):
                 newHaplo2 = -2

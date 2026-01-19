@@ -22,7 +22,7 @@ for inputPdbLine in inputPdbFile:
     if not inputPdbChr in inputPdbData:
         inputPdbData[inputPdbChr]=[]
     inputPdbData[inputPdbChr].append((inputPdbLocus,inputPdbPos))
-    
+
 # calculate mean position of each chromosomes
 meanChrPos = {}
 for inputPdbChr in inputPdbData:
@@ -31,7 +31,7 @@ for inputPdbChr in inputPdbData:
     for inputPdbMolecule in inputPdbData[inputPdbChr]:
         for i in range(3):
             meanChrPos[inputPdbChr][i] += inputPdbMolecule[1][i]/numOfMolecules
-            
+
 # calculate radius of gyration
 for chr1 in meanChrPos:
     for chr2 in meanChrPos:

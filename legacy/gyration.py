@@ -34,7 +34,7 @@ for i in range(numOfStructures):
         sys.stderr.write('processing structure '+str(i+1)+', locus '+str(j+1)+'\n')
         sumNumMatrix[:(j+1), j:, :] += 1
         sumNumMatrix[j:, :(j+1), :] += 1
-        sumNumMatrix[j, j, :] -= 1        
+        sumNumMatrix[j, j, :] -= 1
         position = inputDataNumpy[j, (3*i):(3*i+3)]
         sumMatrix[:(j+1), j:, :] += position
         sumMatrix[j:, :(j+1), :] += position
@@ -45,4 +45,4 @@ for i in range(numOfStructures):
         sumSqMatrix[j, j, :] -= sqPosition
     radiusMatrix = np.sqrt(np.sum(sumSqMatrix / sumNumMatrix - (sumMatrix / sumNumMatrix)**2, axis = 2))
     np.savetxt('radius_'+str(i+1)+'.txt', radiusMatrix, delimiter='\t')
-    
+
