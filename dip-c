@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import time
 
 def main():
+    repo_dir = os.path.dirname(os.path.realpath(__file__))
+    vendor_dir = os.path.join(repo_dir, "vendor")
+    if os.path.isdir(vendor_dir):
+        sys.path.insert(0, vendor_dir)
+
     if len(sys.argv) == 1:
         sys.stderr.write("Usage: dip-c <command> <arguments>\n")
         sys.stderr.write("Commands:\n")

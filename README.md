@@ -210,6 +210,18 @@ Some Dip-C commands have additional requirements:
 * mmCIF viewing: [PyMol](https://pymol.org/2/)
 * `align`: [rmsd](https://pypi.org/project/rmsd/)
 
+To install `rmsd` and the PDBx parser locally under this repo (no global Python changes), run:
+```
+make deps
+```
+This installs into `vendor/`, and `dip-c` will automatically use those local copies when run from this repo.
+
+If you need to reset the local dependencies:
+```
+make clean-deps
+make
+```
+
 ## <a name="workflow"></a>Typical Workflow
 In our latest work, both the main Dip-C algorithm and 3D modeling are now carried out with [hickit](https://github.com/lh3/hickit), a much faster and more careful implementation. Below is a typical workflow of such combined use of [hickit](https://github.com/lh3/hickit) and this repo (with mm10 as an example genome):
 

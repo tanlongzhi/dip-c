@@ -1,9 +1,7 @@
+import os
 import sys
 import getopt
 from classes import Haplotypes, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
-from pdbx.reader.PdbxReader  import PdbxReader
-from pdbx.writer.PdbxWriter  import PdbxWriter
-from pdbx.reader.PdbxContainers import *
 
 def g3d_particle_to_atom_data(g3d_particle, atom_id, color):
     locus_string = str(g3d_particle.get_ref_locus()).rjust(9,'0')
@@ -42,6 +40,15 @@ def vis(argv):
         sys.stderr.write("  B_iso_or_equiv    scalar color\n")
         sys.stderr.write("  covale            backbone bond\n")
         return 1
+
+    repo_dir = os.path.dirname(os.path.realpath(__file__))
+    vendor_dir = os.path.join(repo_dir, "vendor")
+    if os.path.isdir(vendor_dir):
+        sys.path.insert(0, vendor_dir)
+
+    from pdbx.reader.PdbxReader  import PdbxReader
+    from pdbx.writer.PdbxWriter  import PdbxWriter
+    from pdbx.reader.PdbxContainers import DataCategory, DataContainer
         
     num_color_schemes = 0
     for o, a in opts:

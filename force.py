@@ -170,7 +170,7 @@ def force(argv):
             
             prev_positions = positions.copy()
             
-            output_file = open(output_prefix + str(step + 1) + ".3dg", "wb")
+            output_file = open(output_prefix + str(step + 1) + ".3dg", "w")
             for i in range(num_nodes):
                 output_file.write("\t".join(map(str, [hom_name_list[i], ref_locus_list[i], positions[i, 0], positions[i, 1], positions[i, 2]])) + "\n")
             output_file.close()

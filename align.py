@@ -87,7 +87,7 @@ def align(argv):
                 # rotate j to align with i
                 sys.stderr.write("[M::" + __name__ + "] aligning file " + str(j) + " to file " + str(i) + "\n")
                 aligned_filename = output_prefix + str(j) + "_to_" + str(i) + ".3dg"
-                aligned_file = open(aligned_filename, "wb")
+                aligned_file = open(aligned_filename, "w")
                 for input_locus in input_data[j]:
                     aligned_pos = np.dot((np.array(input_data[j][input_locus]) - centroid_data[j]) * mirror_factor, rotation_matrix) + centroid_data[i]
                     aligned_file.write("\t".join([input_locus[0], str(input_locus[1]), str(aligned_pos[0]), str(aligned_pos[1]), str(aligned_pos[2])]) + "\n")

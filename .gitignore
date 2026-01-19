@@ -97,5 +97,15 @@ ENV/
 # mkdocs documentation
 /site
 
-# mypy
+# mypy - things for OSX dev environments
 .mypy_cache/
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+vendor/
