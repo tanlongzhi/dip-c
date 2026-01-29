@@ -108,4 +108,7 @@ Icon?
 .Trashes
 .fseventsd
 .TemporaryItems
+
+# don't add the vendor directory to git, it is used for vendoring dependencies and should not be tracked
 vendor/
+pdbx/
