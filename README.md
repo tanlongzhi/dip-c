@@ -1,6 +1,14 @@
 # Dip-C
 ![logo](images/logo_small.png)
 
+## Getting Started
+```sh
+git clone https://github.com/tanlongzhi/dip-c
+cd dip-c
+make  # installs numpy, scipy, and rmsd dependencies
+# hickit is also required (https://github.com/lh3/hickit)
+```
+
 ## Table of Contents
 
 * [Introduction](#intro)
