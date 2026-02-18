@@ -18,6 +18,15 @@ deps-pdbx:
 	@mkdir -p "$(VENDOR_DIR)"
 	@curl -L "$(PDBX_URL)" | tar -xz -C "$(VENDOR_DIR)"
 	@2to3 -w -n "$(VENDOR_DIR)/pdbx" >/dev/null 2>&1 || true
+	@echo "Applying PdbxReader escape sequence patch..."
+	@if patch -p0 -d "$(VENDOR_DIR)" < "$(CURDIR)/patch/pdbx_reader_escape_sequences.patch" 2>/dev/null; then \
+		echo "✓ Patch applied successfully"; \
+	elif patch -p0 -d "$(VENDOR_DIR)" -R --dry-run < "$(CURDIR)/patch/pdbx_reader_escape_sequences.patch" >/dev/null 2>&1; then \
+		echo "✓ Patch already applied"; \
+	else \
+		echo "✗ Patch failed to apply"; \
+		exit 1; \
+	fi
 
 clean-deps:
 	@rm -rf "$(VENDOR_DIR)"

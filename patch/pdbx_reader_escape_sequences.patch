@@ -1,0 +1,40 @@
+--- pdbx/reader/PdbxReader.py.orig	2026-01-29 00:00:00.000000000 +0000
++++ pdbx/reader/PdbxReader.py	2026-01-29 00:00:00.000000000 +0000
+@@ -340,13 +340,13 @@
+         mmcifRe = re.compile(
+             r"(?:"
+ 
+-             "(?:_(.+?)[.](\S+))"               "|"  # _category.attribute
++             r"(?:_(.+?)[.](\S+))"               "|"  # _category.attribute
+ 
+-             "(?:['](.*?)(?:[']\s|[']$))"       "|"  # single quoted strings
+-             "(?:[\"](.*?)(?:[\"]\s|[\"]$))"    "|"  # double quoted strings             
++             r"(?:['](.*?)(?:[']\s|[']$))"       "|"  # single quoted strings
++             r"(?:[\"](.*?)(?:[\"]\s|[\"]$))"    "|"  # double quoted strings             
+ 
+-             "(?:\s*#.*$)"                      "|"  # comments (dumped)
++             r"(?:\s*#.*$)"                      "|"  # comments (dumped)
+ 
+-             "(\S+)"                                 # unquoted words
++             r"(\S+)"                                 # unquoted words
+ 
+              ")")
+ 
+@@ -412,13 +412,13 @@
+         mmcifRe = re.compile(
+             r"(?:"
+ 
+-             "(?:_(.+?)[.](\S+))"               "|"  # _category.attribute
++             r"(?:_(.+?)[.](\S+))"               "|"  # _category.attribute
+ 
+-             "(?:['\"](.*?)(?:['\"]\s|['\"]$))" "|"  # quoted strings
++             r"(?:['\"](.*?)(?:['\"]\s|['\"]$))" "|"  # quoted strings
+ 
+-             "(?:\s*#.*$)"                      "|"  # comments (dumped)
++             r"(?:\s*#.*$)"                      "|"  # comments (dumped)
+ 
+-             "(\S+)"                                 # unquoted words
++             r"(\S+)"                                 # unquoted words
+ 
+              ")")
+ 
