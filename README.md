@@ -1,6 +1,8 @@
 # Dip-C
 ![logo](images/logo_small.png)
 
+![Coverage](images/coverage-badge.svg)
+
 ## Getting Started
 ```sh
 git clone https://github.com/tanlongzhi/dip-c
