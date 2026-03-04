@@ -5,7 +5,7 @@ from classes import Haplotypes, LegData, ConData, file_to_con_data, Leg, Par, Pa
 
 def g3d_particle_to_atom_data(g3d_particle, atom_id, color):
     locus_string = str(g3d_particle.get_ref_locus()).rjust(9,'0')
-    return ("HETATM", ".", atom_id, g3d_particle.get_hom_name(), locus_string[0:3], 1, locus_string[3:6], g3d_particle.get_x(), g3d_particle.get_y(), g3d_particle.get_z(), color)
+    return ("HETATM", ".", atom_id, g3d_particle.get_hom_name(), locus_string[0:3], int(locus_string[6:9]), locus_string[3:6], g3d_particle.get_x(), g3d_particle.get_y(), g3d_particle.get_z(), color)
 
 def g3d_particle_tuple_to_conn_data(g3d_particle_tuple, conn_id):
     locus_1_string = str(g3d_particle_tuple[0].get_ref_locus()).rjust(9,'0')
