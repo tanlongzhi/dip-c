@@ -120,3 +120,6 @@ htmlcov/
 .pytest_cache/
 # But DO track the coverage badge
 !images/coverage-badge.svg
+
+# IDE
+.vscode/

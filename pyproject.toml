@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dip-c"
+dynamic = ["version"]
+description = "Diploid chromatin conformation capture analysis"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.22,<2",
+    "scipy>=1.7,<1.15",
+    "rmsd>=1.5",
+    "mmcif-pdbx>=2.0",
+]
+
+[project.optional-dependencies]
+seg = ["pysam>=0.20"]
+all = ["pysam>=0.20"]
+dev = ["pytest>=7.0", "pytest-cov"]
+
+[project.scripts]
+dip-c = "dip_c.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"dip_c.data.color" = ["*.gz"]
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"

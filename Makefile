@@ -1,4 +1,4 @@
-.PHONY: all deps deps-rmsd deps-pdbx clean-deps
+.PHONY: all deps deps-rmsd deps-pdbx clean-deps install install-dev
 
 PYTHON ?= python3
 VENDOR_DIR := $(CURDIR)/vendor
@@ -7,6 +7,16 @@ NUMPY_VERSION := numpy<2
 SCIPY_VERSION := scipy<1.12
 
 all: deps
+
+# --- Modern installation (recommended) ---
+
+install:
+	"$(PYTHON)" -m pip install .
+
+install-dev:
+	"$(PYTHON)" -m pip install -e ".[dev,seg]"
+
+# --- Legacy vendored installation (for backward compat) ---
 
 deps: deps-rmsd deps-pdbx
 

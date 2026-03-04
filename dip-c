@@ -1,138 +1,34 @@
 #!/usr/bin/env python3
+"""Thin shim for backward compatibility with git-clone-and-run users.
+
+When dip-c is pip-installed, the entry point in pyproject.toml
+invokes dip_c.cli:main directly. This script allows the legacy
+workflow (clone repo, run ./dip-c) to keep working.
+"""
 
 import os
 import sys
-import time
 
 def main():
+    # Try the installed package first
+    try:
+        from dip_c.cli import main as _main
+        return _main()
+    except ImportError:
+        pass
+
+    # Legacy fallback: add repo dir + vendor dir to sys.path
     repo_dir = os.path.dirname(os.path.realpath(__file__))
     vendor_dir = os.path.join(repo_dir, "vendor")
     if os.path.isdir(vendor_dir):
         sys.path.insert(0, vendor_dir)
+    # Add src/ so dip_c package is importable
+    src_dir = os.path.join(repo_dir, "src")
+    if os.path.isdir(src_dir):
+        sys.path.insert(0, src_dir)
 
-    if len(sys.argv) == 1:
-        sys.stderr.write("Usage: dip-c <command> <arguments>\n")
-        sys.stderr.write("Commands:\n")
-        sys.stderr.write("  seg      extract read segments (SEG) from a BAM file\n")
-        sys.stderr.write("  con      extract contacts (CON) from a SEG file\n")
-        sys.stderr.write("  dedup    merge duplicates in a CON file\n")
-        sys.stderr.write("  reg      exclude genomic regions from a CON file\n")
-        sys.stderr.write("  bincon   bin a CON file into a matrix\n")
-        sys.stderr.write("  clean    remove artifacts from a CON file\n")
-        sys.stderr.write("  impute   impute missing haplotypes in a CON file\n")
-        sys.stderr.write("  impute3  impute missing haplotypes in a CON file based on a 3DG file\n")
-        sys.stderr.write("  clean3   remove contact-poor particles (e.g. centromeres) from a 3DG file\n")
-        sys.stderr.write("  reg3     exclude genomic regions from a 3DG file\n")
-        sys.stderr.write("  mkcon    make artificial CON from contact legs\n")
-        sys.stderr.write("\n")
-        sys.stderr.write("  color    color particles in a 3DG file\n")
-        sys.stderr.write("  color2   color particles based on a CON file\n")
-        sys.stderr.write("  mgcolor  merge color files\n")
-        sys.stderr.write("  vis      visualize a 3DG file into mmCIF format, and color particles\n")
-        sys.stderr.write("\n")
-        sys.stderr.write("  info     basic information about CON file(s)\n")
-        sys.stderr.write("  ard      contacts around certain points (e.g. other contacts)\n")
-        sys.stderr.write("  cv       cross validation of CON files\n")
-        sys.stderr.write("  align    align 3DG files\n")
-        sys.stderr.write("  dist     calculate 3D distances from a 3DG file\n")
-        sys.stderr.write("  pd       calculate 3D pairwise distances from a 3DG file\n")
-        sys.stderr.write("  rg       calculate the Rg matrix from a 3DG file\n")
-        sys.stderr.write("  con3     generate CON from a 3DG file\n")
-        sys.stderr.write("  pos      find 3D positions from a 3DG file\n")
-        sys.stderr.write("  tad      find the TAD tree from a Rg matrix\n")
-        sys.stderr.write("  exp      expand a 3DG file by translating each chromosome\n")
-        return 1
-    start_time = time.time()
-    if sys.argv[1] == "seg":
-        import seg
-        return_value = seg.seg(sys.argv[1:])
-    elif sys.argv[1] == "con":
-        import con
-        return_value = con.con(sys.argv[1:])
-    elif sys.argv[1] == "dedup":
-        import dedup
-        return_value = dedup.dedup(sys.argv[1:])
-    elif sys.argv[1] == "reg":
-        import reg
-        return_value = reg.reg(sys.argv[1:])
-    elif sys.argv[1] == "clean":
-        import clean
-        return_value = clean.clean(sys.argv[1:])
-    elif sys.argv[1] == "bincon":
-        import bincon
-        return_value = bincon.bincon(sys.argv[1:])
-    elif sys.argv[1] == "impute":
-        import impute
-        return_value = impute.impute(sys.argv[1:])
-    elif sys.argv[1] == "impute3":
-        import impute3
-        return_value = impute3.impute3(sys.argv[1:])
-    elif sys.argv[1] == "clean3":
-        import clean3
-        return_value = clean3.clean3(sys.argv[1:])
-    elif sys.argv[1] == "reg3":
-        import reg3
-        return_value = reg3.reg3(sys.argv[1:])
-    elif sys.argv[1] == "mkcon":
-        import mkcon
-        return_value = mkcon.mkcon(sys.argv[1:])
-    elif sys.argv[1] == "color":
-        import color
-        return_value = color.color(sys.argv[1:])
-    elif sys.argv[1] == "color2":
-        import color2
-        return_value = color2.color2(sys.argv[1:])
-    elif sys.argv[1] == "mgcolor":
-        import mgcolor
-        return_value = mgcolor.mgcolor(sys.argv[1:])
-    elif sys.argv[1] == "vis":
-        import vis
-        return_value = vis.vis(sys.argv[1:])
-    elif sys.argv[1] == "info":
-        import info
-        return_value = info.info(sys.argv[1:])
-    elif sys.argv[1] == "ard":
-        import ard
-        return_value = ard.ard(sys.argv[1:])
-    elif sys.argv[1] == "cv":
-        import cv
-        return_value = cv.cv(sys.argv[1:])
-    elif sys.argv[1] == "con3":
-        import con3
-        return_value = con3.con3(sys.argv[1:])
-    elif sys.argv[1] == "dist":
-        import dist
-        return_value = dist.dist(sys.argv[1:])
-    elif sys.argv[1] == "align":
-        import align
-        return_value = align.align(sys.argv[1:])
-    elif sys.argv[1] == "pd":
-        import pd
-        return_value = pd.pd(sys.argv[1:])
-    elif sys.argv[1] == "rg":
-        import rg
-        return_value = rg.rg(sys.argv[1:])
-    elif sys.argv[1] == "pos":
-        import pos
-        return_value = pos.pos(sys.argv[1:])
-    elif sys.argv[1] == "tad":
-        import tad
-        return_value = tad.tad(sys.argv[1:])
-    elif sys.argv[1] == "exp":
-        import exp
-        return_value = exp.exp(sys.argv[1:])
-    elif sys.argv[1] == "force":
-        import force
-        return_value = force.force(sys.argv[1:])
-    else:
-        sys.stderr.write("[E::" + __name__ + "] unknown command\n")
-        return 1
-    if return_value == 0:
-        sys.stderr.write("[M::" + __name__ + "] command: " + " ".join(sys.argv) + "\n")
-        sys.stderr.write("[M::" + __name__ + "] finished in " + str(round(time.time() - start_time, 1)) + " sec\n")
-    return return_value
-    
+    from dip_c.cli import main as _main
+    return _main()
+
 if __name__ == "__main__":
-    main()
-
-        
+    sys.exit(main())
