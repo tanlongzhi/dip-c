@@ -123,3 +123,6 @@ htmlcov/
 
 # IDE
 .vscode/
+
+# Claude Code
+.claude/

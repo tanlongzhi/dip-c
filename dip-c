@@ -17,18 +17,21 @@ def main():
     except ImportError:
         pass
 
-    # Legacy fallback: add repo dir + vendor dir to sys.path
+    # Fallback: add src/ so dip_c package is importable from a git clone
     repo_dir = os.path.dirname(os.path.realpath(__file__))
-    vendor_dir = os.path.join(repo_dir, "vendor")
-    if os.path.isdir(vendor_dir):
-        sys.path.insert(0, vendor_dir)
-    # Add src/ so dip_c package is importable
     src_dir = os.path.join(repo_dir, "src")
     if os.path.isdir(src_dir):
         sys.path.insert(0, src_dir)
+        from dip_c.cli import main as _main
+        return _main()
 
-    from dip_c.cli import main as _main
-    return _main()
+    print(
+        "Error: dip-c is not installed and src/ directory not found.\n"
+        "Install with: pip install run-dipc\n"
+        "Or run from the git clone directory.",
+        file=sys.stderr,
+    )
+    return 1
 
 if __name__ == "__main__":
     sys.exit(main())
