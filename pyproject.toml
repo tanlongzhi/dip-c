@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dip-c"
+name = "run-dipc"
 dynamic = ["version"]
 description = "Diploid chromatin conformation capture analysis"
 requires-python = ">=3.9"
