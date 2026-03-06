@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "Dip-C"
+message: "If you use this software, please cite the original paper."
+type: software
+license: MIT
+repository-code: "https://github.com/tanlongzhi/dip-c"
+authors:
+  - family-names: Tan
+    given-names: Longzhi
+preferred-citation:
+  type: article
+  title: "Three-dimensional genome structures of single diploid human cells"
+  authors:
+    - {family-names: Tan, given-names: Longzhi}
+    - {family-names: Xing, given-names: Dong}
+    - {family-names: Chang, given-names: Chi-Han}
+    - {family-names: Li, given-names: Heng}
+    - {family-names: Xie, given-names: "X. Sunney"}
+  journal: Science
+  volume: 361
+  start: 924
+  end: 928
+  year: 2018
+  doi: "10.1126/science.aat5641"
