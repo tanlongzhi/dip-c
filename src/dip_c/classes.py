@@ -1263,7 +1263,7 @@ class G3dList:
     def to_string(self):
         return "\n".join([g3d_particle.to_string() for g3d_particle in self.g3d_particles])
     def to_np_arrays(self):
-        loci_np_array = np.empty([len(self.g3d_particles), 1], dtype=int)
+        loci_np_array = np.empty(len(self.g3d_particles), dtype=int)
         position_np_array = np.empty([len(self.g3d_particles), 3], dtype=float)
         g3d_particle_counter = 0
         for g3d_particle in self.g3d_particles:
@@ -1401,7 +1401,7 @@ class G3dData:
                 yield g3d_particle_tuple
     def to_np_arrays(self):
         hom_names = []
-        loci_np_array = np.empty([self.num_g3d_particles(), 1], dtype=int)
+        loci_np_array = np.empty(self.num_g3d_particles(), dtype=int)
         position_np_array = np.empty([self.num_g3d_particles(), 3], dtype=float)
         g3d_particle_counter = 0
         for hom_name in sorted(self.g3d_lists.keys()):
