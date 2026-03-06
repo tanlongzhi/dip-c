@@ -101,7 +101,7 @@ def ard(argv):
         # initialize 2D histogram
         if not grid_size is None:
             grid_num = 2 * max_distance / grid_size
-            around_hist = np.zeros((grid_num, grid_num), dtype = np.int)
+            around_hist = np.zeros((grid_num, grid_num), dtype = int)
 
         # find relation positions
         con_data.sort_cons()
