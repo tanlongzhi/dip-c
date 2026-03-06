@@ -133,7 +133,8 @@ def impute(argv):
 
     # pass 3: impute B with A
     no_phased_inter_chr_con_data.impute_from_con_data(some_phased_con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
-    sys.stderr.write("[M::" + __name__ + "] pass 3 done: imputed " + str(no_phased_inter_chr_con_data.num_phased_cons()) + " contacts (" + str(round(100.0 * no_phased_inter_chr_con_data.num_phased_cons() / no_phased_inter_chr_con_data.num_cons(), 2)) + "% of all completely unphased, inter-chromosomal contacts)\n")
+    no_phased_pct = round(100.0 * no_phased_inter_chr_con_data.num_phased_cons() / no_phased_inter_chr_con_data.num_cons(), 2) if no_phased_inter_chr_con_data.num_cons() > 0 else 0.0
+    sys.stderr.write("[M::" + __name__ + "] pass 3 done: imputed " + str(no_phased_inter_chr_con_data.num_phased_cons()) + " contacts (" + str(no_phased_pct) + "% of all completely unphased, inter-chromosomal contacts)\n")
     no_phased_inter_chr_con_data.clean_unphased()
     some_phased_con_data.merge_with(no_phased_inter_chr_con_data)
     

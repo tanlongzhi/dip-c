@@ -95,7 +95,8 @@ def ard(argv):
             # intra-chromosmal only, remove small separations
             ref_con_data.clean_inter_chr()
             ref_con_data.clean_separation(min_separation)
-        sys.stderr.write("[M::" + __name__ + "] kept " + str(ref_con_data.num_cons()) + " reference points (" + str(round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2)) + "% intra-chromosomal)\n")
+        ref_intra_pct = round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2) if ref_con_data.num_cons() > 0 else 0.0
+        sys.stderr.write("[M::" + __name__ + "] kept " + str(ref_con_data.num_cons()) + " reference points (" + str(ref_intra_pct) + "% intra-chromosomal)\n")
 
         # initialize 2D histogram
         if not grid_size is None:

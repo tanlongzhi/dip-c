@@ -836,13 +836,13 @@ class ConData:
     
     # remove all intra-chromosomal contacts
     def clean_intra_chr(self):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             if ref_name_tuple[0] == ref_name_tuple[1]:
                 del self.con_lists[ref_name_tuple]
 
     # remove all inter-chromosomal contacts
     def clean_inter_chr(self):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             if ref_name_tuple[0] != ref_name_tuple[1]:
                 del self.con_lists[ref_name_tuple]
         
@@ -851,17 +851,17 @@ class ConData:
         for con_list in self.con_lists.values():
             con_list.sort_cons()
     def clean_separation(self, min_separation):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             self.con_lists[ref_name_tuple].clean_separation(min_separation)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
     def clean_promiscuous(self, leg_data, max_leg_distance, max_leg_count):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             self.con_lists[ref_name_tuple].clean_promiscuous(leg_data, max_leg_distance, max_leg_count)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
     def clean_isolated(self, con_data, max_clean_distance, min_clean_count):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             original_num_cons = self.con_lists[ref_name_tuple].num_cons()
             self.con_lists[ref_name_tuple].clean_isolated(con_data, max_clean_distance, min_clean_count)
             sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
@@ -875,19 +875,19 @@ class ConData:
             sys.stderr.write("[M::" + __name__ + "] tested isolated contacts for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(original_num_cons) + " contacts\n")
         return neighbor_counts
     def clean_in_par(self, par_data):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             if par_data.get_x_name() not in ref_name_tuple and par_data.get_y_name() not in ref_name_tuple:
                 continue
             self.con_lists[ref_name_tuple].clean_in_par(par_data)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
     def clean_unphased(self):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             self.con_lists[ref_name_tuple].clean_unphased()
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
     def clean_isolated_phased(self, con_data, max_clean_distance, min_clean_count):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             original_num_cons = self.con_lists[ref_name_tuple].num_cons()
             self.con_lists[ref_name_tuple].clean_isolated_phased(con_data, max_clean_distance, min_clean_count)
             #sys.stderr.write("[M::" + __name__ + "] cleaned isolated contacts for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(original_num_cons) + " -> " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts\n")
@@ -914,7 +914,7 @@ class ConData:
             sys.stderr.write("[M::" + __name__ + "] merging duplicates for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " putative contacts\n")
             self.con_lists[ref_name_tuple].dedup(max_distance)
     def apply_regs(self, inc_regs, exc_regs, hap_regs):
-        for ref_name_tuple in self.con_lists.keys():
+        for ref_name_tuple in list(self.con_lists.keys()):
             self.con_lists[ref_name_tuple].apply_regs(inc_regs, exc_regs, hap_regs)
             if self.con_lists[ref_name_tuple].num_cons() == 0:
                 del self.con_lists[ref_name_tuple]
