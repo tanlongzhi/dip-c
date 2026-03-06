@@ -6,6 +6,19 @@ build-backend = "setuptools.build_meta"
 name = "run-dipc"
 dynamic = ["version"]
 description = "Diploid chromatin conformation capture analysis"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Longzhi Tan"},
+]
+keywords = ["bioinformatics", "chromatin", "Hi-C", "3D genome", "single-cell"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.22,<2",
@@ -13,6 +26,10 @@ dependencies = [
     "rmsd>=1.5",
     "mmcif-pdbx>=2.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/tanlongzhi/dip-c"
+Repository = "https://github.com/tanlongzhi/dip-c"
 
 [project.optional-dependencies]
 seg = ["pysam>=0.20"]
