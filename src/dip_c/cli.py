@@ -41,6 +41,11 @@ def main():
         sys.stderr.write("  data-path  print path to installed data directory\n")
         return 1
 
+    if sys.argv[1] == "--completion":
+        from dip_c.completion import generate_completion_script
+        print(generate_completion_script(), end="")
+        return 0
+
     start_time = time.time()
     command = sys.argv[1]
 

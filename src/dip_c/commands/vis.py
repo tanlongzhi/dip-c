@@ -1,6 +1,7 @@
 import sys
 import getopt
 from dip_c.classes import Haplotypes, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
+from dip_c.data import resolve_data_file
 
 def g3d_particle_to_atom_data(g3d_particle, atom_id, color):
     locus_string = str(g3d_particle.get_ref_locus()).rjust(9,'0')
@@ -62,7 +63,7 @@ def vis(argv):
     # read color file
     color_data = {}
     if not color_file_name is None:
-        color_file = open(color_file_name, "r")
+        color_file = resolve_data_file(color_file_name)
         for color_file_line in color_file:
             hom_name, ref_locus, color = color_file_line.strip().split("\t")
             ref_locus = int(ref_locus)

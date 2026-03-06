@@ -44,6 +44,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "dip_c.data.color" = ["*.gz"]
+"dip_c" = ["dip-c.bash-completion"]
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}

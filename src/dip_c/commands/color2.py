@@ -2,6 +2,7 @@ import sys
 import getopt
 import gzip
 from dip_c.classes import Haplotypes, hom_name_to_ref_name_haplotype, ref_name_haplotype_to_hom_name, ConData, file_to_con_data, Con, Leg, G3dData, file_to_g3d_data
+from dip_c.data import resolve_data_file
 import numpy as np
 from scipy import spatial
 import math
@@ -54,7 +55,7 @@ def color2(argv):
 
     # open color file
     if not color_file_name is None:
-        color_file = open(color_file_name, "r")
+        color_file = resolve_data_file(color_file_name)
                                                         
     # read CON file
     con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")

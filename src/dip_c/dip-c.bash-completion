@@ -1,0 +1,4 @@
+# bash/zsh completion for dip-c
+# Source this file, or add to your shell config:
+#   eval "$(dip-c --completion)"
+eval "$(dip-c --completion)"

@@ -2,6 +2,7 @@ import sys
 import gzip
 import getopt
 from dip_c.classes import Haplotypes, string_to_leg, ref_name_haplotype_to_hom_name, ConData, file_to_con_data, Con, Leg
+from dip_c.data import resolve_data_file
 import numpy as np
 from scipy import spatial
 import math
@@ -91,7 +92,7 @@ def bincon(argv):
     hom_bin_lens = {}
     hom_offsets = {}
     matrix_size = 0
-    chr_len_file = open(chr_len_file_name, "r")
+    chr_len_file = resolve_data_file(chr_len_file_name)
     for chr_len_file_line in chr_len_file:
         ref_name, ref_len = chr_len_file_line.strip().split("\t")
         ref_len = int(ref_len)

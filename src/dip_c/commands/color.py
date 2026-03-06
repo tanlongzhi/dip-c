@@ -1,6 +1,7 @@
 import sys
 import getopt
 from dip_c.classes import Haplotypes, homologous_hom_name, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data, string_to_leg
+from dip_c.data import resolve_data_file
 import math
 import numpy as np
 
@@ -222,7 +223,7 @@ def color(argv):
 
     # open color file
     if not color_file_name is None:
-        color_file = open(color_file_name, "r")
+        color_file = resolve_data_file(color_file_name)
     
     # prepare
     if color_mode is None:
