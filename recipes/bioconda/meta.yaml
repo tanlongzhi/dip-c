@@ -1,5 +1,5 @@
 {% set name = "dip-c" %}
-{% set version = "1.9.2" %}
+{% set version = "1.9.3" %}
 
 package:
   name: {{ name }}
