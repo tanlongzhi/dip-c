@@ -26,7 +26,7 @@ requirements:
     - numpy >=1.22
     - scipy >=1.7
     - rmsd >=1.5
-    - mmcif-pdbx >=2.0
+    - mmcif_pdbx >=2.0
 
 test:
   imports:
