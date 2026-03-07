@@ -86,6 +86,11 @@ def mgcolor(argv):
                 ref_locus = int(color_file_line_data[1])
                 color_data[(hom_name, ref_locus)] = list(map(float, color_file_line_data[2:]))
             
+            # check for empty file
+            if not color_data:
+                sys.stderr.write("[E::" + __name__ + "] color file " + a + " is empty — check that the upstream color command produced output for this file\n")
+                return 1
+
             # merge with existing file
             merge_color_data(merged_color_data, color_data, missing_value)
             sys.stderr.write("[M::" + __name__ + "] read already merged colors file " + a + " with " + str(len(color_data)) + " particles\n")
@@ -110,6 +115,16 @@ def mgcolor(argv):
                 else:
                     color_data[(hom_name, ref_locus)] = color
         
+            # check for empty file
+            if diploid_mode:
+                if not pat_color_data and not mat_color_data:
+                    sys.stderr.write("[E::" + __name__ + "] color file " + a + " is empty — check that the upstream color command produced output for this file\n")
+                    return 1
+            else:
+                if not color_data:
+                    sys.stderr.write("[E::" + __name__ + "] color file " + a + " is empty — check that the upstream color command produced output for this file\n")
+                    return 1
+
             # merge with existing file
             if diploid_mode:
                 merge_color_data(merged_color_data, pat_color_data, missing_value)
