@@ -8,17 +8,17 @@ import math
 
 def g3d_np_arrays_to_leg(hom_names, loci_np_array, index):
     hom_name = hom_names[index]
-    ref_locus = int(loci_np_array[index])
+    ref_locus = int(loci_np_array[index, 0])
     ref_name, haplotype = hom_name_to_ref_name_haplotype(hom_name)
     return Leg(ref_name, ref_locus, haplotype)
-    
+
 def g3d_np_arrays_to_matrix_index(hom_names, loci_np_array, index, hom_offsets, matrix_bin_size, merge_haplotypes):
     hom_name = hom_names[index]
     if merge_haplotypes:
         # merge both haplotypes into "paternal"
         ref_name, haplotype = hom_name_to_ref_name_haplotype(hom_name)
         hom_name = ref_name_haplotype_to_hom_name((ref_name, Haplotypes.paternal))
-    ref_locus = int(loci_np_array[index])
+    ref_locus = int(loci_np_array[index, 0])
     return hom_offsets[hom_name] + int(round(float(ref_locus) / matrix_bin_size))
     
 def g3d_data_to_con_data(g3d_data, max_distance):
