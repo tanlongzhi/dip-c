@@ -4,6 +4,12 @@ on:
     branches: [pypi-packaging, master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      full_genome:
+        description: "Run full genome tests"
+        type: boolean
+        default: false
 jobs:
   test:
     strategy:
@@ -22,4 +28,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install ".[dev]"
+      - run: pytest tests/ -v --tb=short
+        if: inputs.full_genome == true
       - run: pytest tests/ -k "not FullGenome" -v --tb=short
+        if: inputs.full_genome != true
