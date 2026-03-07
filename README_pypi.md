@@ -11,8 +11,8 @@ pip install run-dipc
 ### Troubleshooting: old Linux systems (CentOS/RHEL 7)
 
 If `pip install` fails with **`NumPy requires GCC >= 9.3`**, your system's
-default compiler is too old to build NumPy from source. This typically happens
-on CentOS/RHEL 7 (end-of-life June 2024), which ships GCC 4.8.
+default compiler is too old to build NumPy from source. This can happen on
+older Linux distributions that ship with GCC 4.8.
 
 **Option A** — load a newer compiler (HPC clusters usually have one):
 
