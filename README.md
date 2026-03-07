@@ -205,10 +205,22 @@ An example `.reg` file is:
 
 ## <a name="require"></a>Requirements
 ### <a name="basic_require"></a>Basic Requirements
-Dip-C was tested on Python 3 (macOS and CentOS), with the following basic requirements:
+Dip-C requires Python 3.9+ and was tested on macOS and Linux, with the following basic requirements:
 
-* NumPy (tested on v1.12.1)
-* SciPy (tested on v0.13.3)
+* NumPy (>=1.22)
+* SciPy (>=1.7)
+
+#### pip install
+
+```bash
+pip install run-dipc
+```
+
+> **Old Linux systems (CentOS/RHEL 7):** If you see `NumPy requires GCC >= 9.3`,
+> your system's default compiler (GCC 4.8) is too old to build NumPy from source.
+> Either load a newer compiler (`module load gcc`) or install NumPy from conda
+> first (`conda install numpy scipy`). Please contact your system administrator
+> if this is a problem for you.
 
 ### <a name="add_require"></a>Additional Requirements
 Some Dip-C commands have additional requirements:

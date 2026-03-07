@@ -8,6 +8,32 @@
 pip install run-dipc
 ```
 
+### Troubleshooting: old Linux systems (CentOS/RHEL 7)
+
+If `pip install` fails with **`NumPy requires GCC >= 9.3`**, your system's
+default compiler is too old to build NumPy from source. This typically happens
+on CentOS/RHEL 7 (end-of-life June 2024), which ships GCC 4.8.
+
+**Option A** — load a newer compiler (HPC clusters usually have one):
+
+```bash
+module avail gcc          # see what's available
+module load gcc/11.2.0    # load any version >= 9.3
+pip install run-dipc
+```
+
+**Option B** — install NumPy and SciPy from conda first (provides prebuilt
+binaries, no compiler needed):
+
+```bash
+conda install numpy scipy
+pip install run-dipc
+```
+
+You can check your GCC version with `gcc --version` and your OS with
+`cat /etc/os-release`. Please contact your system administrator if
+this is a problem for you.
+
 ## Usage
 
 ```bash

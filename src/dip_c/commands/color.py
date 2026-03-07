@@ -173,7 +173,12 @@ def color(argv):
         sys.stderr.write("  --bin-size=FLOAT  (with \"-R\") bin size of radial distances [" + str(radial_bin_r) + "]\n\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
-        sys.stderr.write("  (with \"-R\") tab-delimited: radial distance, average color, #particles\n")
+        sys.stderr.write("  (with \"-R\") tab-delimited: radial distance, average color, #particles\n\n")
+        from dip_c.data import list_bundled_data_files
+        bundled = list_bundled_data_files()
+        sys.stderr.write("Bundled data files (use filename directly, no path needed):\n")
+        for f in bundled:
+            sys.stderr.write("  " + f + "\n")
         return 1
         
     num_color_schemes = 0
