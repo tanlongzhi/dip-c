@@ -47,6 +47,9 @@ def align(argv):
     for input_structure in input_data[1:]:
         common_loci = common_loci.intersection(set(input_structure))
     num_loci = len(common_loci)
+    if num_loci == 0:
+        sys.stderr.write("[E::" + __name__ + "] no common particles found\n")
+        return 1
     common_loci = list(common_loci)
     common_data = []
     for input_structure in input_data:

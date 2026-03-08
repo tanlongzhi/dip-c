@@ -905,7 +905,9 @@ class ConData:
     def impute_from_g3d_data(self, g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file = None):
         for ref_name_tuple in self.con_lists.keys():
             self.con_lists[ref_name_tuple].impute_from_g3d_data(g3d_data, max_impute3_distance, max_impute3_ratio, min_impute3_separation, is_male, par_data, vio_file)
-            sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(self.con_lists[ref_name_tuple].num_cons()) + " contacts (" + str(round(100.0 * self.con_lists[ref_name_tuple].num_phased_cons() / self.con_lists[ref_name_tuple].num_cons(), 2)) + "% phased)\n")
+            num_cons = self.con_lists[ref_name_tuple].num_cons()
+            phased_pct = round(100.0 * self.con_lists[ref_name_tuple].num_phased_cons() / num_cons, 2) if num_cons > 0 else 0.0
+            sys.stderr.write("[M::" + __name__ + "] imputed haplotypes for chromosome pair (" + ref_name_tuple_to_string(ref_name_tuple) + "): " + str(num_cons) + " contacts (" + str(phased_pct) + "% phased)\n")
     def dedup_within_read(self, max_distance):
         for con_list in self.con_lists.values():
             con_list.dedup_within_read(max_distance)
@@ -951,8 +953,14 @@ class ConData:
 
 def file_to_con_data(con_file):
     con_data = ConData()
-    for con_file_line in con_file:
-        con_data.add_con(string_to_con(con_file_line.strip()))
+    for line_num, con_file_line in enumerate(con_file, 1):
+        stripped = con_file_line.strip()
+        if not stripped:
+            continue
+        try:
+            con_data.add_con(string_to_con(stripped))
+        except (ValueError, IndexError) as e:
+            sys.stderr.write("[E::" + __name__ + "] malformed contact at line " + str(line_num) + ": " + stripped + "\n")
     return con_data
 
 # augmented data for dedup: each leg records haplotypes of all duplicates
@@ -1423,6 +1431,12 @@ class G3dData:
 
 def file_to_g3d_data(g3d_file):
     g3d_data = G3dData()
-    for g3d_file_line in g3d_file:
-        g3d_data.add_g3d_particle(string_to_g3d_particle(g3d_file_line.strip()))
+    for line_num, g3d_file_line in enumerate(g3d_file, 1):
+        stripped = g3d_file_line.strip()
+        if not stripped:
+            continue
+        try:
+            g3d_data.add_g3d_particle(string_to_g3d_particle(stripped))
+        except (ValueError, IndexError) as e:
+            sys.stderr.write("[E::" + __name__ + "] malformed particle at line " + str(line_num) + ": " + stripped + "\n")
     return g3d_data

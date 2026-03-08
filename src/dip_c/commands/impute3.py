@@ -95,11 +95,17 @@ def impute3(argv):
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
+    if g3d_resolution is None:
+        sys.stderr.write("[E::" + __name__ + "] cannot determine resolution (need >=2 particles per homolog)\n")
+        return 1
     g3d_data.prepare_interpolate()
-                            
+
     # read CON file
     con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
+    if con_data.num_cons() == 0:
+        sys.stderr.write("[E::" + __name__ + "] input file has no contacts\n")
+        return 1
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
     # impute3
@@ -117,10 +123,14 @@ def impute3(argv):
     before_clean_num_cons = con_data.num_cons()
     con_data.clean_isolated_phased(copy.deepcopy(con_data), max_clean_distance, min_clean_count)
     after_clean_num_cons = con_data.num_cons()
-    sys.stderr.write("[M::" + __name__ + "] removed " + str(before_clean_num_cons - after_clean_num_cons) + " isolated contacts (" + str(round(100.0 * (before_clean_num_cons - after_clean_num_cons) / before_clean_num_cons, 2)) + "%)\n")
-    
+    clean_pct = round(100.0 * (before_clean_num_cons - after_clean_num_cons) / before_clean_num_cons, 2) if before_clean_num_cons > 0 else 0.0
+    sys.stderr.write("[M::" + __name__ + "] removed " + str(before_clean_num_cons - after_clean_num_cons) + " isolated contacts (" + str(clean_pct) + "%)\n")
+
     # write output
-    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    if con_data.num_cons() == 0:
+        sys.stderr.write("[M::" + __name__ + "] all contacts removed\n")
+    else:
+        sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     sys.stdout.write(con_data.to_string()+"\n")
     
     return 0

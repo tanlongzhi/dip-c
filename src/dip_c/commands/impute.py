@@ -87,6 +87,9 @@ def impute(argv):
     # read CON file
     con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
+    if con_data.num_cons() == 0:
+        sys.stderr.write("[E::" + __name__ + "] input file has no contacts\n")
+        return 1
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
     if is_male:
@@ -129,7 +132,8 @@ def impute(argv):
     pass_1_num_cons = some_phased_con_data.num_cons()
     some_phased_con_data.clean_isolated_phased(copy.deepcopy(some_phased_con_data), max_clean_distance, min_clean_count)
     pass_2_num_cons = some_phased_con_data.num_cons()
-    sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " isolated contacts (" + str(round(100.0 * (pass_1_num_cons - pass_2_num_cons) / pass_1_num_cons, 2)) + "%)\n")
+    pass_2_pct = round(100.0 * (pass_1_num_cons - pass_2_num_cons) / pass_1_num_cons, 2) if pass_1_num_cons > 0 else 0.0
+    sys.stderr.write("[M::" + __name__ + "] pass 2 done: removed " + str(pass_1_num_cons - pass_2_num_cons) + " isolated contacts (" + str(pass_2_pct) + "%)\n")
 
     # pass 3: impute B with A
     no_phased_inter_chr_con_data.impute_from_con_data(some_phased_con_data, max_impute_distance, min_impute_votes, min_impute_vote_fraction, max_intra_hom_separation, min_inter_hom_separation)
@@ -140,7 +144,10 @@ def impute(argv):
     
     # write output
     con_data = some_phased_con_data
-    sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
+    if con_data.num_cons() == 0:
+        sys.stderr.write("[M::" + __name__ + "] all contacts removed during imputation\n")
+    else:
+        sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     sys.stdout.write(con_data.to_string()+"\n")
 
     

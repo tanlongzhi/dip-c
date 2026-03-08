@@ -97,6 +97,9 @@ def con3(argv):
     # read 3DG file
     if not info_mode:
         g3d_data = file_to_g3d_data(open(args[0], "r"))
+        if g3d_data.num_g3d_particles() == 0:
+            sys.stderr.write("[E::" + __name__ + "] input file has no particles\n")
+            return 1
         g3d_data.sort_g3d_particles()
         g3d_resolution = g3d_data.resolution()
         sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")

@@ -45,7 +45,10 @@ def mkcon(argv):
     sys.stderr.write("[M::" + __name__ + "] leg 1: read " + str(leg_list_1.num_legs()) + " legs\n")
     leg_list_2 = phased_leg_list_from_file(open(args[1], "r"))
     sys.stderr.write("[M::" + __name__ + "] leg 2: read " + str(leg_list_2.num_legs()) + " legs\n")
-    
+    if leg_list_1.num_legs() == 0 or leg_list_2.num_legs() == 0:
+        sys.stderr.write("[E::" + __name__ + "] leg files must not be empty\n")
+        return 1
+
     # make CON
     con_data = ConData()
     for i in range(num_con):

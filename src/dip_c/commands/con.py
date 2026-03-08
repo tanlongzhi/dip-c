@@ -53,6 +53,9 @@ def con(argv):
     
     # sort and output
     sys.stderr.write("[M::" + __name__ + "] read " + str(num_reads) + " candidate reads; sorting " + str(con_data.num_cons()) + " putative contacts\n")
+    if con_data.num_cons() == 0:
+        sys.stderr.write("[E::" + __name__ + "] no contacts found in input\n")
+        return 1
     con_data.sort_cons()
     sys.stderr.write("[M::" + __name__ + "] writing output for " + str(con_data.num_cons()) + " putative contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     sys.stdout.write(con_data.to_string()+"\n")

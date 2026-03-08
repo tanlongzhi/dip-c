@@ -29,6 +29,9 @@ def info(argv):
         con_file = gzip.open(a, "rt") if a.endswith(".gz") else open(a, "r")
         con_data = file_to_con_data(con_file)
         con_file.close()
+        if con_data.num_cons() == 0:
+            sys.stderr.write("[E::" + __name__ + "] input file " + a + " has no contacts\n")
+            return 1
         sys.stdout.write(a + ": " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     
     return 0
