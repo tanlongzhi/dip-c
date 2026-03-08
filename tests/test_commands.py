@@ -1014,6 +1014,30 @@ class TestSegCommand:
         # 12 reads survive out of 26 unique read names
         assert "12 candidate reads" in err
 
+    def test_seg_custom_baseq(self, capsys):
+        """seg -Q lowers min base quality, phasing more segments."""
+        from dip_c.commands.seg import seg
+        # Default -Q 20 gives 14 phased segments
+        ret = seg(["seg", "-v", SEG_SNPS, SEG_BAM])
+        assert ret == 0
+        default_out = capsys.readouterr().out
+        default_phased = sum(
+            1 for line in default_out.strip().split("\n")
+            for seg_field in line.split("\t")[1:]
+            if seg_field.split(",")[-1] in ("0", "1")
+        )
+        assert default_phased == 14
+        # -Q 10 should phase at least one more (SRR7226708.10101251, bq=16)
+        ret = seg(["seg", "-Q", "10", "-v", SEG_SNPS, SEG_BAM])
+        assert ret == 0
+        lowq_out = capsys.readouterr().out
+        lowq_phased = sum(
+            1 for line in lowq_out.strip().split("\n")
+            for seg_field in line.split("\t")[1:]
+            if seg_field.split(",")[-1] in ("0", "1")
+        )
+        assert lowq_phased > default_phased
+
     def test_seg_to_con_pipeline(self, capsys):
         """Full seg → con pipeline produces expected contacts."""
         from dip_c.commands.seg import seg

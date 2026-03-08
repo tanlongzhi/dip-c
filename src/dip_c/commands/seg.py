@@ -47,7 +47,7 @@ def seg(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "q:m:v:")
+        opts, args = getopt.getopt(argv[1:], "q:m:v:Q:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -67,6 +67,8 @@ def seg(argv):
             max_nm_per_bp = float(a)
         elif o == "-v":
             snp_file_name = a
+        elif o == "-Q":
+            min_baseq = int(a)
             
     # initialize data structure
     seg_data = SegData()
