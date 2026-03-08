@@ -912,6 +912,10 @@ class TestDeterministicComputations:
 
 # ===== Seg command =====
 
+SEG_BAM = os.path.join(DATA_DIR, "test_seg.bam")
+SEG_SNPS = os.path.join(DATA_DIR, "test_snps.txt")
+
+
 class TestSegCommand:
     def test_seg_no_args_returns_usage(self, capsys):
         """seg with no arguments should print usage and return 1."""
@@ -920,6 +924,115 @@ class TestSegCommand:
         assert ret == 1
         err = capsys.readouterr().err
         assert "Usage:" in err
+
+    def test_seg_basic_extraction(self, capsys):
+        """seg extracts 12 reads with 44 segments from test BAM."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", SEG_BAM])
+        assert ret == 0
+        out = capsys.readouterr().out
+        lines = out.strip().split("\n")
+        assert len(lines) == 12
+        # Count total segments (tab-separated, first field is read name)
+        total_segs = sum(len(line.split("\t")) - 1 for line in lines)
+        assert total_segs == 44
+
+    def test_seg_unphased_output_matches(self, capsys):
+        """seg output matches expected unphased reference."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", SEG_BAM])
+        assert ret == 0
+        out = capsys.readouterr().out
+        with open(os.path.join(DATA_DIR, "test_seg.seg")) as f:
+            expected = f.read()
+        assert out == expected
+
+    def test_seg_phased_output(self, capsys):
+        """seg -v phases segments using SNP file."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", "-v", SEG_SNPS, SEG_BAM])
+        assert ret == 0
+        out = capsys.readouterr().out
+        lines = out.strip().split("\n")
+        assert len(lines) == 12
+        # Count phased segments (last field is 0 or 1, not .)
+        phased = 0
+        total = 0
+        for line in lines:
+            for seg_field in line.split("\t")[1:]:
+                total += 1
+                hap = seg_field.split(",")[-1]
+                if hap in ("0", "1"):
+                    phased += 1
+        assert phased == 14
+        assert total == 44
+
+    def test_seg_phased_output_matches(self, capsys):
+        """seg -v output matches expected phased reference."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", "-v", SEG_SNPS, SEG_BAM])
+        assert ret == 0
+        out = capsys.readouterr().out
+        with open(os.path.join(DATA_DIR, "test_seg_phased.seg")) as f:
+            expected = f.read()
+        assert out == expected
+
+    def test_seg_chimeric_reads_present(self, capsys):
+        """Chimeric reads with SA tags produce multi-segment output."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", SEG_BAM])
+        assert ret == 0
+        out = capsys.readouterr().out
+        # SRR7226708.9938350 has multi-SA — should have 5 segments
+        for line in out.strip().split("\n"):
+            if "9938350" in line:
+                segs = line.split("\t")[1:]
+                assert len(segs) == 5
+                break
+        else:
+            pytest.fail("Multi-SA read SRR7226708.9938350 not found in output")
+
+    def test_seg_filtered_reads_excluded(self, capsys):
+        """Low MAPQ and high NM reads are filtered out."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", SEG_BAM])
+        assert ret == 0
+        out = capsys.readouterr().out
+        # These reads should NOT appear in output
+        assert "2363794" not in out   # low MAPQ
+        assert "11247069" not in out  # low MAPQ
+        assert "30346024" not in out  # high NM
+        assert "20582799" not in out  # high NM
+
+    def test_seg_duplicate_skipped(self, capsys):
+        """Duplicate-flagged reads are skipped."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", SEG_BAM])
+        assert ret == 0
+        err = capsys.readouterr().err
+        # The duplicate read should not appear in candidate reads
+        # 12 reads survive out of 26 unique read names
+        assert "12 candidate reads" in err
+
+    def test_seg_to_con_pipeline(self, capsys):
+        """Full seg → con pipeline produces expected contacts."""
+        from dip_c.commands.seg import seg
+        from dip_c.commands.con import con
+        # Run seg with phasing
+        ret = seg(["seg", "-v", SEG_SNPS, SEG_BAM])
+        assert ret == 0
+        seg_out = capsys.readouterr().out
+        # Write seg output to temp file, then run con
+        seg_file = os.path.join(tempfile.mkdtemp(), "test.seg")
+        with open(seg_file, "w") as f:
+            f.write(seg_out)
+        ret = con(["con", seg_file])
+        assert ret == 0
+        con_out = capsys.readouterr().out
+        lines = con_out.strip().split("\n")
+        assert len(lines) == 18
+        # Check that phased contacts exist
+        assert ",0\t" in con_out or ",1\t" in con_out or ",0\n" in con_out or ",1\n" in con_out
 
 
 # ===================================================================

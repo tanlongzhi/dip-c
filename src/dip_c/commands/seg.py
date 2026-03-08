@@ -126,7 +126,7 @@ def seg(argv):
             if num_snps % display_num_snps == 0:
                 sys.stderr.write("[M::" + __name__ + "] pass 3: read " + str(num_snps) + " SNPs, last at " + snp_chr + ":" + str(snp_locus) + "\n")
             
-            for pileup_column in bam_file.pileup(snp_chr, snp_locus - 1, snp_locus):
+            for pileup_column in bam_file.pileup(snp_chr, snp_locus - 1, snp_locus, stepper='all', min_base_quality=0):
                 if pileup_column.pos == snp_locus - 1:
                     for pileup_read in pileup_column.pileups:
                         if not pileup_read.is_del and not pileup_read.is_refskip:
