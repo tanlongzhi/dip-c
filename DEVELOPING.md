@@ -5,9 +5,6 @@
 ```bash
 # Install in editable mode with dev dependencies
 pip install -e ".[dev]"
-
-# With pysam (optional, for seg command)
-pip install -e ".[dev,seg]"
 ```
 
 ## Running tests
@@ -32,11 +29,9 @@ pytest tests/test_commands.py::TestCon3Command::test_con3_generates_contacts
 | chr21+22 | default | ~500KB | ~1 min |
 | Full genome | `-k FullGenome` | ~19MB | ~15 min |
 
-Tests requiring pysam are skipped automatically if it's not installed.
-
 ## CI (GitHub Actions)
 
-**Automatic:** Every push to `pypi-packaging` or `master` runs the fast test suite (no FullGenome) across Python 3.9–3.12 on Ubuntu + 3.12 on macOS.
+**Automatic:** Every push to `pypi-packaging` or `master` runs the fast test suite (no FullGenome) across Python 3.9–3.13 on Ubuntu + 3.12 on macOS.
 
 **Manual full-genome run:**
 

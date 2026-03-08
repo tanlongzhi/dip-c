@@ -910,21 +910,16 @@ class TestDeterministicComputations:
         assert out1 == out2
 
 
-# ===== Seg command (requires pysam) =====
+# ===== Seg command =====
 
 class TestSegCommand:
-    def test_seg_without_pysam_returns_error(self, capsys):
-        """seg should gracefully error if pysam is not installed."""
-        try:
-            import pysam
-            pytest.skip("pysam is installed")
-        except ImportError:
-            pass
+    def test_seg_no_args_returns_usage(self, capsys):
+        """seg with no arguments should print usage and return 1."""
         from dip_c.commands.seg import seg
-        ret = seg(["seg", "dummy.bam"])
+        ret = seg(["seg"])
         assert ret == 1
         err = capsys.readouterr().err
-        assert "pysam" in err
+        assert "Usage:" in err
 
 
 # ===================================================================

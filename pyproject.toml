@@ -25,6 +25,7 @@ dependencies = [
     "scipy>=1.7",
     "rmsd>=1.5",
     "mmcif-pdbx>=2.0",
+    "pysam>=0.20",
 ]
 
 [project.urls]
@@ -32,8 +33,6 @@ Homepage = "https://github.com/tanlongzhi/dip-c"
 Repository = "https://github.com/tanlongzhi/dip-c"
 
 [project.optional-dependencies]
-seg = ["pysam>=0.20"]
-all = ["pysam>=0.20"]
 dev = ["pytest>=7.0", "pytest-cov"]
 
 [project.scripts]

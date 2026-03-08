@@ -2,11 +2,7 @@ import sys
 import getopt
 import gzip
 from dip_c.classes import Haplotypes, Seg, Read, SegData
-
-try:
-    import pysam
-except ImportError:
-    pysam = None
+import pysam
 
 # add the primary alignment as a segment to a read, if satisfying conditions
 def add_primary_seg(read, bam_read, min_mapq, max_nm_per_bp):
@@ -39,11 +35,6 @@ def add_sa_segs(read, bam_read, min_mapq, max_nm_per_bp):
         read.add_seg(Seg(bam_read.is_read2, query_start, query_end, ref_name, ref_start, bam_read.reference_end, True if strand == "-" else False))
 
 def seg(argv):
-    if pysam is None:
-        sys.stderr.write("[E::seg] pysam is required for the seg command.\n")
-        sys.stderr.write("Install with: pip install 'dip-c[seg]'\n")
-        return 1
-
     # default parameters
     min_mapq = 20
     max_nm_per_bp = 0.05

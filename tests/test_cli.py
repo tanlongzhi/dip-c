@@ -68,11 +68,6 @@ class TestCliDispatch:
     @pytest.mark.parametrize("cmd", ALL_COMMANDS)
     def test_dispatch_returns_usage_when_no_args(self, monkeypatch, capsys, cmd):
         """Every command should print usage and return 1 when called with no arguments."""
-        if cmd == "seg":
-            try:
-                import pysam  # noqa: F401
-            except ImportError:
-                pytest.skip("pysam not installed")
         monkeypatch.setattr(sys, "argv", ["dip-c", cmd])
         ret = main()
         assert ret == 1
