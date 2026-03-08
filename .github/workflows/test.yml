@@ -30,10 +30,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install ".[dev]"
+      # Python 3.13: run without coverage (pysam + coverage.py + 3.13 causes segfault)
+      - run: pytest tests/ -v --tb=short
+        if: inputs.full_genome == true && matrix.python-version == '3.13'
+      - run: pytest tests/ -k "not FullGenome" -v --tb=short
+        if: inputs.full_genome != true && matrix.python-version == '3.13'
+
+      # Python 3.9-3.12: run with coverage
       - run: pytest tests/ -v --tb=short --cov=dip_c --cov-report=xml:coverage.xml --cov-report=term
-        if: inputs.full_genome == true
+        if: inputs.full_genome == true && matrix.python-version != '3.13'
       - run: pytest tests/ -k "not FullGenome" -v --tb=short --cov=dip_c --cov-report=xml:coverage.xml --cov-report=term
-        if: inputs.full_genome != true
+        if: inputs.full_genome != true && matrix.python-version != '3.13'
 
       # Generate and commit coverage badge (ubuntu + python 3.12, master only)
       - name: Generate coverage badge
