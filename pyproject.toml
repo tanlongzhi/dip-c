@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "run-dipc"
 dynamic = ["version"]
 description = "Diploid chromatin conformation capture analysis"
-readme = "README_pypi.md"
+readme = "docs/README_pypi.md"
 license = {file = "LICENSE"}
 authors = [
     {name = "Longzhi Tan"},
