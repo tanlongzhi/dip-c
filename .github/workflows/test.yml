@@ -29,7 +29,20 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install ".[dev]"
-      - run: pytest tests/ -v --tb=short
+      - run: pytest tests/ -v --tb=short --cov=dip_c --cov-report=xml:coverage.xml --cov-report=term
         if: inputs.full_genome == true
-      - run: pytest tests/ -k "not FullGenome" -v --tb=short
+      - run: pytest tests/ -k "not FullGenome" -v --tb=short --cov=dip_c --cov-report=xml:coverage.xml --cov-report=term
         if: inputs.full_genome != true
+
+      # Generate and commit coverage badge (ubuntu + python 3.12, master only)
+      - name: Generate coverage badge
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && github.ref == 'refs/heads/master'
+        run: |
+          pip install "genbadge[coverage]"
+          genbadge coverage -i coverage.xml -o images/coverage-badge.svg
+      - name: Commit coverage badge
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && github.ref == 'refs/heads/master'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update coverage badge [skip ci]"
+          file_pattern: images/coverage-badge.svg

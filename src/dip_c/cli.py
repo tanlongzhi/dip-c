@@ -37,6 +37,7 @@ def main():
         sys.stderr.write("  pos      find 3D positions from a 3DG file\n")
         sys.stderr.write("  tad      find the TAD tree from a Rg matrix\n")
         sys.stderr.write("  exp      expand a 3DG file by translating each chromosome\n")
+        sys.stderr.write("  force    generate a 3DG file from a CON file using force-directed layout\n")
         sys.stderr.write("\n")
         sys.stderr.write("  data-path  print path to installed data directory\n")
         return 1

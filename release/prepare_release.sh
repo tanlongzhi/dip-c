@@ -151,9 +151,7 @@ if [ "$TAG_CREATED" = true ]; then
     echo "     git push origin main"
     echo "     git push origin $NEW_VERSION"
     echo ""
-    echo "  4. (Future) Build and upload packages:"
-    echo "     - BioConda: ./release/build_conda.sh"
-    echo "     - PyPI: ./release/build_pypi.sh"
+    echo "  4. Create a GitHub Release from the tag to trigger PyPI publishing."
 else
     echo "Next steps:"
     echo "  1. Review the test coverage report (see above)"
@@ -168,8 +166,6 @@ else
     echo "     git push origin main"
     echo "     git push origin $NEW_VERSION"
     echo ""
-    echo "  5. (Future) Build and upload packages:"
-    echo "     - BioConda: ./release/build_conda.sh"
-    echo "     - PyPI: ./release/build_pypi.sh"
+    echo "  5. Create a GitHub Release from the tag to trigger PyPI publishing."
 fi
 echo ""
