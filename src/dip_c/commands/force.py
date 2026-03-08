@@ -50,7 +50,7 @@ def update_graph(positions, velocities, forces, force_constant, friction):
     
     return
 
-def force(argv):
+def force(argv, _display_interval=None):
     # default parameters
     chr_len_file_name = None
     bin_size = 10000000
@@ -58,7 +58,7 @@ def force(argv):
     force_constant = 1e-2
     friction = 1e-1
     disp_num_steps = 100
-    disp_num_cons = 100000
+    disp_num_cons = _display_interval if _display_interval is not None else 100000
     output_prefix = "force."
     
     # read arguments

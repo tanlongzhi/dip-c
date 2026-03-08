@@ -34,16 +34,16 @@ def add_sa_segs(read, bam_read, min_mapq, max_nm_per_bp):
             continue
         read.add_seg(Seg(bam_read.is_read2, query_start, query_end, ref_name, ref_start, bam_read.reference_end, True if strand == "-" else False))
 
-def seg(argv):
+def seg(argv, _display_interval=None):
     # default parameters
     min_mapq = 20
     max_nm_per_bp = 0.05
     min_baseq = 20
     snp_file_name = None
-    
+
     # progress display parameters
-    display_num_bam_reads = 1e5
-    display_num_snps = 1e4
+    display_num_bam_reads = _display_interval if _display_interval is not None else 1e5
+    display_num_snps = _display_interval if _display_interval is not None else 1e4
     
     # read arguments
     try:

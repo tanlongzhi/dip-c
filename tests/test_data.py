@@ -59,3 +59,27 @@ class TestResolveDataFile:
     def test_error_message_lists_available_files(self):
         with pytest.raises(FileNotFoundError, match="Available bundled files"):
             resolve_data_file("no_such_file")
+
+    def test_resolve_plain_bundled_file(self, tmp_path, monkeypatch):
+        """Line 45: resolve_data_file returns plain file from COLOR_DIR."""
+        import dip_c.data as data_mod
+        # Create a temp dir with a plain (non-.gz) file
+        plain = tmp_path / "test_plain.txt"
+        plain.write_text("plain content\n")
+        monkeypatch.setattr(data_mod, "COLOR_DIR", str(tmp_path))
+        f = resolve_data_file("test_plain.txt")
+        assert f.read() == "plain content\n"
+        f.close()
+
+
+class TestListBundledNonGz:
+    def test_non_gz_file_listed(self, tmp_path, monkeypatch):
+        """Line 17: non-.gz files in COLOR_DIR are listed as-is."""
+        import dip_c.data as data_mod
+        # Create a temp dir with a non-.gz file
+        (tmp_path / "plain_file.txt").write_text("")
+        (tmp_path / "compressed.txt.gz").write_bytes(b"")
+        monkeypatch.setattr(data_mod, "COLOR_DIR", str(tmp_path))
+        files = list_bundled_data_files()
+        assert "plain_file.txt" in files
+        assert "compressed.txt" in files

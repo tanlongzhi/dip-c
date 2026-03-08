@@ -467,7 +467,7 @@ class TestVisCommand:
         try:
             from pdbx import DataCategory
             dc = DataCategory("test")
-            dc.appendAttribute("x")
+            dc.append_attribute("x")
             return True
         except AttributeError:
             return False
@@ -891,7 +891,7 @@ class TestDeterministicComputations:
     def test_vis_deterministic(self, capsys):
         try:
             from pdbx import DataCategory
-            DataCategory("test").appendAttribute("x")
+            DataCategory("test").append_attribute("x")
         except AttributeError:
             pytest.skip("pdbx API incompatible")
         from dip_c.commands.vis import vis

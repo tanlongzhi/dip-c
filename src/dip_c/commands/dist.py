@@ -37,23 +37,16 @@ def dist(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "d")
+        opts, args = getopt.getopt(argv[1:], "")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
     if len(args) == 0:
-        sys.stderr.write("Usage: dip-c dist [options] <in.3dg>\n")
-        sys.stderr.write("Options:\n")
-        sys.stderr.write("  -d            diploid mode\n")
+        sys.stderr.write("Usage: dip-c dist <in.3dg>\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog (chr if \"-d\"), separation (in bp), #pairs, mean distance, r.m.s. distance\n")
 
         return 1
-    for o, a in opts:
-        if o == "-o":
-            output_prefix = a
-        elif o == "-r":
-            reg_file_name = a
 
     # read 3DG file
     g3d_data = file_to_g3d_data(open(args[0], "r"))

@@ -23,7 +23,7 @@ def mkcon(argv):
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "d:c:D:C:t")
+        opts, args = getopt.getopt(argv[1:], "n:")
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1

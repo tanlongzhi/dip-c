@@ -338,9 +338,6 @@ class LegList:
         self.legs.sort()
     def add_leg(self, leg):
         self.legs.append(leg)
-    def add_con_data(self, con_data):
-        for con in con_data.get_cons():
-            self.add_con(con)
     def get_random_leg(self):
         return random.choice(self.legs)
             
@@ -1010,10 +1007,7 @@ class DupConData(ConData):
             for i in range(display_max_num_dups):
                 hist_num_dups[i] += list_hist_num_dups[i]
         return hist_num_dups
-        
-    def add_empty_con_list(self, ref_name_tuple):
-        self.con_lists[ref_name_tuple] = DupConList()
-        
+
 # print a histogram of counts to a string
 def counts_to_hist_num_with_zero(counts):
     hist_num = [0] * (max(counts) + 1)
@@ -1237,9 +1231,6 @@ class G3dList:
         return len(self.g3d_particles)
     def add_g3d_particle(self, g3d_particle):
         self.g3d_particles.append(g3d_particle)
-    def get_g3d_particles(self):
-        for g3d_particle in self.g3d_particles:
-            yield g3d_particle
     def get_g3d_particles_in_reg(self, reg):
         for g3d_particle in self.g3d_particles:
             if g3d_particle.in_reg(reg):
@@ -1363,10 +1354,6 @@ class G3dData:
     def sort_g3d_particles(self):
         for g3d_list in self.g3d_lists.values():
             g3d_list.sort_g3d_particles()
-    def get_g3d_particles(self):
-        for g3d_list in self.g3d_lists.values():
-            for g3d_particle in g3d_list.get_g3d_particles():
-                yield g3d_particle
     def get_g3d_particles_from_hom_name(self, hom_name):
         for g3d_particle in self.g3d_lists[hom_name].get_g3d_particles():
             yield g3d_particle

@@ -3,14 +3,14 @@ import getopt
 import gzip
 from dip_c.classes import Read, string_to_read, ConData
 
-def con(argv):
+def con(argv, _display_interval=None):
     # default parameters
     min_separation = 1000
     max_distance = 1000
     adjacent_only = False
-    
+
     # progress display parameters
-    display_num_reads = 1e4
+    display_num_reads = _display_interval if _display_interval is not None else 1e4
     
     # read arguments
     try:

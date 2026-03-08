@@ -6,13 +6,13 @@ from dip_c.classes import ConData, file_to_con_data, LegData, counts_to_hist_num
 import numpy as np
 
 def add_ref_locus_to_hist(around_hist, rel_locus, max_distance, grid_size):
-    leg_1_bin = (rel_locus[0] + max_distance) / grid_size
-    leg_2_bin = (rel_locus[1] + max_distance) / grid_size
-    grid_num = 2 * max_distance / grid_size
+    leg_1_bin = int((rel_locus[0] + max_distance) / grid_size)
+    leg_2_bin = int((rel_locus[1] + max_distance) / grid_size)
+    grid_num = int(2 * max_distance / grid_size)
     if leg_1_bin < grid_num and leg_1_bin >= 0 and leg_2_bin < grid_num and leg_2_bin >= 0:
         around_hist[leg_1_bin][leg_2_bin] += 1
 
-def ard(argv):
+def ard(argv, _display_interval=None):
     # default parameters
     reference_file_name = None
     min_separation = None
@@ -26,7 +26,7 @@ def ard(argv):
     leg_file_2_name = None
 
     # progress display parameters
-    display_num_ref_cons = 1000
+    display_num_ref_cons = _display_interval if _display_interval is not None else 1000
 
     # read arguments
     try:
@@ -103,7 +103,7 @@ def ard(argv):
 
         # initialize 2D histogram
         if not grid_size is None:
-            grid_num = 2 * max_distance / grid_size
+            grid_num = int(2 * max_distance / grid_size)
             around_hist = np.zeros((grid_num, grid_num), dtype = int)
 
         # find relation positions

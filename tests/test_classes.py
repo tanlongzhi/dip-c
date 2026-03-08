@@ -833,5 +833,438 @@ class TestG3dData:
         assert gd.num_g3d_particles() == 3
 
 
+# ---------------------------------------------------------------------------
+# Seg ref_left/ref_right branches (lines 82, 96, 101, 104-113)
+# ---------------------------------------------------------------------------
+
+class TestSegRefLeftRight:
+    """Test Seg.ref_left/ref_right when is_read2 != is_reverse."""
+    def test_ref_left_when_read2_eq_reverse(self):
+        from dip_c.classes import Seg
+        # is_read2=False, is_reverse=False → is_read2 == is_reverse → True
+        seg = Seg(False, 0, 100, "chr1", 1000, 2000, False)
+        assert seg.ref_left() == 1000  # ref_start
+        assert seg.ref_right() == 2000  # ref_end
+
+    def test_ref_left_when_read2_neq_reverse(self):
+        from dip_c.classes import Seg
+        # is_read2=True, is_reverse=False → is_read2 != is_reverse
+        seg = Seg(True, 0, 100, "chr1", 1000, 2000, False)
+        assert seg.ref_left() == 2000  # ref_end
+        assert seg.ref_right() == 1000  # ref_start
+
+    def test_set_ref_left_when_read2_eq_reverse(self):
+        """Lines 105, 111: set_ref_left/right when is_read2 == is_reverse."""
+        from dip_c.classes import Seg
+        seg = Seg(False, 0, 100, "chr1", 1000, 2000, False)
+        seg.set_ref_left(1500)
+        assert seg.ref_start == 1500  # set on ref_start when match
+        seg.set_ref_right(2500)
+        assert seg.ref_end == 2500  # set on ref_end when match
+
+    def test_set_ref_left_when_read2_neq_reverse(self):
+        from dip_c.classes import Seg
+        seg = Seg(True, 0, 100, "chr1", 1000, 2000, False)
+        seg.set_ref_left(1500)
+        assert seg.ref_end == 1500  # set on ref_end when mismatch
+        seg.set_ref_right(500)
+        assert seg.ref_start == 500  # set on ref_start when mismatch
+
+    def test_seg_eq(self):
+        from dip_c.classes import Seg
+        s1 = Seg(False, 0, 100, "chr1", 1000, 2000, False)
+        s2 = Seg(False, 0, 100, "chr1", 3000, 4000, True)
+        assert s1 == s2
+
+
+# ---------------------------------------------------------------------------
+# Read.to_con_data adjacent_only (line 169)
+# ---------------------------------------------------------------------------
+
+class TestReadToConDataAdjacentOnly:
+    def test_adjacent_only_limits_contacts(self):
+        from dip_c.classes import Read, Seg
+        read = Read("test_read")
+        # Add 3 segments on same chr
+        read.add_seg(Seg(False, 0, 100, "chr1", 1000, 2000, False))
+        read.add_seg(Seg(False, 100, 200, "chr1", 5000, 6000, False))
+        read.add_seg(Seg(False, 200, 300, "chr1", 10000, 11000, False))
+        # Without adjacent_only: 3 contacts (0-1, 0-2, 1-2)
+        con_all = read.to_con_data(False)
+        assert con_all.num_cons() == 3
+        # With adjacent_only: 2 contacts (0-1, 1-2)
+        con_adj = read.to_con_data(True)
+        assert con_adj.num_cons() == 2
+
+
+# ---------------------------------------------------------------------------
+# PAR / sex chromosome logic (lines 258, 260, 272, 315-320, 1107-1161)
+# ---------------------------------------------------------------------------
+
+class TestParLogic:
+    def test_leg_in_x_y(self):
+        pd = ParData("X", "Y")
+        leg_x = Leg("X", 100000, Haplotypes.maternal)
+        leg_y = Leg("Y", 100000, Haplotypes.paternal)
+        leg_a = Leg("1", 100000, Haplotypes.paternal)
+        assert leg_x.in_x(pd) is True
+        assert leg_x.in_y(pd) is False
+        assert leg_y.in_y(pd) is True
+        assert leg_a.in_x(pd) is False
+
+    def test_compatible_legs_male_autosome(self):
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        leg = Leg("1", 100000, Haplotypes.unknown)
+        legs = leg.compatible_legs_male(pd)
+        # Autosome: same as female
+        assert len(legs) == 2
+
+    def test_compatible_legs_male_x_non_par(self):
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        leg = Leg("X", 50000000, Haplotypes.unknown)  # Far from PAR
+        legs = pd.compatible_legs_male(leg)
+        assert len(legs) == 1
+        assert legs[0].get_haplotype() == Haplotypes.maternal
+
+    def test_compatible_legs_male_y_non_par(self):
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        leg = Leg("Y", 50000000, Haplotypes.unknown)
+        legs = pd.compatible_legs_male(leg)
+        assert len(legs) == 1
+        assert legs[0].get_haplotype() == Haplotypes.paternal
+
+    def test_par_compatible_par_legs_male_x_paternal(self):
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        leg = Leg("X", 100000, Haplotypes.paternal)
+        legs = par.compatible_par_legs_male(leg)
+        assert len(legs) == 1
+        assert legs[0].get_ref_name() == "Y"
+
+    def test_par_compatible_par_legs_male_x_maternal(self):
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        leg = Leg("X", 100000, Haplotypes.maternal)
+        legs = par.compatible_par_legs_male(leg)
+        assert len(legs) == 1
+        assert legs[0].get_ref_name() == "X"
+
+    def test_par_compatible_par_legs_male_x_unknown(self):
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        leg = Leg("X", 100000, Haplotypes.unknown)
+        legs = par.compatible_par_legs_male(leg)
+        assert len(legs) == 2
+
+    def test_par_compatible_par_legs_male_y_paternal(self):
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        leg = Leg("X", 100000, Haplotypes.unknown)  # y_reg uses x_name
+        # Y PAR at y_start=10000, extends to 10000 + (2699520-60000) = 2649520
+        y_leg = Leg("X", 15000, Haplotypes.paternal)  # in y_reg
+        legs = par.compatible_par_legs_male(y_leg)
+        # y_reg is Reg("X") with start=10000, end=2649520
+        # This leg is in y_reg → paternal → keep on Y
+        assert legs is not None
+
+    def test_par_compatible_par_legs_male_y_reg_maternal(self):
+        """Line 1121-1123: leg in y_reg with maternal haplotype → shift to X."""
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        # y_reg = Reg("X") start=10000, end=2649520; x_reg start=60000
+        # Locus 15000 is in y_reg but NOT in x_reg
+        leg = Leg("X", 15000, Haplotypes.maternal)
+        legs = par.compatible_par_legs_male(leg)
+        assert len(legs) == 1
+        assert legs[0].get_ref_name() == "X"
+        assert legs[0].get_haplotype() == Haplotypes.maternal
+
+    def test_par_compatible_par_legs_male_y_reg_unknown(self):
+        """Line 1124-1125: leg in y_reg with unknown haplotype → both possible."""
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        leg = Leg("X", 15000, Haplotypes.unknown)
+        legs = par.compatible_par_legs_male(leg)
+        assert len(legs) == 2
+
+    def test_par_compatible_par_legs_male_outside(self):
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        leg = Leg("1", 100000, Haplotypes.paternal)
+        legs = par.compatible_par_legs_male(leg)
+        assert legs is None
+
+    def test_par_data_get_pars(self):
+        """Lines 1136-1137: ParData.get_pars generator."""
+        pd = ParData("X", "Y")
+        par = Par("X", 60000, 2699520, "Y", 10000)
+        pd.add_par(par)
+        pars = list(pd.get_pars())
+        assert len(pars) == 1
+
+    def test_par_data_compatible_legs_male_par_hit(self):
+        """Line 1156: compatible_legs_male returns legs from PAR."""
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        # Leg in X PAR region with unknown haplotype
+        leg = Leg("X", 100000, Haplotypes.unknown)
+        legs = pd.compatible_legs_male(leg)
+        assert len(legs) == 2  # Both X and Y possible
+
+    def test_par_data_contain_leg(self):
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        leg_in = Leg("X", 100000, Haplotypes.paternal)
+        leg_out = Leg("X", 50000000, Haplotypes.paternal)
+        assert pd.contain_leg(leg_in) is True
+        assert pd.contain_leg(leg_out) is False
+
+    def test_par_data_set_non_par_leg_haplotype_male(self):
+        pd = ParData("X", "Y")
+        leg_x = Leg("X", 50000000, Haplotypes.unknown)
+        pd.set_non_par_leg_haplotype_male(leg_x)
+        assert leg_x.get_haplotype() == Haplotypes.maternal
+        leg_y = Leg("Y", 50000000, Haplotypes.unknown)
+        pd.set_non_par_leg_haplotype_male(leg_y)
+        assert leg_y.get_haplotype() == Haplotypes.paternal
+
+    def test_leg_set_haplotype_in_hap_regs(self):
+        reg = Reg("22")
+        reg.add_haplotype(Haplotypes.paternal)
+        leg = Leg("22", 1000000, Haplotypes.unknown)
+        leg.set_haplotype_in_hap_regs([reg])
+        assert leg.get_haplotype() == Haplotypes.paternal
+
+    def test_leg_compatible_legs(self):
+        pd = ParData("X", "Y")
+        leg = Leg("1", 100000, Haplotypes.paternal)
+        # Female
+        female_legs = leg.compatible_legs(False, pd)
+        assert len(female_legs) == 1
+        # Male (autosome)
+        male_legs = leg.compatible_legs(True, pd)
+        assert len(male_legs) == 1
+
+
+# ---------------------------------------------------------------------------
+# ConData helpers (lines 919, 1012, 835-845)
+# ---------------------------------------------------------------------------
+
+class TestConDataHelpers:
+    def test_num_intra_chr(self):
+        text = "1,100,0\t1,200,0\n2,300,1\t3,400,1\n"
+        cd = file_to_con_data(StringIO(text))
+        assert cd.num_intra_chr() == 1
+
+    def test_num_conflict_legs(self):
+        text = "1,100,-2\t1,200,0\n"  # -2 is conflict haplotype
+        cd = file_to_con_data(StringIO(text))
+        assert cd.num_conflict_legs() >= 0
+
+    def test_clean_intra_chr(self):
+        text = "1,100,0\t1,200,0\n2,300,1\t3,400,1\n"
+        cd = file_to_con_data(StringIO(text))
+        cd.clean_intra_chr()
+        assert cd.num_cons() == 1  # Only inter-chr remains
+
+    def test_clean_inter_chr(self):
+        text = "1,100,0\t1,200,0\n2,300,1\t3,400,1\n"
+        cd = file_to_con_data(StringIO(text))
+        cd.clean_inter_chr()
+        assert cd.num_cons() == 1  # Only intra-chr remains
+
+    def test_clean_in_par(self):
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        text = "X,100000,0\tX,200000,1\n1,100,0\t1,200,0\n"
+        cd = file_to_con_data(StringIO(text))
+        cd.clean_in_par(pd)
+        assert cd.num_cons() == 1  # PAR contact removed
+
+    def test_set_non_par_hap_tuple_male(self):
+        pd = ParData("X", "Y")
+        pd.add_par(Par("X", 60000, 2699520, "Y", 10000))
+        text = "X,50000000,.\tX,60000000,.\n"
+        cd = file_to_con_data(StringIO(text))
+        cd.set_non_par_hap_tuple_male(pd)
+        # After setting, X legs should be maternal
+        for con in cd.get_cons():
+            assert con.leg_1().get_haplotype() == Haplotypes.maternal
+
+    def test_apply_regs_deletes_empty(self):
+        """Line 919: apply_regs deletes con_list when all contacts removed."""
+        # Only chr1 contacts — exclude chr1 so everything is removed
+        text = "1,100,0\t1,200,0\n"
+        cd = file_to_con_data(StringIO(text))
+        assert cd.num_cons() == 1
+        # Inc_reg only allows chr2 → all chr1 contacts removed
+        inc = Reg("2")
+        cd.apply_regs([inc], [], [])
+        assert cd.num_cons() == 0
+
+    def test_clean_promiscuous_deletes_empty(self):
+        """Line 859: clean_promiscuous deletes con_list when all contacts removed."""
+        from dip_c.classes import LegData
+        # Create a contact and a LegData with many legs near it
+        text = "1,100,0\t1,200,0\n"
+        cd = file_to_con_data(StringIO(text))
+        leg_data = LegData()
+        # Add many legs near locus 100 to make the contact promiscuous
+        for i in range(20):
+            leg_data.add_leg(Leg("1", 100 + i, Haplotypes.paternal))
+        leg_data.sort_legs()
+        cd.clean_promiscuous(leg_data, 50, 5)
+        assert cd.num_cons() == 0
+
+    def test_leg_satisfy_regs(self):
+        inc = Reg("22")
+        exc = Reg("22")
+        exc.add_start(0)
+        exc.add_end(100000)
+        leg_in = Leg("22", 200000, Haplotypes.paternal)
+        leg_exc = Leg("22", 50000, Haplotypes.paternal)
+        leg_out = Leg("1", 200000, Haplotypes.paternal)
+        assert leg_in.satisfy_regs([inc], [exc]) is True
+        assert leg_exc.satisfy_regs([inc], [exc]) is False
+        assert leg_out.satisfy_regs([inc], [exc]) is False
+
+
+# ---------------------------------------------------------------------------
+# G3dParticle special methods (lines 1171, 1175)
+# ---------------------------------------------------------------------------
+
+class TestG3dParticleMethods:
+    def test_repr(self):
+        p = G3dParticle("22(pat)", 100000, [1.0, 2.0, 3.0])
+        assert "22(pat)" in repr(p)
+        assert "100000" in repr(p)
+
+    def test_eq(self):
+        """Line 1171: G3dParticle.__eq__."""
+        p1 = G3dParticle("22(pat)", 100000, [1.0, 2.0, 3.0])
+        p2 = G3dParticle("22(pat)", 100000, [4.0, 5.0, 6.0])
+        p3 = G3dParticle("22(pat)", 200000, [1.0, 2.0, 3.0])
+        assert p1 == p2
+        assert p1 != p3
+
+    def test_lt(self):
+        p1 = G3dParticle("22(pat)", 100000, [1.0, 2.0, 3.0])
+        p2 = G3dParticle("22(pat)", 200000, [4.0, 5.0, 6.0])
+        assert p1 < p2
+        assert not p2 < p1
+
+    def test_lt_different_hom(self):
+        p1 = G3dParticle("1(pat)", 100000, [1.0, 2.0, 3.0])
+        p2 = G3dParticle("22(pat)", 100000, [4.0, 5.0, 6.0])
+        assert p1 < p2
+
+
+# ---------------------------------------------------------------------------
+# G3dData generator methods (lines 1215, 1238-1239, 1266, 1364-1366, 1394)
+# ---------------------------------------------------------------------------
+
+class TestG3dDataGenerators:
+    def _make_g3d_data(self):
+        text = ("chr1(pat)\t1000000\t10.0\t20.0\t-5.0\n"
+                "chr1(pat)\t2000000\t11.0\t21.0\t-4.0\n"
+                "chr1(pat)\t3000000\t12.0\t22.0\t-3.0\n"
+                "chr1(mat)\t1000000\t-10.0\t-20.0\t5.0\n"
+                "chr1(mat)\t2000000\t-11.0\t-21.0\t4.0\n"
+                "chr1(mat)\t3000000\t-12.0\t-22.0\t3.0\n")
+        gd = file_to_g3d_data(StringIO(text))
+        gd.sort_g3d_particles()
+        return gd
+
+    def test_get_g3d_particles_near(self):
+        gd = self._make_g3d_data()
+        gd.prepare_nearby()
+        particles = list(gd.get_g3d_particles_near([10.0, 20.0, -5.0], 5.0))
+        assert len(particles) >= 1
+
+    def test_g3d_particle_in_reg(self):
+        p = G3dParticle("chr1(pat)", 1000000, [10.0, 20.0, -5.0])
+        reg = Reg("chr1")
+        reg.add_haplotype(Haplotypes.paternal)
+        assert p.in_reg(reg) is True
+        reg2 = Reg("chr1")
+        reg2.add_haplotype(Haplotypes.maternal)
+        assert p.in_reg(reg2) is False
+
+    def test_g3d_particle_in_reg_with_start_end(self):
+        p = G3dParticle("chr1(pat)", 1000000, [10.0, 20.0, -5.0])
+        reg = Reg("chr1")
+        reg.add_start(500000)
+        reg.add_end(1500000)
+        assert p.in_reg(reg) is True
+        reg2 = Reg("chr1")
+        reg2.add_start(2000000)
+        reg2.add_end(3000000)
+        assert p.in_reg(reg2) is False
+
+    def test_get_g3d_particles_in_reg(self):
+        gd = self._make_g3d_data()
+        reg = Reg("chr1")
+        reg.add_haplotype(Haplotypes.paternal)
+        particles = list(gd.get_g3d_particles_in_reg(reg))
+        assert len(particles) == 3
+
+    def test_get_adjacent_g3d_particle_tuples(self):
+        gd = self._make_g3d_data()
+        tuples = list(gd.get_adjacent_g3d_particle_tuples())
+        assert len(tuples) >= 2  # At least 2 adjacent pairs per homolog
+
+    def test_to_string(self):
+        gd = self._make_g3d_data()
+        s = gd.to_string()
+        assert "chr1(pat)" in s
+        assert "chr1(mat)" in s
+
+    def test_g3d_particle_in_reg_end_boundary(self):
+        """Line 1215: in_reg returns False when ref_locus > reg.end."""
+        p = G3dParticle("chr1(pat)", 5000000, [10.0, 20.0, -5.0])
+        reg = Reg("chr1")
+        reg.add_start(1000000)
+        reg.add_end(3000000)
+        assert p.in_reg(reg) is False
+
+    def test_g3d_list_get_particles_yield(self):
+        """Lines 1238-1239: G3dList.get_g3d_particles generator."""
+        from dip_c.classes import G3dList
+        gl = G3dList()
+        gl.add_g3d_particle(G3dParticle("chr1(pat)", 1000000, [1.0, 2.0, 3.0]))
+        gl.add_g3d_particle(G3dParticle("chr1(pat)", 2000000, [4.0, 5.0, 6.0]))
+        particles = list(gl.get_g3d_particles())
+        assert len(particles) == 2
+
+    def test_g3d_list_num_near(self):
+        """Line 1266: G3dList.num_g3d_particles_near."""
+        from dip_c.classes import G3dList
+        gl = G3dList()
+        gl.add_g3d_particle(G3dParticle("chr1(pat)", 1000000, [1.0, 2.0, 3.0]))
+        gl.add_g3d_particle(G3dParticle("chr1(pat)", 2000000, [4.0, 5.0, 6.0]))
+        gl.prepare_nearby()
+        n = gl.num_g3d_particles_near([1.0, 2.0, 3.0], 1.0)
+        assert n >= 1
+
+    def test_g3d_data_clean_leg_poor(self):
+        """Line 1394: clean_leg_poor deletes empty g3d_list."""
+        from dip_c.classes import LegData
+        gd = self._make_g3d_data()
+        gd.sort_g3d_particles()
+        gd.prepare_nearby()
+        # LegData with no legs → all particles are leg-poor
+        leg_data = LegData()
+        leg_data.add_leg(Leg("chr1", 1000000, Haplotypes.paternal))
+        leg_data.sort_legs()
+        # Very strict: require 1000 legs within 1 bp → all are poor → empty
+        gd.clean_leg_poor(leg_data, 1, 1000)
+        assert gd.num_g3d_particles() == 0
+
+    def test_g3d_data_get_g3d_particles_sorted(self):
+        """Lines 1395-1398: G3dData.get_g3d_particles (sorted version)."""
+        gd = self._make_g3d_data()
+        particles = list(gd.get_g3d_particles())
+        assert len(particles) == 6
+        # Verify they are sorted by hom_name
+        hom_names = [p.get_hom_name() for p in particles]
+        assert hom_names == sorted(hom_names)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

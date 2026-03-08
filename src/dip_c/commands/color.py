@@ -234,9 +234,7 @@ def color(argv):
         color_file = resolve_data_file(color_file_name)
     
     # prepare
-    if color_mode is None:
-        pass
-    elif color_mode == "c":
+    if color_mode == "c":
         ref_name_ref_locus_colors = {}
         for color_file_line in color_file:
             ref_name, ref_locus, color = color_file_line.strip().split("\t")

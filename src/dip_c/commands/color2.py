@@ -42,9 +42,7 @@ def color2(argv):
         
     num_color_schemes = 0
     for o, a in opts:
-        if o == "-o":
-            output_prefix = a
-        elif o == "-b":
+        if o == "-b":
             bin_size = int(a)
         elif o == "-H":
             merge_haplotypes = True
