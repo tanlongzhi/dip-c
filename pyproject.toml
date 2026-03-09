@@ -34,7 +34,7 @@ Repository = "https://github.com/tanlongzhi/dip-c"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "pytest-cov"]
-docs = ["mkdocs-material"]
+docs = ["mkdocs-material", "mkdocs>=1.5,<2"]
 
 [project.scripts]
 dip-c = "dip_c.cli:main"
