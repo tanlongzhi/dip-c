@@ -1,0 +1,30 @@
+site_name: Dip-C
+site_description: Diploid Chromatin Conformation Capture — 3D genome reconstruction from single cells
+repo_url: https://github.com/tanlongzhi/dip-c
+repo_name: tanlongzhi/dip-c
+
+theme:
+  name: material
+  palette:
+    scheme: default
+    primary: indigo
+  features:
+    - content.code.copy
+    - navigation.sections
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - File Formats: file-formats.md
+  - Workflow: workflow.md
+  - Visualization: visualization.md
+  - Citations: citations.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - toc:
+      permalink: true
