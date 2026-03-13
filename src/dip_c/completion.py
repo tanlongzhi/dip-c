@@ -6,7 +6,7 @@ SUBCOMMANDS = [
     "seg", "con", "dedup", "reg", "bincon", "clean", "impute", "impute3",
     "clean3", "reg3", "mkcon", "color", "color2", "mgcolor", "vis", "info",
     "ard", "cv", "align", "dist", "pd", "rg", "con3", "pos", "tad", "exp",
-    "force", "data-path",
+    "force", "pairs2con", "data-path",
 ]
 
 # Flags that accept a bundled data file as their argument
