@@ -205,44 +205,70 @@ An example `.reg` file is:
 
 ## <a name="require"></a>Requirements
 ### <a name="basic_require"></a>Basic Requirements
-Dip-C requires Python 3.9+ and was tested on macOS and Linux, with the following basic requirements:
+Dip-C requires Python 3.9+ and was tested on macOS and Linux.
 
-* NumPy (>=1.22)
-* SciPy (>=1.7)
+| Method | When to use | Install time |
+|--------|-------------|--------------|
+| conda + pip (recommended) | Works everywhere; best for HPC clusters and older Linux | ~1 minute |
+| pip only | Modern systems: macOS, Ubuntu 20.04+, RHEL 8+ | ~15 seconds |
+| pip only (source build) | Older Linux (e.g. CentOS/RHEL 7, Stanford Sherlock); not recommended — use conda + pip instead | 15–30 minutes |
 
-#### pip install
+#### Recommended installation (conda + pip)
+
+The easiest way to ensure that the installation will work on your system, regardless of the age of its software, is to create a conda environment and pre-install the compiled dependencies, then install Dip-C with pip:
+
+```bash
+conda create -n dipc python=3.11
+conda activate dipc
+conda install -c conda-forge -c bioconda numpy scipy pysam
+pip install run-dipc
+```
+
+> **Note:** If you see `Run 'conda init' before 'conda activate'` (common on
+> HPC clusters), run this first:
+>
+> ```bash
+> source $(conda info --base)/etc/profile.d/conda.sh
+> ```
+
+Verify the installation:
+
+```bash
+dip-c --help
+```
+
+#### Alternative: pip-only install
+
+On modern systems (macOS, Ubuntu 20.04+, RHEL 8+), pip can install everything directly. This is worth trying, but if it fails for any reason we suggest using the above conda + pip installation method:
 
 ```bash
 pip install run-dipc
 ```
 
-> **Old Linux systems (CentOS/RHEL 7):** If you see `NumPy requires GCC >= 9.3`,
-> your system's default compiler (GCC 4.8) is too old to build NumPy from source.
-> Either load a newer compiler (`module load gcc`) or install NumPy from conda
-> first (`conda install numpy scipy`). Please contact your system administrator
-> if this is a problem for you.
+> **Why does pip fail on older Linux? (optional reading):** If pip failed, use the conda + pip
+> method above. Older systems like CentOS/RHEL 7 have an old C library
+> (glibc < 2.28), so prebuilt packages for NumPy, SciPy, and pysam are not
+> available. Pip falls back to compiling them from source, which takes
+> **15–30 minutes** and requires a C++17-capable compiler. If that build also
+> fails with `C++ Compiler does not support -std=c++17`, the system's C++
+> compiler is too old. You can install a newer one with:
+>
+> ```bash
+> conda install -c conda-forge gcc_linux-64 gxx_linux-64
+> ```
+>
+> But the simplest path is to skip all of this and use the recommended
+> conda + pip installation above.
 
 ### <a name="add_require"></a>Additional Requirements
-Some Dip-C commands have additional requirements:
+Some workflows require external tools that are **not** included in the pip package:
 
 * Read pre-processing for META (not required for Nextera or other whole-genome amplification methods): pre-meta from [pre-pe](https://github.com/lh3/pre-pe), which requires [seqtk](https://github.com/lh3/seqtk) for paired-end reads
-* Read alignment: [BWA](https://github.com/lh3/bwa) (tested on v0.7.15), [SAMtools](http://www.htslib.org/download/) (tested on v1.3)
-* Contact pre-processing & 3D reconstruction: [hickit](https://github.com/lh3/hickit) (tested on v0.1.1)
-* `vis` and other mmCIF scripts: [PDBx Python Parser](http://mmcif.wwpdb.org/docs/sw-examples/python/html/index.html)
+* Read alignment: [BWA](https://github.com/lh3/bwa), [SAMtools](http://www.htslib.org/download/)
+* Contact pre-processing & 3D reconstruction: [hickit](https://github.com/lh3/hickit)
 * mmCIF viewing: [PyMol](https://pymol.org/2/)
-* `align`: [rmsd](https://pypi.org/project/rmsd/)
 
-To install `rmsd` and the PDBx parser locally under this repo (no global Python changes), run:
-```
-make deps
-```
-This installs into `vendor/`, and `dip-c` will automatically use those local copies when run from this repo.
-
-If you need to reset the local dependencies:
-```
-make clean-deps
-make
-```
+Dip-C does not call these tools directly. BWA, SAMtools, hickit, and pre-meta are used in upstream steps (see [Typical Workflow](#workflow)) to generate the input files (`.seg`, `.con`, `.3dg`) that Dip-C operates on. PyMol is used downstream to view the `.cif` files that Dip-C produces.
 
 ## <a name="workflow"></a>Typical Workflow
 In our latest work, both the main Dip-C algorithm and 3D modeling are now carried out with [hickit](https://github.com/lh3/hickit), a much faster and more careful implementation. Below is a typical workflow of such combined use of [hickit](https://github.com/lh3/hickit) and this repo (with mm10 as an example genome):

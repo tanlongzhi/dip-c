@@ -4,35 +4,58 @@
 
 ## Installation
 
+| Method | When to use | Install time |
+|--------|-------------|--------------|
+| conda + pip (recommended) | Works everywhere; best for HPC clusters and older Linux | ~1 minute |
+| pip only | Modern systems: macOS, Ubuntu 20.04+, RHEL 8+ | ~15 seconds |
+| pip only (source build) | Older Linux (e.g. CentOS/RHEL 7, Stanford Sherlock); not recommended — use conda + pip instead | 15–30 minutes |
+
+### Recommended installation (conda + pip)
+
+The easiest way to ensure that the installation will work on your system, regardless of the age of its software, is to create a conda environment and pre-install the compiled dependencies, then install Dip-C with pip:
+
+```bash
+conda create -n dipc python=3.11
+conda activate dipc
+conda install -c conda-forge -c bioconda numpy scipy pysam
+pip install run-dipc
+```
+
+> **Note:** If you see `Run 'conda init' before 'conda activate'` (common on
+> HPC clusters), run this first:
+>
+> ```bash
+> source $(conda info --base)/etc/profile.d/conda.sh
+> ```
+
+Verify the installation:
+
+```bash
+dip-c --help
+```
+
+### Alternative: pip-only install
+
+On modern systems (macOS, Ubuntu 20.04+, RHEL 8+), pip can install everything directly. This is worth trying, but if it fails for any reason we suggest using the above conda + pip installation method:
+
 ```bash
 pip install run-dipc
 ```
 
-### Troubleshooting: old Linux systems (CentOS/RHEL 7)
-
-If `pip install` fails with **`NumPy requires GCC >= 9.3`**, your system's
-default compiler is too old to build NumPy from source. This can happen on
-older Linux distributions that ship with GCC 4.8.
-
-**Option A** — load a newer compiler (HPC clusters usually have one):
-
-```bash
-module avail gcc          # see what's available
-module load gcc/11.2.0    # load any version >= 9.3
-pip install run-dipc
-```
-
-**Option B** — install NumPy and SciPy from conda first (provides prebuilt
-binaries, no compiler needed):
-
-```bash
-conda install numpy scipy
-pip install run-dipc
-```
-
-You can check your GCC version with `gcc --version` and your OS with
-`cat /etc/os-release`. Please contact your system administrator if
-this is a problem for you.
+> **Why does pip fail on older Linux? (optional reading):** If pip failed, use the conda + pip
+> method above. Older systems like CentOS/RHEL 7 have an old C library
+> (glibc < 2.28), so prebuilt packages for NumPy, SciPy, and pysam are not
+> available. Pip falls back to compiling them from source, which takes
+> **15–30 minutes** and requires a C++17-capable compiler. If that build also
+> fails with `C++ Compiler does not support -std=c++17`, the system's C++
+> compiler is too old. You can install a newer one with:
+>
+> ```bash
+> conda install -c conda-forge gcc_linux-64 gxx_linux-64
+> ```
+>
+> But the simplest path is to skip all of this and use the recommended
+> conda + pip installation above.
 
 ## Usage
 
