@@ -39,6 +39,8 @@ def main():
         sys.stderr.write("  exp      expand a 3DG file by translating each chromosome\n")
         sys.stderr.write("  force    generate a 3DG file from a CON file using force-directed layout\n")
         sys.stderr.write("\n")
+        sys.stderr.write("  pairs2con  convert hickit .pairs.gz to .con.gz format\n")
+        sys.stderr.write("\n")
         sys.stderr.write("  data-path  print path to installed data directory\n")
         return 1
 
@@ -131,6 +133,9 @@ def main():
     elif command == "force":
         from dip_c.commands.force import force
         return_value = force(sys.argv[1:])
+    elif command == "pairs2con":
+        from dip_c.commands.pairs2con import pairs2con
+        return_value = pairs2con(sys.argv[1:])
     elif command == "data-path":
         print(os.path.join(os.path.dirname(__file__), "data"))
         return 0
