@@ -260,6 +260,14 @@ pip install run-dipc
 > But the simplest path is to skip all of this and use the recommended
 > conda + pip installation above.
 
+#### Upgrading
+
+If you already have Dip-C installed and want to update to the latest version:
+
+```bash
+pip install --upgrade run-dipc
+```
+
 ### <a name="add_require"></a>Additional Requirements
 Some workflows require external tools that are **not** included in the pip package:
 
