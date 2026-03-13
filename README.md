@@ -26,7 +26,7 @@ make  # installs numpy, scipy, and rmsd dependencies
   - [Contacts](#con)
   - [3D Genomes](#3dg)
   - [Genomic Regions](#reg)
-* [Requirements](#require)
+* [Installation and Requirements](#require)
   - [Basic Requirements](#basic_require)
   - [Additional Requirements](#add_require)
 * [Typical Workflow](#workflow)
@@ -203,7 +203,7 @@ An example `.reg` file is:
 19	.	.	.
 ```
 
-## <a name="require"></a>Requirements
+## <a name="require"></a>Installation and Requirements
 ### <a name="basic_require"></a>Basic Requirements
 Dip-C requires Python 3.9+ and was tested on macOS and Linux.
 
@@ -224,18 +224,18 @@ conda install -c conda-forge -c bioconda numpy scipy pysam
 pip install run-dipc
 ```
 
+Verify the installation:
+
+```bash
+dip-c --help
+```
+
 > **Note:** If you see `Run 'conda init' before 'conda activate'` (common on
 > HPC clusters), run this first:
 >
 > ```bash
 > source $(conda info --base)/etc/profile.d/conda.sh
 > ```
-
-Verify the installation:
-
-```bash
-dip-c --help
-```
 
 #### Alternative: pip-only install
 
