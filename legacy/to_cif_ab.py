@@ -59,8 +59,8 @@ for inputPdbLine in inputPdbFile:
         incrementCounts[increment] += 1
     previousChr = inputChr
     previousPosValue = inputPosValue
-resolution = max(incrementCounts.iterkeys(), key=(lambda key: incrementCounts[key]))
-print "resolution: "+str(resolution)
+resolution = max(incrementCounts.keys(), key=(lambda key: incrementCounts[key]))
+print(f"resolution: {resolution}")
 
 # load bedgraph for B factors
 bFactorData = {}

@@ -62,8 +62,8 @@ for inputPdbLine in inputPdbFile:
         incrementCounts[increment] += 1
     previousChr = inputChr
     previousPosValue = inputPosValue
-resolution = max(incrementCounts.iterkeys(), key=(lambda key: incrementCounts[key]))
-print "resolution: "+str(resolution)
+resolution = max(incrementCounts.keys(), key=(lambda key: incrementCounts[key]))
+print(f"resolution: {resolution}")
 
 # read lines
 atomId = 1
@@ -73,7 +73,7 @@ previousPosList = []
 inputPdbFile.seek(0)
 for inputPdbLine in inputPdbFile:
     inputPdbLineData = inputPdbLine.strip().split()
-    inputChr = (int(inputPdbLineData[0]) + 1)/2
+    inputChr = (int(inputPdbLineData[0]) + 1) // 2
     inputChrName = str(inputChr)
     inputPosString = inputPdbLineData[1].rjust(9,'0')
     inputPosValue = int(inputPdbLineData[1])

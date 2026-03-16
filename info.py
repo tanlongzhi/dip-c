@@ -26,7 +26,7 @@ def info(argv):
                                         
     # read each CON file
     for a in args:
-        con_file = gzip.open(a, "rb") if a.endswith(".gz") else open(a, "rb")
+        con_file = gzip.open(a, "rt") if a.endswith(".gz") else open(a, "r")
         con_data = file_to_con_data(con_file)
         con_file.close()
         sys.stdout.write(a + ": " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")

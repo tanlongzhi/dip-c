@@ -97,5 +97,26 @@ ENV/
 # mkdocs documentation
 /site
 
-# mypy
+# mypy - things for OSX dev environments
 .mypy_cache/
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+
+# don't add the vendor directory to git, it is used for vendoring dependencies and should not be tracked
+vendor/
+pdbx/
+
+# Test coverage files
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+# But DO track the coverage badge
+!images/coverage-badge.svg

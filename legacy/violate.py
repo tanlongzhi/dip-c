@@ -67,4 +67,9 @@ for inputLine in inputFile:
     if bestCandidateSquaredDistance[2] == 0:
         #print "too close" (a problem with dedup that leads to two same legs in a contact)
         continue
-    print inputLine.strip()+'\t'+str(isInter)+'\t'+str(len(candidateSquaredDistance))+'\t'+str(math.sqrt(bestCandidateSquaredDistance[2]))+'\t'+str(1/bestCandidateSquaredDistance[2]/sum(1/x[2] for x in candidateSquaredDistance))
+    input_line = inputLine.strip()
+    candidate_count = len(candidateSquaredDistance)
+    best_distance = math.sqrt(bestCandidateSquaredDistance[2])
+    weight_sum = sum(1 / x[2] for x in candidateSquaredDistance)
+    normalized_weight = (1 / bestCandidateSquaredDistance[2]) / weight_sum
+    print(f"{input_line}\t{isInter}\t{candidate_count}\t{best_distance}\t{normalized_weight}")

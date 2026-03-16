@@ -33,7 +33,7 @@ sCat.appendAttribute("ptnr2_label_atom_id")
 
 # write atoms
 atom_id = 0
-for cen_tel_file_line in open(sys.argv[1], "rb"):
+for cen_tel_file_line in open(sys.argv[1], "r"):
     atom_id += 1
     if cen_tel_file_line.endswith("None\n"):
         continue

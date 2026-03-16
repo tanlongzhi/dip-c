@@ -1,3 +1,6 @@
+from pymol import cmd
+
+cmd.do(r'''
 set matrix_mode, 1
 set movie_panel, 0
 set scene_buttons, 1
@@ -313,3 +316,4 @@ turn y,360
 mview store
 
 mview reinterpolate, power=1
+''')

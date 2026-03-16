@@ -118,7 +118,7 @@ def seg(argv):
     # pass 3: (if -v) find haplotype information based on the SNP file
     if not snp_file_name is None:
         num_snps = 0
-        snp_file = gzip.open(snp_file_name, "rb") if snp_file_name.endswith(".gz") else open(snp_file_name, "rb")
+        snp_file = gzip.open(snp_file_name, "rt") if snp_file_name.endswith(".gz") else open(snp_file_name, "r")
         for snp_file_line in snp_file:
             num_snps += 1
             snp_chr, snp_locus, snp_pat, snp_mat = snp_file_line.strip().split()

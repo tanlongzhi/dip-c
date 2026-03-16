@@ -46,8 +46,8 @@ for inputLine in inputFile:
         inputChr = 24
     else:
         inputChr = int(inputLineData[0])
-    inputPos1 = (int(inputLineData[1])+int(inputLineData[2]))/2
-    inputPos2 = (int(inputLineData[4])+int(inputLineData[5]))/2
+    inputPos1 = (int(inputLineData[1]) + int(inputLineData[2])) // 2
+    inputPos2 = (int(inputLineData[4]) + int(inputLineData[5])) // 2
     outputString = str(inputChr)+'\t'+str(inputPos1)+'\t'+str(inputPos2)
     isOk = True
     for hap in range(2):

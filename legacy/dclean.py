@@ -30,7 +30,7 @@ for inputLine in inputFile:
 # clean data
 for leftChr in contactData:
     for rightChr in contactData[leftChr]:
-        print leftChr+', '+rightChr
+        print(f"{leftChr}, {rightChr}")
         numOfContacts = len(contactData[leftChr][rightChr])
         contactData[leftChr][rightChr] = sorted(contactData[leftChr][rightChr])
         for i in range(numOfContacts):
