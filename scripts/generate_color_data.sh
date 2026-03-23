@@ -82,6 +82,7 @@ echo "=== Step 3: Submitting SBATCH jobs ==="
 # hg38: cpg.500k and cg.20k
 echo "Submitting hg38 jobs..."
 SBATCH_OPTS="-p tttt -t 2:00:00 --mem-per-cpu=8000"
+export CPG_FAST_PY="$SCRIPTS/cpg_fast.py"
 
 sbatch $SBATCH_OPTS -J hg38_cpg500k -o hg38.cpg.500k.raw.txt \
     "$SCRIPTS/cpg_fast.sh" GRCh38.primary_assembly.genome.fa 500000
