@@ -81,27 +81,29 @@ echo "=== Step 3: Submitting SBATCH jobs ==="
 
 # hg38: cpg.500k and cg.20k
 echo "Submitting hg38 jobs..."
-sbatch -J hg38_cpg500k -o hg38.cpg.500k.raw.txt \
-    "$SCRIPTS/cpg.sh" GRCh38.primary_assembly.genome.fa 500000
-sbatch -J hg38_cg20k -o hg38.cg.20k.raw.txt \
+SBATCH_OPTS="-p tttt -t 2:00:00 --mem-per-cpu=8000"
+
+sbatch $SBATCH_OPTS -J hg38_cpg500k -o hg38.cpg.500k.raw.txt \
+    "$SCRIPTS/cpg_fast.sh" GRCh38.primary_assembly.genome.fa 500000
+sbatch $SBATCH_OPTS -J hg38_cg20k -o hg38.cg.20k.raw.txt \
     "$SCRIPTS/cg.sh" GRCh38.primary_assembly.genome.fa 20000
 
 # mm10: cpg.500k
 echo "Submitting mm10 jobs..."
-sbatch -J mm10_cpg500k -o mm10.cpg.500k.raw.txt \
-    "$SCRIPTS/cpg.sh" GRCm38.primary_assembly.genome.fa 500000
+sbatch $SBATCH_OPTS -J mm10_cpg500k -o mm10.cpg.500k.raw.txt \
+    "$SCRIPTS/cpg_fast.sh" GRCm38.primary_assembly.genome.fa 500000
 
 # mm39: cpg.20k, cpg.100k, cpg.500k, cpg.1m, cg.20k
 echo "Submitting mm39 jobs..."
-sbatch -J mm39_cpg20k -o mm39.cpg.20k.raw.txt \
-    "$SCRIPTS/cpg.sh" GRCm39.primary_assembly.genome.fa 20000
-sbatch -J mm39_cpg100k -o mm39.cpg.100k.raw.txt \
-    "$SCRIPTS/cpg.sh" GRCm39.primary_assembly.genome.fa 100000
-sbatch -J mm39_cpg500k -o mm39.cpg.500k.raw.txt \
-    "$SCRIPTS/cpg.sh" GRCm39.primary_assembly.genome.fa 500000
-sbatch -J mm39_cpg1m -o mm39.cpg.1m.raw.txt \
-    "$SCRIPTS/cpg.sh" GRCm39.primary_assembly.genome.fa 1000000
-sbatch -J mm39_cg20k -o mm39.cg.20k.raw.txt \
+sbatch $SBATCH_OPTS -J mm39_cpg20k -o mm39.cpg.20k.raw.txt \
+    "$SCRIPTS/cpg_fast.sh" GRCm39.primary_assembly.genome.fa 20000
+sbatch $SBATCH_OPTS -J mm39_cpg100k -o mm39.cpg.100k.raw.txt \
+    "$SCRIPTS/cpg_fast.sh" GRCm39.primary_assembly.genome.fa 100000
+sbatch $SBATCH_OPTS -J mm39_cpg500k -o mm39.cpg.500k.raw.txt \
+    "$SCRIPTS/cpg_fast.sh" GRCm39.primary_assembly.genome.fa 500000
+sbatch $SBATCH_OPTS -J mm39_cpg1m -o mm39.cpg.1m.raw.txt \
+    "$SCRIPTS/cpg_fast.sh" GRCm39.primary_assembly.genome.fa 1000000
+sbatch $SBATCH_OPTS -J mm39_cg20k -o mm39.cg.20k.raw.txt \
     "$SCRIPTS/cg.sh" GRCm39.primary_assembly.genome.fa 20000
 
 echo ""
