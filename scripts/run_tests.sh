@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J dipc-tests
 #SBATCH -n 1
-#SBATCH -t 12:00:00
+#SBATCH -t 24:00:00
 #SBATCH -p tttt
 #SBATCH --mem-per-cpu=16000
 #SBATCH -o dipc-tests-%j.out
