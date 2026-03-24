@@ -20,4 +20,4 @@ module load python/3.9.0 2>/dev/null || true
 # Install in editable mode if needed
 pip install -e ".[dev]" --quiet 2>/dev/null || pip install -e . --quiet
 
-python3 -m pytest tests/ --cov --cov-fail-under=100 -v
+python3 -m pytest tests/ --cov=dip_c --cov-fail-under=100 -v

@@ -1144,6 +1144,26 @@ class TestOptionParsing:
         ret = seg(["seg", "-q", "10", "-m", "0.1", TEST_SEG_BAM])
         assert ret == 0
 
+    def test_seg_getopt_error(self, capsys):
+        """Cover seg getopt error handler (lines 51-53)."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", "--bogus"])
+        assert ret == 1
+        assert "unknown command" in capsys.readouterr().err
+
+    def test_seg_no_args_usage(self, capsys):
+        """Cover seg usage message when no BAM argument given (lines 55-62)."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg"])
+        assert ret == 1
+        assert "Usage:" in capsys.readouterr().err
+
+    def test_seg_custom_baseq(self, capsys):
+        """Cover seg -Q option (lines 70-71)."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", "-Q", "30", "-v", TEST_SNPS, TEST_SEG_BAM], _display_interval=1)
+        assert ret == 0
+
     # --- rg.py options ---
     def test_rg_distance_mode(self, tmp_path, capsys):
         from dip_c.commands.rg import rg
