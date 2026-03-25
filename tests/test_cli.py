@@ -62,7 +62,7 @@ ALL_COMMANDS = [
     "seg", "con", "dedup", "reg", "clean", "bincon", "impute", "impute3",
     "clean3", "reg3", "mkcon", "color", "color2", "mgcolor", "vis", "info",
     "ard", "cv", "con3", "dist", "align", "pd", "rg", "pos", "tad", "exp",
-    "force",
+    "force", "pairs2con",
 ]
 
 

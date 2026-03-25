@@ -1496,8 +1496,8 @@ class TestOptionParsing:
     def test_cv_mismatched_contacts(self, tmp_path, capsys):
         from dip_c.commands.cv import cv
         base = "22,100,.\t22,200,.\n"
-        imputed = "22,300,0\t22,400,1\n"  # Different position
-        truth = "22,500,0\t22,600,1\n"
+        imputed = "22,100,0\t22,200,1\n"  # Same position → found in impute
+        truth = "22,500,0\t22,600,1\n"    # Different position → NOT found in truth
         base_f = tmp_path / "b.con"
         base_f.write_text(base)
         imp_f = tmp_path / "i.con"
@@ -1706,7 +1706,9 @@ class TestOptionParsing:
         chr_len.write_text("1\t100000000\n")  # Only chr1
         con_f = tmp_path / "con.con"
         # Contact on chr22 which is not in chr.len → returns None
-        con_f.write_text("22,1000000,0\t22,2000000,0\n1,1000,0\t1,2000,0\n")
+        # Third contact has one known leg (chr1) and one unknown (chr22) so
+        # matrix_index_1 is not None but matrix_index_2 is None → traces line 37
+        con_f.write_text("22,1000000,0\t22,2000000,0\n1,1000,0\t1,2000,0\n1,1000,0\t22,2000000,0\n")
         ret = bincon(["bincon", "-l", str(chr_len), str(con_f)])
         assert ret == 0
 
@@ -1785,4 +1787,79 @@ class TestOptionParsing:
         g3d1.write_text("\n".join(lines1) + "\n")
         g3d2.write_text("\n".join(lines2) + "\n")
         ret = align(["align", str(g3d1), str(g3d2)])
+        assert ret == 0
+
+    # --- seg.py: else branches via single-end + secondary reads (lines 86, 97, 114) ---
+    @pytest.fixture()
+    def seg_else_bam(self, tmp_path):
+        """BAM with chimeric, single-end, and secondary reads for else-branch coverage."""
+        import pysam
+        unsorted = str(tmp_path / "unsorted.bam")
+        bam_path = str(tmp_path / "else.bam")
+        header = pysam.AlignmentHeader.from_dict({
+            "HD": {"VN": "1.6", "SO": "coordinate"},
+            "SQ": [{"SN": "chr22", "LN": 51304566}],
+        })
+        seq = "ACGT" * 25
+        quals = pysam.qualitystring_to_array("I" * 100)
+        with pysam.AlignmentFile(unsorted, "wb", header=header) as out:
+            # Chimeric read with SA tag → 2 segments, survives clean()
+            a = pysam.AlignedSegment(header)
+            a.query_name = "chimeric"
+            a.flag = 0
+            a.reference_id = 0
+            a.reference_start = 1000
+            a.mapping_quality = 60
+            a.query_sequence = seq
+            a.query_qualities = quals
+            a.cigarstring = "100M"
+            a.set_tag("NM", 0)
+            a.set_tag("SA", "chr22,5000,+,100M,60,0;")
+            out.write(a)
+
+            # Single-end mapped read, no SA → else on line 97 (pass 1), 114 (pass 2)
+            b = pysam.AlignedSegment(header)
+            b.query_name = "singleend"
+            b.flag = 0
+            b.reference_id = 0
+            b.reference_start = 2000
+            b.mapping_quality = 60
+            b.query_sequence = seq
+            b.query_qualities = quals
+            b.cigarstring = "100M"
+            b.set_tag("NM", 0)
+            out.write(b)
+
+            # Secondary alignment (0x100) → is_secondary fires last in or-chain (line 86)
+            c = pysam.AlignedSegment(header)
+            c.query_name = "secondary_read"
+            c.flag = 0x100
+            c.reference_id = 0
+            c.reference_start = 3000
+            c.mapping_quality = 60
+            c.query_sequence = seq
+            c.query_qualities = quals
+            c.cigarstring = "100M"
+            c.set_tag("NM", 0)
+            out.write(c)
+
+        pysam.sort("-o", bam_path, unsorted)
+        pysam.index(bam_path)
+        return bam_path
+
+    def test_seg_single_end_and_else_branches(self, seg_else_bam, capsys):
+        """Cover seg else-branches: line 86 (secondary), 97 (pass 1), 114 (pass 2)."""
+        from dip_c.commands.seg import seg
+        ret = seg(["seg", seg_else_bam], _display_interval=1)
+        assert ret == 0
+
+    # --- seg.py: SNP neither allele (line 149) ---
+    def test_seg_snp_neither_allele(self, tmp_path, capsys):
+        """Cover pass 3 else: continue when base matches neither allele (line 149)."""
+        from dip_c.commands.seg import seg
+        snp_f = tmp_path / "snps.txt"
+        # At 22:16208451, candidate SRR7226708.6662870 has base A (bq=27).
+        # pat=C, mat=T → A matches neither → line 149.
+        snp_f.write_text("22\t16208451\tC\tT\n")
+        ret = seg(["seg", "-v", str(snp_f), TEST_SEG_BAM], _display_interval=1)
         assert ret == 0
