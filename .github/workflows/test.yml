@@ -1,7 +1,5 @@
 name: Tests
 on:
-  push:
-    branches: [pypi-packaging, master]
   pull_request:
     branches: [master]
   workflow_dispatch:
