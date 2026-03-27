@@ -90,12 +90,11 @@ def seg(argv, _display_interval=None):
             read = Read(bam_read.query_name)
             add_primary_seg(read, bam_read, min_mapq, max_nm_per_bp)
             add_sa_segs(read, bam_read, min_mapq, max_nm_per_bp)
+            seg_data.add_read(read)
         elif bam_read.is_paired and not bam_read.is_proper_pair:
             read = Read(bam_read.query_name)
             add_primary_seg(read, bam_read, min_mapq, max_nm_per_bp)
-        else:
-            continue
-        seg_data.add_read(read)
+            seg_data.add_read(read)
     sys.stderr.write("[M::" + __name__ + "] pass 1 done: read " + str(num_bam_reads) + " alignments; added " + str(seg_data.num_reads()) + " candidate reads (" + str(round(100.0 * seg_data.num_reads() / num_bam_reads, 2)) + "% of alignments)\n")
 
     # pass 2: find mates of all reads from pass 1, and then removes reads with only one segment
@@ -110,9 +109,7 @@ def seg(argv, _display_interval=None):
         if seg_data.contains_read_name(bam_read.query_name):
             read = Read(bam_read.query_name)
             add_primary_seg(read, bam_read, min_mapq, max_nm_per_bp)
-        else:
-            continue
-        seg_data.add_read(read)
+            seg_data.add_read(read)
     sys.stderr.write("[M::" + __name__ + "] pass 2: cleaning " + str(seg_data.num_reads()) + " candidate reads\n")
     seg_data.clean()
     sys.stderr.write("[M::" + __name__ + "] pass 2 done: read " + str(num_bam_reads) + " alignments; kept " + str(seg_data.num_reads()) + " candidate reads (" + str(round(100.0 * seg_data.num_reads() / num_bam_reads, 2)) + "% of alignments)\n")
@@ -140,14 +137,11 @@ def seg(argv, _display_interval=None):
                                 continue
                             
                             # phase the corresponding segment
-                            seg_haplotype = -1
-                            if pileup_read.alignment.query_sequence[pileup_read.query_position] == snp_pat:
-                                seg_haplotype = 0
-                            elif pileup_read.alignment.query_sequence[pileup_read.query_position] == snp_mat:
-                                seg_haplotype = 1
-                            else:
-                                continue
-                            seg_data.update_haplotype(pileup_read.alignment.query_name, pileup_read.alignment.is_read2, snp_chr, snp_locus, seg_haplotype)
+                            base = pileup_read.alignment.query_sequence[pileup_read.query_position]
+                            if base == snp_pat:
+                                seg_data.update_haplotype(pileup_read.alignment.query_name, pileup_read.alignment.is_read2, snp_chr, snp_locus, 0)
+                            elif base == snp_mat:
+                                seg_data.update_haplotype(pileup_read.alignment.query_name, pileup_read.alignment.is_read2, snp_chr, snp_locus, 1)
         sys.stderr.write("[M::" + __name__ + "] pass 3 done: read " + str(num_snps) + " SNPs\n")
     
     # write output
