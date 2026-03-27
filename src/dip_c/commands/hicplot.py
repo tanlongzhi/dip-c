@@ -1,12 +1,12 @@
 """Plot Hi-C contact maps from .hic files.
 
-Unified flag-based interface — the mode is inferred from which flags are
+Unified flag-based interface -- the mode is inferred from which flags are
 present:
 
-  -2 supplied?    → difference map  (file 1 minus file 2)
-  -c1 supplied?   → single-region   (one chromosomal window)
-  --allinone?     → whole genome composited into one PNG
-  (none of above) → per-chromosome  (one PNG per chromosome)
+  -2 supplied?    => difference map  (file 1 minus file 2)
+  -c1 supplied?   => single-region   (one chromosomal window)
+  --allinone?     => whole genome composited into one PNG
+  (none of above) => per-chromosome  (one PNG per chromosome)
 
 Requires:  pip install run-dipc[hicplot]
 """
@@ -19,26 +19,27 @@ import dip_c.hicplot_utils as _hu
 
 from dip_c.hicplot_utils import (
     _ensure_hicplot_deps,
-    VALID_NORMALIZATIONS,
-    validate_normalization,
+    get_chrom_names,
     ordering_check,
     make_colormap,
+    resolve_colormap,
     plot_matrix,
     get_positions_and_matrix_size,
     chroms_per_row_for_genome,
     filter_chroms,
+    validate_chroms,
     strip_png_ext,
     REDMAP_SPEC,
     BWRMAP_SPEC,
 )
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 # Input-parsing helpers
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 
 def _parse_file_spec(spec):
-    """Parse ``path.hic:NORM`` → ``(path, norm_float)``.
+    """Parse ``path.hic:NORM`` => ``(path, norm_float)``.
 
     *NORM* is the contact-count factor used when ``-n NONE``
     (raw counts are divided by it).  Defaults to **1** when the colon
@@ -53,12 +54,12 @@ def _parse_file_spec(spec):
             try:
                 return path, float(norm_str)
             except ValueError:
-                pass  # not a number – treat whole string as path
+                pass  # not a number -- treat whole string as path
     return spec, 1
 
 
 def _parse_region(spec):
-    """Parse ``chr1:1-10000000`` → ``('chr1', 1, 10000000)``.
+    """Parse ``chr1:1-10000000`` => ``('chr1', 1, 10000000)``.
 
     Raises :class:`argparse.ArgumentTypeError` on bad input so that
     argparse can produce a clean error message.
@@ -84,28 +85,28 @@ def _parse_region(spec):
         )
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 # Absolute contact-map helpers
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 
 def _plot_map(hic_path, norm, output, chroms, region, resolution, maxcolor,
-              normalization):
+              normalization, cmap=None):
     """Single chromosomal region from one .hic file."""
     _ensure_hicplot_deps()
-    validate_normalization(normalization)
-    cmap = make_colormap(REDMAP_SPEC)
+    if cmap is None:
+        cmap = make_colormap(REDMAP_SPEC)
 
     hic = _hu._HICSTRAW.HiCFile(hic_path)
+    chrom_order = get_chrom_names(hic)
     sys.stderr.write("[M::hicplot] .hic file loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
-    sys.stderr.write("[M::hicplot] Use Ctrl+C to force quit if normalization not present in the file\n")
 
     mo = hic.getMatrixZoomData(
         chroms[0], chroms[1], "observed", normalization, "BP", resolution,
     )
     sys.stderr.write("[M::hicplot] Matrix zoom data retrieved\n")
 
-    if ordering_check(chroms[0], chroms[1], hic.getGenomeID()):
+    if ordering_check(chroms[0], chroms[1], chrom_order):
         mat = mo.getRecordsAsMatrix(region[0], region[1], region[2], region[3])
     else:
         mat = mo.getRecordsAsMatrix(region[2], region[3], region[0], region[1])
@@ -118,19 +119,23 @@ def _plot_map(hic_path, norm, output, chroms, region, resolution, maxcolor,
     plot_matrix(mat, output, cmap, 0, maxcolor)
 
 
-def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization):
-    """Each chromosome individually — one PNG per chromosome."""
+def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization,
+              cmap=None):
+    """Each chromosome individually -- one PNG per chromosome."""
     _ensure_hicplot_deps()
-    validate_normalization(normalization)
-    cmap = make_colormap(REDMAP_SPEC)
+    if cmap is None:
+        cmap = make_colormap(REDMAP_SPEC)
 
     hic = _hu._HICSTRAW.HiCFile(hic_path)
     sys.stderr.write("[M::hicplot] .hic file loaded (genome: %s)\n"
                      % hic.getGenomeID())
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
-    sys.stderr.write("[M::hicplot] Use Ctrl+C to force quit if normalization not present in the file\n")
 
-    chroms = [(c.name, c.length) for c in hic.getChromosomes()]
+    chroms = filter_chroms([(c.name, c.length) for c in hic.getChromosomes()])
+    chroms, skipped = validate_chroms(hic, chroms, normalization, resolution)
+    if skipped:
+        sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
+                         % ", ".join(skipped))
     base = strip_png_ext(output)
 
     for name, length in chroms:
@@ -146,20 +151,23 @@ def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization):
 
 
 def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
-                   normalization, gridlines=True):
+                   normalization, gridlines=True, cmap=None):
     """Whole genome composited into one image."""
     _ensure_hicplot_deps()
-    validate_normalization(normalization)
-    cmap = make_colormap(REDMAP_SPEC)
+    if cmap is None:
+        cmap = make_colormap(REDMAP_SPEC)
 
     hic = _hu._HICSTRAW.HiCFile(hic_path)
-    genome_id = hic.getGenomeID()
+    chrom_order = get_chrom_names(hic)
     sys.stderr.write("[M::hicplot] .hic file loaded (genome: %s)\n"
-                     % genome_id)
+                     % hic.getGenomeID())
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
-    sys.stderr.write("[M::hicplot] Use Ctrl+C to force quit if normalization not present in the file\n")
 
     chroms = filter_chroms([(c.name, c.length) for c in hic.getChromosomes()])
+    chroms, skipped = validate_chroms(hic, chroms, normalization, resolution)
+    if skipped:
+        sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
+                         % ", ".join(skipped))
     chrom_names = [c[0] for c in chroms]
     matrices = []
 
@@ -168,14 +176,14 @@ def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
             mo = hic.getMatrixZoomData(
                 row[0], col[0], "observed", normalization, "BP", resolution,
             )
-            if ordering_check(row[0], col[0], genome_id, chrom_names):
+            if ordering_check(row[0], col[0], chrom_order):
                 m = mo.getRecordsAsMatrix(1, int(row[1]), 1, int(col[1]))
             else:
                 m = mo.getRecordsAsMatrix(1, int(col[1]), 1, int(row[1]))
                 m = m.transpose()
             matrices.append(m)
 
-    per_row = chroms_per_row_for_genome(genome_id, len(chroms))
+    per_row = chroms_per_row_for_genome(len(chroms))
     positions, final_size = get_positions_and_matrix_size(matrices, per_row)
     sys.stderr.write("[M::hicplot] Sub-matrices: %d, final size: %s\n"
                      % (len(positions), final_size))
@@ -196,9 +204,9 @@ def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
     plot_matrix(final, output, cmap, 0, maxcolor, hlines=hlines, vlines=vlines)
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 # Difference-map helpers
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 
 def _diff(m1, norm1, m2, norm2, normalization):
     """(m1/norm1 - m2/norm2) when NONE, else (m1 - m2)."""
@@ -208,17 +216,17 @@ def _diff(m1, norm1, m2, norm2, normalization):
 
 
 def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
-                   resolution, maxcolor, normalization):
+                   resolution, maxcolor, normalization, cmap=None):
     """Difference map for a single chromosomal region."""
     _ensure_hicplot_deps()
-    validate_normalization(normalization)
-    cmap = make_colormap(BWRMAP_SPEC)
+    if cmap is None:
+        cmap = make_colormap(BWRMAP_SPEC)
 
     hic1 = _hu._HICSTRAW.HiCFile(path1)
     hic2 = _hu._HICSTRAW.HiCFile(path2)
+    chrom_order = get_chrom_names(hic1)
     sys.stderr.write("[M::hicplot] Both .hic files loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
-    sys.stderr.write("[M::hicplot] Use Ctrl+C to force quit if normalization not present in the file\n")
 
     mo1 = hic1.getMatrixZoomData(
         chroms[0], chroms[1], "observed", normalization, "BP", resolution,
@@ -227,7 +235,7 @@ def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
         chroms[0], chroms[1], "observed", normalization, "BP", resolution,
     )
 
-    if ordering_check(chroms[0], chroms[1], hic1.getGenomeID()):
+    if ordering_check(chroms[0], chroms[1], chrom_order):
         m1 = mo1.getRecordsAsMatrix(region[0], region[1], region[2], region[3])
         m2 = mo2.getRecordsAsMatrix(region[0], region[1], region[2], region[3])
     else:
@@ -241,20 +249,25 @@ def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
 
 
 def _plot_diff_all(path1, norm1, path2, norm2, output, resolution, maxcolor,
-                   normalization):
+                   normalization, cmap=None):
     """Per-chromosome difference maps."""
     _ensure_hicplot_deps()
-    validate_normalization(normalization)
-    cmap = make_colormap(BWRMAP_SPEC)
+    if cmap is None:
+        cmap = make_colormap(BWRMAP_SPEC)
 
     hic1 = _hu._HICSTRAW.HiCFile(path1)
     hic2 = _hu._HICSTRAW.HiCFile(path2)
     sys.stderr.write("[M::hicplot] Both .hic files loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
-    sys.stderr.write("[M::hicplot] Use Ctrl+C to force quit if normalization not present in the file\n")
 
-    chroms1 = [(c.name, c.length) for c in hic1.getChromosomes()]
-    chroms2 = [(c.name, c.length) for c in hic2.getChromosomes()]
+    chroms1 = filter_chroms([(c.name, c.length) for c in hic1.getChromosomes()])
+    chroms1, skipped = validate_chroms(hic1, chroms1, normalization, resolution)
+    if skipped:
+        sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
+                         % ", ".join(skipped))
+    valid_names = {c[0] for c in chroms1}
+    chroms2 = [(c.name, c.length) for c in hic2.getChromosomes()
+               if c.name in valid_names]
     base = strip_png_ext(output)
 
     for i in range(len(chroms1)):
@@ -279,21 +292,24 @@ def _plot_diff_all(path1, norm1, path2, norm2, output, resolution, maxcolor,
 
 
 def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
-                        maxcolor, normalization, gridlines=True):
+                        maxcolor, normalization, gridlines=True, cmap=None):
     """Whole-genome difference map in one image."""
     _ensure_hicplot_deps()
-    validate_normalization(normalization)
-    cmap = make_colormap(BWRMAP_SPEC)
+    if cmap is None:
+        cmap = make_colormap(BWRMAP_SPEC)
 
     hic1 = _hu._HICSTRAW.HiCFile(path1)
     hic2 = _hu._HICSTRAW.HiCFile(path2)
-    genome_id = hic1.getGenomeID()
+    chrom_order = get_chrom_names(hic1)
     sys.stderr.write("[M::hicplot] Both .hic files loaded (genome: %s)\n"
-                     % genome_id)
+                     % hic1.getGenomeID())
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
-    sys.stderr.write("[M::hicplot] Use Ctrl+C to force quit if normalization not present in the file\n")
 
     chroms1 = filter_chroms([(c.name, c.length) for c in hic1.getChromosomes()])
+    chroms1, skipped = validate_chroms(hic1, chroms1, normalization, resolution)
+    if skipped:
+        sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
+                         % ", ".join(skipped))
     chrom_names = [c[0] for c in chroms1]
     matrices = []
 
@@ -306,7 +322,7 @@ def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
             mo2 = hic2.getMatrixZoomData(
                 cr[0], cc[0], "observed", normalization, "BP", resolution,
             )
-            if ordering_check(cr[0], cc[0], genome_id, chrom_names):
+            if ordering_check(cr[0], cc[0], chrom_order):
                 m1 = mo1.getRecordsAsMatrix(1, int(cr[1]), 1, int(cc[1]))
                 m2 = mo2.getRecordsAsMatrix(1, int(cr[1]), 1, int(cc[1]))
             else:
@@ -316,7 +332,7 @@ def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
 
             matrices.append(_diff(m1, norm1, m2, norm2, normalization))
 
-    per_row = chroms_per_row_for_genome(genome_id, len(chroms1))
+    per_row = chroms_per_row_for_genome(len(chroms1))
     positions, final_size = get_positions_and_matrix_size(matrices, per_row)
     sys.stderr.write("[M::hicplot] Sub-matrices: %d, final size: %s\n"
                      % (len(positions), final_size))
@@ -335,9 +351,9 @@ def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
                 hlines=hlines, vlines=vlines)
 
 
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 # Argument parser
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
 
 def _build_parser():
     p = argparse.ArgumentParser(
@@ -349,22 +365,37 @@ def _build_parser():
 Usage:
   dip-c hicplot -1 <file.hic>:<norm> -o <out.png> -r <bp> -s <val>
                 [-2 <file2.hic>:<norm>] [-c1 <chr:start-end>] [-c2 <chr:start-end>]
-                [-n <TYPE>] [--allinone] [-G]
+                [-n <TYPE>] [-C <CMAP>] [--allinone] [-G]
 
 Mode is inferred from flags:
-  -2 present        → difference map (file 1 minus file 2)
-  -c1 present       → single region
-  -c1 absent        → all chromosomes (one PNG each)
-  --allinone        → all chromosomes composited into one PNG
+  -2 present        => difference map (file 1 minus file 2)
+  -c1 present       => single region
+  -c1 absent        => all chromosomes (one PNG each)
+  --allinone        => all chromosomes composited into one PNG
 
 File spec format:
   FILE:NORM         e.g. abc.hic:123456789
   The NORM factor is only used with -n NONE (default).
-  Omit the colon+number when using built-in normalizations (KR, VC, …).
+  Omit the colon+number when using a normalization from the .hic file.
+
+Normalization:
+  Any normalization stored in the .hic file may be used (e.g. NONE, KR,
+  VC, VC_SQRT, SCALE).  Available normalizations depend on the Juicer
+  Tools version that created the file.
 
 Region format:
   CHR:START-END     e.g. chr1:1-10000000
   If only -c1 is given, -c2 defaults to the same region (symmetric).
+
+Chromosome ordering:
+  Chromosome order is read directly from the .hic file.
+
+Colormap (-C):
+  By default, absolute maps use white-to-red and difference maps use
+  blue-white-red.  Use -C to override with:
+    - A matplotlib named colormap:   -C viridis, -C YlOrRd, -C coolwarm
+    - Comma-separated colour stops:  -C 'white,red'  or  -C 'blue,white,red'
+    - Hex colour stops:              -C '#0000ff,#ffffff,#ff0000'
 
 Examples:
   # Absolute map, single symmetric region (SCALE normalization)
@@ -397,6 +428,14 @@ Examples:
   # Difference map, whole genome in one image
   dip-c hicplot -1 abc.hic:123456789 -2 def.hic:987654321 --allinone \\
                 -o diff.png -r 1000000 -s 1.5e-6
+
+  # Custom colormap (matplotlib named)
+  dip-c hicplot -1 abc.hic --allinone \\
+                -o out.png -r 1000000 -s 1.5e-6 -n SCALE -C YlOrRd
+
+  # Custom colormap (comma-separated colour stops)
+  dip-c hicplot -1 abc.hic -c1 chr1:1-10000000 \\
+                -o out.png -r 1000000 -s 1.5e-6 -n KR -C 'white,orange,darkred'
 """,
     )
 
@@ -413,7 +452,7 @@ Examples:
         "-o", "--output", required=True,
         metavar="PNG",
         help="Output PNG path. For per-chromosome mode, used as the base name "
-             "(e.g. out.png → out_chr1.png, out_chr2.png, …).",
+             "(e.g. out.png => out_chr1.png, out_chr2.png, ...).",
     )
     p.add_argument(
         "-r", "--resolution", type=int, required=True,
@@ -432,7 +471,7 @@ Examples:
         "-2", dest="file2", default=None,
         metavar="HIC:NORM",
         help="Second .hic file (with optional :NORM).  When supplied, "
-             "produces a difference map (file 1 − file 2).",
+             "produces a difference map (file 1 minus file 2).",
     )
 
     # -- Optional: regions (triggers single-region mode) -----------------
@@ -471,26 +510,37 @@ Examples:
     # -- Optional: normalization -----------------------------------------
     p.add_argument(
         "-n", "--normalization", default="NONE",
-        choices=VALID_NORMALIZATIONS,
         metavar="TYPE",
         help="Normalization method (default: NONE). "
-             "Choices: %(choices)s. "
+             "Common choices: NONE, KR, VC, VC_SQRT, SCALE -- but any "
+             "normalization present in the .hic file is accepted. "
              "When not NONE, the :NORM values in -1/-2 are ignored and "
              "hic-straw's built-in balancing is used instead.",
+    )
+
+    # -- Optional: colormap ----------------------------------------------
+    p.add_argument(
+        "-C", "--colormap", default=None,
+        metavar="CMAP",
+        help="Custom colormap (default: white-to-red for absolute, "
+             "blue-white-red for difference). "
+             "Accepts a matplotlib named colormap (e.g. viridis, YlOrRd) "
+             "or a comma-separated list of colour stops "
+             "(e.g. 'white,red', 'blue,white,red', '#0000ff,#ffffff,#ff0000').",
     )
 
     return p
 
 
-# ══════════════════════════════════════════════════════════════════════════
-# CLI entry point  –  called from dip_c.cli as  ``dip-c hicplot …``
-# ══════════════════════════════════════════════════════════════════════════
+# ==========================================================================
+# CLI entry point -- called from dip_c.cli as ``dip-c hicplot``
+# ==========================================================================
 
 def hicplot(argv):
     """Parse flags and dispatch to the correct plotting function."""
     parser = _build_parser()
 
-    # argv arrives as ["hicplot", "-1", …]; skip the command word itself
+    # argv arrives as ["hicplot", "-1", ...]; skip the command word itself
     args = parser.parse_args(argv[1:])
 
     # Unpack file specs
@@ -506,7 +556,7 @@ def hicplot(argv):
             parser.error(
                 "-n NONE (default) requires a contact count on -1, "
                 "e.g. -1 abc.hic:123456789. "
-                "Use -n SCALE (or KR, VC, …) to skip the :NORM.")
+                "Use -n SCALE (or KR, VC, etc.) to skip the :NORM.")
 
     is_diff = args.file2 is not None
     is_region = args.region1 is not None
@@ -540,35 +590,49 @@ def hicplot(argv):
         )
         is_allinone = False
 
-    # ── Dispatch ───────────────────────────────────────────────────────
-    if is_diff:
-        path2, norm2 = _parse_file_spec(args.file2)
-        if normalization == "NONE" and norm2 == 1:
-            parser.error(
-                "-n NONE (default) requires a contact count on -2, "
-                "e.g. -2 def.hic:987654321. "
-                "Use -n SCALE (or KR, VC, …) to skip the :NORM.")
+    # -- Resolve optional custom colormap ---------------------------------
+    user_cmap = resolve_colormap(args.colormap) if args.colormap else None
 
-        if is_region:
-            _plot_diff_map(path1, norm1, path2, norm2, output,
-                           chroms, region, resolution, maxcolor,
-                           normalization)
-        elif is_allinone:
-            _plot_diff_allinone(path1, norm1, path2, norm2, output,
-                                resolution, maxcolor, normalization,
-                                gridlines=gridlines)
+    # -- Dispatch ---------------------------------------------------------
+    try:
+        if is_diff:
+            path2, norm2 = _parse_file_spec(args.file2)
+            if normalization == "NONE" and norm2 == 1:
+                parser.error(
+                    "-n NONE (default) requires a contact count on -2, "
+                    "e.g. -2 def.hic:987654321. "
+                    "Use -n SCALE (or KR, VC, etc.) to skip the :NORM.")
+
+            if is_region:
+                _plot_diff_map(path1, norm1, path2, norm2, output,
+                               chroms, region, resolution, maxcolor,
+                               normalization, cmap=user_cmap)
+            elif is_allinone:
+                _plot_diff_allinone(path1, norm1, path2, norm2, output,
+                                    resolution, maxcolor, normalization,
+                                    gridlines=gridlines, cmap=user_cmap)
+            else:
+                _plot_diff_all(path1, norm1, path2, norm2, output,
+                               resolution, maxcolor, normalization,
+                               cmap=user_cmap)
         else:
-            _plot_diff_all(path1, norm1, path2, norm2, output,
-                           resolution, maxcolor, normalization)
-    else:
-        if is_region:
-            _plot_map(path1, norm1, output, chroms, region,
-                      resolution, maxcolor, normalization)
-        elif is_allinone:
-            _plot_allinone(path1, norm1, output, resolution, maxcolor,
-                           normalization, gridlines=gridlines)
-        else:
-            _plot_all(path1, norm1, output, resolution, maxcolor,
-                      normalization)
+            if is_region:
+                _plot_map(path1, norm1, output, chroms, region,
+                          resolution, maxcolor, normalization, cmap=user_cmap)
+            elif is_allinone:
+                _plot_allinone(path1, norm1, output, resolution, maxcolor,
+                               normalization, gridlines=gridlines,
+                               cmap=user_cmap)
+            else:
+                _plot_all(path1, norm1, output, resolution, maxcolor,
+                          normalization, cmap=user_cmap)
+    except MemoryError:
+        sys.stderr.write(
+            "[E::hicplot] hic-straw crashed (out of memory).  "
+            "This usually means the requested normalization '%s' "
+            "is not available in the .hic file at %d BP resolution.\n"
+            % (normalization, resolution)
+        )
+        return 1
 
     return 0

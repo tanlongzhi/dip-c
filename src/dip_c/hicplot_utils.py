@@ -6,8 +6,11 @@ layout helpers used by the hicplot* commands.
 Requires optional dependencies: pip install run-dipc[hicplot]
 """
 
+import os
 import sys
 import re
+from contextlib import contextmanager
+
 import numpy as np
 
 # Lazy imports for optional deps -- checked at call sites
@@ -35,61 +38,83 @@ def _ensure_hicplot_deps():
         _LSCM = LinearSegmentedColormap
 
 
-VALID_NORMALIZATIONS = ["NONE", "KR", "VC", "VC_SQRT", "SCALE"]
-
 # Colormaps
 REDMAP_SPEC = ("bright_red", [(1, 1, 1), (1, 0, 0)])
 BWRMAP_SPEC = ("blue_white_red", [(0, 0, 1), (1, 1, 1), (1, 0, 0)])
 
-# Genome-specific chromosome counts per row for all-in-one layouts
-_CHROMS_PER_ROW = {"mm10": 21, "hg19": 24, "hg38": 24}
-
-# Genome-specific ordered chromosome lists
-_ORDERED_CHROMS = {
-    "mm10": [
-        "chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8",
-        "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15",
-        "chr16", "chr17", "chr18", "chr19", "chrX", "chrY",
-    ],
-    "hg19": [str(i) for i in range(1, 23)] + ["X", "Y"],
-    "hg38": [str(i) for i in range(1, 23)] + ["X", "Y"],
-}
-
-# Chromosomes to skip in all-in-one plots
-_SKIP_CHROMS = {"All", "ALL", "chrM", "M", "MT"}
+# Chromosomes skipped by default in all-in-one layouts.
+# "All"/"ALL" are Juicer pseudo-chromosomes representing the whole genome.
+DEFAULT_SKIP_CHROMS = {"All", "ALL"}
 
 
 # ---------------------------------------------------------------------------
 # Low-level helpers
 # ---------------------------------------------------------------------------
 
-def validate_normalization(normalization):
-    """Exit with error if *normalization* is not recognised."""
-    if normalization not in VALID_NORMALIZATIONS:
-        sys.stderr.write(
-            "[E::hicplot] Invalid normalization: %s. "
-            "Must be one of %s\n" % (normalization, VALID_NORMALIZATIONS)
-        )
-        raise SystemExit(1)
+def get_chrom_names(hic_file):
+    """Return the ordered list of chromosome names from a HiCFile object."""
+    return [c.name for c in hic_file.getChromosomes()]
 
 
 
+def ordering_check(chrom_1, chrom_2, chrom_order):
+    """Return True if *chrom_1* comes before (or equals) *chrom_2*.
 
-def ordering_check(chrom_1, chrom_2, ref_genome, ordered_list=None):
-    """Return True if *chrom_1* should come before (or equal) *chrom_2*."""
-    if ordered_list is None:
-        ordered_list = _ORDERED_CHROMS.get(ref_genome, [])
-    ordered_list = [c for c in ordered_list if c not in _SKIP_CHROMS]
+    *chrom_order* should be the list returned by :func:`get_chrom_names`.
+    """
     try:
-        return ordered_list.index(chrom_1) <= ordered_list.index(chrom_2)
+        return chrom_order.index(chrom_1) <= chrom_order.index(chrom_2)
     except ValueError:
-        return True  # unknown chroms: accept as-is
+        return True
 
 
 def make_colormap(spec):
     """Create a LinearSegmentedColormap from a ``(name, color_list)`` tuple."""
     _ensure_hicplot_deps()
     return _LSCM.from_list(spec[0], spec[1])
+
+
+def resolve_colormap(spec):
+    """Resolve a user-supplied colormap specification.
+
+    *spec* is either a **matplotlib named colormap** (e.g. ``viridis``,
+    ``coolwarm``, ``RdBu_r``) or a **comma-separated list of colour stops**
+    understood by :func:`matplotlib.colors.to_rgba` (named colours, hex
+    codes, etc.).
+
+    Examples::
+
+        resolve_colormap("viridis")
+        resolve_colormap("white,red")
+        resolve_colormap("blue,white,red")
+        resolve_colormap("#0000ff,#ffffff,#ff0000")
+    """
+    _ensure_hicplot_deps()
+    import matplotlib
+    from matplotlib.colors import to_rgba
+
+    try:
+        return matplotlib.colormaps[spec]
+    except (KeyError, ValueError):
+        pass
+
+    stops = [s.strip() for s in spec.split(",")]
+    if len(stops) < 2:
+        sys.stderr.write(
+            "[E::hicplot] Colormap spec must be a matplotlib name or "
+            "at least two comma-separated colors, got '%s'\n" % spec
+        )
+        raise SystemExit(1)
+
+    try:
+        colors = [to_rgba(s) for s in stops]
+    except ValueError as exc:
+        sys.stderr.write(
+            "[E::hicplot] Bad color in colormap spec '%s': %s\n" % (spec, exc)
+        )
+        raise SystemExit(1) from exc
+
+    return _LSCM.from_list("custom", colors)
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +125,7 @@ def plot_matrix(input_matrix, output_png_path, cmap, vmin, vmax,
                 multipl_factor=10, hlines=None, vlines=None):
     """Render *input_matrix* as a publication-quality PNG.
 
-    Automatically switches to 1 px/bin for matrices ≥ 1000 bins on a side
+    Automatically switches to 1 px/bin for matrices >= 1000 bins on a side
     to avoid memory exhaustion.
     """
     _ensure_hicplot_deps()
@@ -168,25 +193,69 @@ def get_positions_and_matrix_size(matrices, matrices_per_row):
     return positions, (sum(row_sizes), sum(col_sizes))
 
 
-def chroms_per_row_for_genome(genome_id, num_chroms=None):
-    """Return the number of chromosome tiles per row for *genome_id*.
+def chroms_per_row_for_genome(num_chroms):
+    """Return the number of chromosome tiles per row for all-in-one layout.
 
-    For unknown genomes, uses *num_chroms* (the actual chromosome count
-    from the .hic file) so the all-in-one layout is always square.
+    Uses the actual chromosome count from the .hic file so the
+    all-in-one layout is always a square grid.
     """
-    if genome_id in _CHROMS_PER_ROW:
-        return _CHROMS_PER_ROW[genome_id]
-    fallback = num_chroms if num_chroms is not None else 24
-    sys.stderr.write(
-        "[W::hicplot] Unknown genome '%s'; using %d chroms/row\n"
-        % (genome_id, fallback)
-    )
-    return fallback
+    return num_chroms
 
 
 def filter_chroms(chrom_list):
-    """Remove unwanted chromosomes (All, chrM, MT, …) from *chrom_list*."""
-    return [c for c in chrom_list if c[0] not in _SKIP_CHROMS]
+    """Remove Juicer's ``All`` pseudo-chromosome from *chrom_list*."""
+    return [c for c in chrom_list if c[0] not in DEFAULT_SKIP_CHROMS]
+
+
+@contextmanager
+def _suppress_native_stderr():
+    """Temporarily redirect file-descriptor 2 to /dev/null.
+
+    Suppresses warnings printed by C/C++ libraries (e.g. hic-straw)
+    that write directly to fd 2 and cannot be caught from Python.
+    Python-level sys.stderr is also silenced while inside the context,
+    so keep usage narrow.
+    """
+    sys.stderr.flush()
+    old_fd = os.dup(2)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull_fd, 2)
+    os.close(devnull_fd)
+    try:
+        yield
+    finally:
+        sys.stderr.flush()
+        os.dup2(old_fd, 2)
+        os.close(old_fd)
+
+
+def validate_chroms(hic, chroms, normalization, resolution):
+    """Return only chromosomes that have actual contact data.
+
+    Probes each chromosome with a full self-vs-self query at the given
+    resolution.  Chromosomes whose matrix is empty or all-zero are
+    dropped.  C-level hic-straw warnings are suppressed during the
+    probe so they do not clutter stderr.
+
+    Returns ``(valid_chroms, skipped_names)``.
+    """
+    _ensure_hicplot_deps()
+    valid = []
+    skipped = []
+    with _suppress_native_stderr():
+        for name, length in chroms:
+            try:
+                mo = hic.getMatrixZoomData(
+                    name, name, "observed", normalization, "BP", resolution,
+                )
+                m = mo.getRecordsAsMatrix(1, int(length), 1, int(length))
+                if m.size > 0 and m.sum() != 0:
+                    valid.append((name, length))
+                else:
+                    skipped.append(name)
+            except Exception:
+                skipped.append(name)
+    return valid, skipped
 
 
 def strip_png_ext(path):
