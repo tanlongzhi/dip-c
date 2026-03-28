@@ -22,7 +22,8 @@ class TestCliUsage:
         monkeypatch.setattr(sys, "argv", ["dip-c"])
         main()
         captured = capsys.readouterr()
-        for cmd in ["seg", "con", "color", "vis", "bincon", "data-path"]:
+        for cmd in ["seg", "con", "color", "vis", "bincon", "data-path",
+                     "hicplot", "merge"]:
             assert cmd in captured.err
 
 
@@ -175,3 +176,17 @@ class TestGetoptError:
         dummy.write_text("")
         ret = fn([cmd, "--zzz", str(dummy)])
         assert ret == 1
+
+
+# Argparse-based commands (hicplot, merge) exit with code 2 on no args.
+ARGPARSE_COMMANDS = ["hicplot", "merge"]
+
+
+class TestArgparseDispatch:
+    @pytest.mark.parametrize("cmd", ARGPARSE_COMMANDS)
+    def test_dispatch_exits_on_no_args(self, monkeypatch, cmd):
+        """Argparse commands exit with code 2 when called with no args."""
+        monkeypatch.setattr(sys, "argv", ["dip-c", cmd])
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 2
