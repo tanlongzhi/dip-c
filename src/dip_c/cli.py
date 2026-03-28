@@ -42,6 +42,9 @@ def main():
         sys.stderr.write("  pairs2con  convert hickit .pairs.gz to .con.gz format\n")
         sys.stderr.write("\n")
         sys.stderr.write("  data-path  print path to installed data directory\n")
+        sys.stderr.write("\n")
+        sys.stderr.write("  hicplot    plot Hi-C contact maps from .hic files (requires: pip install run-dipc[hicplot])\n")
+        sys.stderr.write("  merge      hierarchical sort-merge of .pairs.gz files\n")
         return 1
 
     if sys.argv[1] == "--completion":
@@ -139,6 +142,12 @@ def main():
     elif command == "data-path":
         print(os.path.join(os.path.dirname(__file__), "data"))
         return 0
+    elif command == "hicplot":
+        from dip_c.commands.hicplot import hicplot
+        return_value = hicplot(sys.argv[1:])
+    elif command == "merge":
+        from dip_c.commands.merge import merge
+        return_value = merge(sys.argv[1:])
     else:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1

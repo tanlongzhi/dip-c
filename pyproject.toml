@@ -19,7 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.22",
     "scipy>=1.7",
@@ -33,6 +33,7 @@ Homepage = "https://github.com/tanlongzhi/dip-c"
 Repository = "https://github.com/tanlongzhi/dip-c"
 
 [project.optional-dependencies]
+hicplot = ["hictkpy>=1.4", "matplotlib>=3.5"]
 dev = ["pytest>=7.0", "pytest-cov"]
 docs = ["mkdocs-material", "mkdocs>=1.5,<2"]
 
