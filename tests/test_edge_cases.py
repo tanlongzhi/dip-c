@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 
+import numpy as np
 import pytest
 
 
@@ -1732,6 +1733,18 @@ class TestOptionParsing:
         assert ret == 0
         err = capsys.readouterr().err
         assert "converted" in err
+
+    def test_update_graph_collision_forces(self):
+        """Directly test update_graph with particles < 1.0 apart (lines 37-44)."""
+        from dip_c.commands.force import update_graph
+        positions = np.array([[0.0, 0.0, 0.0],
+                              [0.5, 0.0, 0.0]], dtype=float)
+        velocities = np.zeros((2, 3), dtype=float)
+        forces = np.array([[0, 1]], dtype=int)
+        original = positions.copy()
+        update_graph(positions, velocities, forces, 0.01, 0.1)
+        # Particles should have moved apart (collision repulsion)
+        assert not np.allclose(positions, original)
 
     # --- seg.py: pass 2 mate finding (lines 110-115) and pass 1 skip (line 97) ---
     def test_seg_pass2_mates_and_skip(self, capsys):
