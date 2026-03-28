@@ -96,20 +96,20 @@ def _plot_map(hic_path, norm, output, chroms, region, resolution, maxcolor,
     if cmap is None:
         cmap = make_colormap(REDMAP_SPEC)
 
-    hic = _hu._HICSTRAW.HiCFile(hic_path)
+    hic = _hu._HICTKPY.File(hic_path, resolution)
     chrom_order = get_chrom_names(hic)
     sys.stderr.write("[M::hicplot] .hic file loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
-    mo = hic.getMatrixZoomData(
-        chroms[0], chroms[1], "observed", normalization, "BP", resolution,
-    )
+    norm_arg = normalization if normalization != "NONE" else None
+    range1 = "%s:%d-%d" % (chroms[0], region[0], region[1])
+    range2 = "%s:%d-%d" % (chroms[1], region[2], region[3])
     sys.stderr.write("[M::hicplot] Matrix zoom data retrieved\n")
 
     if ordering_check(chroms[0], chroms[1], chrom_order):
-        mat = mo.getRecordsAsMatrix(region[0], region[1], region[2], region[3])
+        mat = hic.fetch(range1, range2, normalization=norm_arg).to_numpy()
     else:
-        mat = mo.getRecordsAsMatrix(region[2], region[3], region[0], region[1])
+        mat = hic.fetch(range2, range1, normalization=norm_arg).to_numpy()
         mat = mat.transpose()
 
     if normalization == "NONE":
@@ -126,23 +126,21 @@ def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization,
     if cmap is None:
         cmap = make_colormap(REDMAP_SPEC)
 
-    hic = _hu._HICSTRAW.HiCFile(hic_path)
+    hic = _hu._HICTKPY.File(hic_path, resolution)
     sys.stderr.write("[M::hicplot] .hic file loaded (genome: %s)\n"
-                     % hic.getGenomeID())
+                     % hic.attributes().get("assembly", "unknown"))
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
-    chroms = filter_chroms([(c.name, c.length) for c in hic.getChromosomes()])
+    chroms = filter_chroms(list(hic.chromosomes().items()))
     chroms, skipped = validate_chroms(hic, chroms, normalization, resolution)
     if skipped:
         sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
                          % ", ".join(skipped))
     base = strip_png_ext(output)
 
+    norm_arg = normalization if normalization != "NONE" else None
     for name, length in chroms:
-        mo = hic.getMatrixZoomData(
-            name, name, "observed", normalization, "BP", resolution,
-        )
-        mat = mo.getRecordsAsMatrix(1, int(length), 1, int(length))
+        mat = hic.fetch(name, normalization=norm_arg).to_numpy()
         if normalization == "NONE":
             mat = mat / norm
 
@@ -157,13 +155,13 @@ def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
     if cmap is None:
         cmap = make_colormap(REDMAP_SPEC)
 
-    hic = _hu._HICSTRAW.HiCFile(hic_path)
+    hic = _hu._HICTKPY.File(hic_path, resolution)
     chrom_order = get_chrom_names(hic)
     sys.stderr.write("[M::hicplot] .hic file loaded (genome: %s)\n"
-                     % hic.getGenomeID())
+                     % hic.attributes().get("assembly", "unknown"))
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
-    chroms = filter_chroms([(c.name, c.length) for c in hic.getChromosomes()])
+    chroms = filter_chroms(list(hic.chromosomes().items()))
     chroms, skipped = validate_chroms(hic, chroms, normalization, resolution)
     if skipped:
         sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
@@ -171,15 +169,13 @@ def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
     chrom_names = [c[0] for c in chroms]
     matrices = []
 
+    norm_arg = normalization if normalization != "NONE" else None
     for row in chroms:
         for col in chroms:
-            mo = hic.getMatrixZoomData(
-                row[0], col[0], "observed", normalization, "BP", resolution,
-            )
             if ordering_check(row[0], col[0], chrom_order):
-                m = mo.getRecordsAsMatrix(1, int(row[1]), 1, int(col[1]))
+                m = hic.fetch(row[0], col[0], normalization=norm_arg).to_numpy()
             else:
-                m = mo.getRecordsAsMatrix(1, int(col[1]), 1, int(row[1]))
+                m = hic.fetch(col[0], row[0], normalization=norm_arg).to_numpy()
                 m = m.transpose()
             matrices.append(m)
 
@@ -222,25 +218,22 @@ def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
     if cmap is None:
         cmap = make_colormap(BWRMAP_SPEC)
 
-    hic1 = _hu._HICSTRAW.HiCFile(path1)
-    hic2 = _hu._HICSTRAW.HiCFile(path2)
+    hic1 = _hu._HICTKPY.File(path1, resolution)
+    hic2 = _hu._HICTKPY.File(path2, resolution)
     chrom_order = get_chrom_names(hic1)
     sys.stderr.write("[M::hicplot] Both .hic files loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
-    mo1 = hic1.getMatrixZoomData(
-        chroms[0], chroms[1], "observed", normalization, "BP", resolution,
-    )
-    mo2 = hic2.getMatrixZoomData(
-        chroms[0], chroms[1], "observed", normalization, "BP", resolution,
-    )
+    norm_arg = normalization if normalization != "NONE" else None
+    range1 = "%s:%d-%d" % (chroms[0], region[0], region[1])
+    range2 = "%s:%d-%d" % (chroms[1], region[2], region[3])
 
     if ordering_check(chroms[0], chroms[1], chrom_order):
-        m1 = mo1.getRecordsAsMatrix(region[0], region[1], region[2], region[3])
-        m2 = mo2.getRecordsAsMatrix(region[0], region[1], region[2], region[3])
+        m1 = hic1.fetch(range1, range2, normalization=norm_arg).to_numpy()
+        m2 = hic2.fetch(range1, range2, normalization=norm_arg).to_numpy()
     else:
-        m1 = mo1.getRecordsAsMatrix(region[2], region[3], region[0], region[1])
-        m2 = mo2.getRecordsAsMatrix(region[2], region[3], region[0], region[1])
+        m1 = hic1.fetch(range2, range1, normalization=norm_arg).to_numpy()
+        m2 = hic2.fetch(range2, range1, normalization=norm_arg).to_numpy()
         m1, m2 = m1.transpose(), m2.transpose()
 
     result = _diff(m1, norm1, m2, norm2, normalization)
@@ -255,34 +248,25 @@ def _plot_diff_all(path1, norm1, path2, norm2, output, resolution, maxcolor,
     if cmap is None:
         cmap = make_colormap(BWRMAP_SPEC)
 
-    hic1 = _hu._HICSTRAW.HiCFile(path1)
-    hic2 = _hu._HICSTRAW.HiCFile(path2)
+    hic1 = _hu._HICTKPY.File(path1, resolution)
+    hic2 = _hu._HICTKPY.File(path2, resolution)
     sys.stderr.write("[M::hicplot] Both .hic files loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
-    chroms1 = filter_chroms([(c.name, c.length) for c in hic1.getChromosomes()])
+    chroms1 = filter_chroms(list(hic1.chromosomes().items()))
     chroms1, skipped = validate_chroms(hic1, chroms1, normalization, resolution)
     if skipped:
         sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
                          % ", ".join(skipped))
     valid_names = {c[0] for c in chroms1}
-    chroms2 = [(c.name, c.length) for c in hic2.getChromosomes()
-               if c.name in valid_names]
+    chroms2 = [(n, l) for n, l in hic2.chromosomes().items()
+               if n in valid_names]
     base = strip_png_ext(output)
 
+    norm_arg = normalization if normalization != "NONE" else None
     for i in range(len(chroms1)):
-        mo1 = hic1.getMatrixZoomData(
-            chroms1[i][0], chroms1[i][0], "observed", normalization,
-            "BP", resolution,
-        )
-        mo2 = hic2.getMatrixZoomData(
-            chroms2[i][0], chroms2[i][0], "observed", normalization,
-            "BP", resolution,
-        )
-        m1 = mo1.getRecordsAsMatrix(1, int(chroms1[i][1]),
-                                     1, int(chroms1[i][1]))
-        m2 = mo2.getRecordsAsMatrix(1, int(chroms2[i][1]),
-                                     1, int(chroms2[i][1]))
+        m1 = hic1.fetch(chroms1[i][0], normalization=norm_arg).to_numpy()
+        m2 = hic2.fetch(chroms2[i][0], normalization=norm_arg).to_numpy()
 
         result = _diff(m1, norm1, m2, norm2, normalization)
         plot_matrix(result, "%s_%s.png" % (base, chroms1[i][0]),
@@ -298,14 +282,14 @@ def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
     if cmap is None:
         cmap = make_colormap(BWRMAP_SPEC)
 
-    hic1 = _hu._HICSTRAW.HiCFile(path1)
-    hic2 = _hu._HICSTRAW.HiCFile(path2)
+    hic1 = _hu._HICTKPY.File(path1, resolution)
+    hic2 = _hu._HICTKPY.File(path2, resolution)
     chrom_order = get_chrom_names(hic1)
     sys.stderr.write("[M::hicplot] Both .hic files loaded (genome: %s)\n"
-                     % hic1.getGenomeID())
+                     % hic1.attributes().get("assembly", "unknown"))
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
-    chroms1 = filter_chroms([(c.name, c.length) for c in hic1.getChromosomes()])
+    chroms1 = filter_chroms(list(hic1.chromosomes().items()))
     chroms1, skipped = validate_chroms(hic1, chroms1, normalization, resolution)
     if skipped:
         sys.stderr.write("[W::hicplot] Skipped chromosomes without data: %s\n"
@@ -313,21 +297,16 @@ def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
     chrom_names = [c[0] for c in chroms1]
     matrices = []
 
+    norm_arg = normalization if normalization != "NONE" else None
     for i in range(len(chroms1)):
         for j in range(len(chroms1)):
             cr, cc = chroms1[i], chroms1[j]
-            mo1 = hic1.getMatrixZoomData(
-                cr[0], cc[0], "observed", normalization, "BP", resolution,
-            )
-            mo2 = hic2.getMatrixZoomData(
-                cr[0], cc[0], "observed", normalization, "BP", resolution,
-            )
             if ordering_check(cr[0], cc[0], chrom_order):
-                m1 = mo1.getRecordsAsMatrix(1, int(cr[1]), 1, int(cc[1]))
-                m2 = mo2.getRecordsAsMatrix(1, int(cr[1]), 1, int(cc[1]))
+                m1 = hic1.fetch(cr[0], cc[0], normalization=norm_arg).to_numpy()
+                m2 = hic2.fetch(cr[0], cc[0], normalization=norm_arg).to_numpy()
             else:
-                m1 = mo1.getRecordsAsMatrix(1, int(cc[1]), 1, int(cr[1]))
-                m2 = mo2.getRecordsAsMatrix(1, int(cc[1]), 1, int(cr[1]))
+                m1 = hic1.fetch(cc[0], cr[0], normalization=norm_arg).to_numpy()
+                m2 = hic2.fetch(cc[0], cr[0], normalization=norm_arg).to_numpy()
                 m1, m2 = m1.transpose(), m2.transpose()
 
             matrices.append(_diff(m1, norm1, m2, norm2, normalization))
@@ -515,7 +494,7 @@ Examples:
              "Common choices: NONE, KR, VC, VC_SQRT, SCALE -- but any "
              "normalization present in the .hic file is accepted. "
              "When not NONE, the :NORM values in -1/-2 are ignored and "
-             "hic-straw's built-in balancing is used instead.",
+             "the .hic file's built-in balancing is used instead.",
     )
 
     # -- Optional: colormap ----------------------------------------------
@@ -628,7 +607,7 @@ def hicplot(argv):
                           normalization, cmap=user_cmap)
     except MemoryError:
         sys.stderr.write(
-            "[E::hicplot] hic-straw crashed (out of memory).  "
+            "[E::hicplot] Out of memory.  "
             "This usually means the requested normalization '%s' "
             "is not available in the .hic file at %d BP resolution.\n"
             % (normalization, resolution)

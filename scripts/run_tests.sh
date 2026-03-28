@@ -15,7 +15,7 @@
 #
 set -euo pipefail
 
-module load python/3.9.0 2>/dev/null || true
+module load python/3.10 2>/dev/null || true
 
 # Install in editable mode if needed
 pip install -e ".[dev]" --quiet 2>/dev/null || pip install -e . --quiet

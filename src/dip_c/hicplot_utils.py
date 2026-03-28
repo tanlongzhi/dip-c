@@ -14,17 +14,17 @@ from contextlib import contextmanager
 import numpy as np
 
 # Lazy imports for optional deps -- checked at call sites
-_HICSTRAW = None
+_HICTKPY = None
 _PLT = None
 _LSCM = None
 
 
 def _ensure_hicplot_deps():
-    """Import hic-straw, matplotlib; raise informative error if missing."""
-    global _HICSTRAW, _PLT, _LSCM
-    if _HICSTRAW is None:
+    """Import hictkpy, matplotlib; raise informative error if missing."""
+    global _HICTKPY, _PLT, _LSCM
+    if _HICTKPY is None:
         try:
-            import hicstraw
+            import hictkpy
             import matplotlib.pyplot as plt
             from matplotlib.colors import LinearSegmentedColormap
         except ImportError as exc:
@@ -33,7 +33,7 @@ def _ensure_hicplot_deps():
                 "    pip install run-dipc[hicplot]\n"
             )
             raise SystemExit(1) from exc
-        _HICSTRAW = hicstraw
+        _HICTKPY = hictkpy
         _PLT = plt
         _LSCM = LinearSegmentedColormap
 
@@ -52,8 +52,8 @@ DEFAULT_SKIP_CHROMS = {"All", "ALL"}
 # ---------------------------------------------------------------------------
 
 def get_chrom_names(hic_file):
-    """Return the ordered list of chromosome names from a HiCFile object."""
-    return [c.name for c in hic_file.getChromosomes()]
+    """Return the ordered list of chromosome names from a hictkpy File."""
+    return list(hic_file.chromosomes().keys())
 
 
 
@@ -211,7 +211,7 @@ def filter_chroms(chrom_list):
 def _suppress_native_stderr():
     """Temporarily redirect file-descriptor 2 to /dev/null.
 
-    Suppresses warnings printed by C/C++ libraries (e.g. hic-straw)
+    Suppresses warnings printed by C/C++ libraries (e.g. hictkpy)
     that write directly to fd 2 and cannot be caught from Python.
     Python-level sys.stderr is also silenced while inside the context,
     so keep usage narrow.
@@ -234,21 +234,20 @@ def validate_chroms(hic, chroms, normalization, resolution):
 
     Probes each chromosome with a full self-vs-self query at the given
     resolution.  Chromosomes whose matrix is empty or all-zero are
-    dropped.  C-level hic-straw warnings are suppressed during the
-    probe so they do not clutter stderr.
+    dropped.  C-level warnings are suppressed during the probe so they
+    do not clutter stderr.
 
     Returns ``(valid_chroms, skipped_names)``.
     """
     _ensure_hicplot_deps()
+    norm_arg = normalization if normalization != "NONE" else None
     valid = []
     skipped = []
     with _suppress_native_stderr():
         for name, length in chroms:
             try:
-                mo = hic.getMatrixZoomData(
-                    name, name, "observed", normalization, "BP", resolution,
-                )
-                m = mo.getRecordsAsMatrix(1, int(length), 1, int(length))
+                sel = hic.fetch(name, normalization=norm_arg)
+                m = sel.to_numpy()
                 if m.size > 0 and m.sum() != 0:
                     valid.append((name, length))
                 else:
