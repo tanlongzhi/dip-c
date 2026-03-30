@@ -205,7 +205,7 @@ An example `.reg` file is:
 
 ## <a name="require"></a>Installation and Requirements
 ### <a name="basic_require"></a>Basic Requirements
-Dip-C requires Python 3.9+ and was tested on macOS and Linux.
+Dip-C requires Python 3.10+ and was tested on macOS and Linux.
 
 | Method | When to use | Install time |
 |--------|-------------|--------------|

@@ -4,6 +4,18 @@ All notable changes to dip-c (`run-dipc` on PyPI) will be documented in this fil
 
 ## [Unreleased]
 
+## [1.9.8] - 2026-03-29
+
+### Added
+- `hicplot` subcommand: plot Hi-C contact maps from .hic files (absolute, difference, per-chromosome, and all-in-one modes)
+- `merge` subcommand: hierarchical sort-merge of .pairs.gz files using GNU sort and pigz
+- Full test coverage for hicplot, merge, hicplot_utils, and merge_utils (774 tests total, 100% coverage)
+
+### Changed
+- Replaced `hic-straw` dependency with `hictkpy>=1.4`
+- Minimum Python version bumped from 3.9 to 3.10
+- Fixed `_version.py` to use correct PyPI package name (`run-dipc`)
+
 ## [1.9.6] - 2026-03-08
 
 ### Added

@@ -27,7 +27,7 @@ See [Installation](installation.md) for full details.
 
 ## Commands
 
-Dip-C provides 27 subcommands covering the full single-cell 3D genome reconstruction pipeline. Run `dip-c <command>` without arguments to see usage for any command.
+Dip-C provides 30 subcommands covering the full single-cell 3D genome reconstruction pipeline. Run `dip-c <command>` without arguments to see usage for any command.
 
 ### Contact processing
 
@@ -75,6 +75,14 @@ Dip-C provides 27 subcommands covering the full single-cell 3D genome reconstruc
 | `pos` | Find 3D positions from a 3DG file |
 | `ard` | Contacts around reference points |
 | `cv` | Cross-validation of CON files |
+
+### Hi-C and .pairs processing
+
+| Command | Description |
+|---------|-------------|
+| `hicplot` | Plot Hi-C contact maps from .hic files (requires `pip install run-dipc[hicplot]`) |
+| `merge` | Hierarchical sort-merge of .pairs.gz files (requires GNU sort + pigz) |
+| `pairs2con` | Convert hickit .pairs.gz to .con.gz format |
 
 ### Utilities
 

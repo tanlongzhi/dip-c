@@ -3,7 +3,7 @@
 try:
     from importlib.metadata import version, PackageNotFoundError
     try:
-        __version__ = version("dip-c")
+        __version__ = version("run-dipc")
     except PackageNotFoundError:
         __version__ = "unknown"
 except ImportError:

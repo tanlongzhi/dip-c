@@ -31,7 +31,7 @@ pytest tests/test_commands.py::TestCon3Command::test_con3_generates_contacts
 
 ## CI (GitHub Actions)
 
-**Automatic:** Every push to `pypi-packaging` or `master` runs the fast test suite (no FullGenome) across Python 3.9–3.13 on Ubuntu + 3.12 on macOS.
+**Automatic:** Every push to `pypi-packaging` or `master` runs the fast test suite (no FullGenome) across Python 3.10–3.13 on Ubuntu + 3.12–3.13 on macOS.
 
 **Manual full-genome run:**
 
@@ -49,13 +49,13 @@ Workflow files:
 
 ## Releasing a new version
 
-1. Update `VERSION` file (currently `1.9.2`)
+1. Update `VERSION` file
 2. Commit, push, and make sure CI is green
-3. Create a GitHub release (tag matching the version, e.g. `v1.9.3`)
+3. Create a GitHub release (tag matching the version, e.g. `v1.9.8`)
 4. The publish workflow automatically builds and uploads to PyPI
 5. Check the workflow logs for the SHA256 hash — you'll need it for the conda recipe
 
-**Requires:** `PYPI_API_TOKEN` secret in the repo settings.
+**Requires:** `DIPC_PYPI_TOKEN` secret in the repo settings.
 
 ## Project layout
 

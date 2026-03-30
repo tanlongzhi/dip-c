@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install ".[dev]"
+      - run: pip install ".[dev,hicplot]" cooler
       # Python 3.13: run without coverage (pysam + coverage.py + 3.13 causes segfault)
       - run: pytest tests/ -v --tb=short
         if: inputs.full_genome == true && matrix.python-version == '3.13'

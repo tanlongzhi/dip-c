@@ -105,6 +105,6 @@ Dip-C does not call these tools directly. BWA, SAMtools, hickit, and pre-meta ar
 
 ## Supported platforms
 
-- **Python**: 3.9, 3.10, 3.11, 3.12, 3.13
+- **Python**: 3.10, 3.11, 3.12, 3.13
 - **OS**: Linux (Ubuntu), macOS (Apple Silicon and Intel)
 - Tested via GitHub Actions CI on every commit
