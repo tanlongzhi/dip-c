@@ -7,18 +7,14 @@ present:
   -c1 supplied?   => single-region   (one chromosomal window)
   --allinone?     => whole genome composited into one PNG
   (none of above) => per-chromosome  (one PNG per chromosome)
-
-Requires:  pip install run-dipc[hicplot]
 """
 
 import argparse
 import sys
 import numpy as np
-
-import dip_c.hicplot_utils as _hu
+import hictkpy
 
 from dip_c.hicplot_utils import (
-    _ensure_hicplot_deps,
     get_chrom_names,
     ordering_check,
     make_colormap,
@@ -92,11 +88,10 @@ def _parse_region(spec):
 def _plot_map(hic_path, norm, output, chroms, region, resolution, maxcolor,
               normalization, cmap=None):
     """Single chromosomal region from one .hic file."""
-    _ensure_hicplot_deps()
     if cmap is None:
         cmap = make_colormap(REDMAP_SPEC)
 
-    hic = _hu._HICTKPY.File(hic_path, resolution)
+    hic = hictkpy.File(hic_path, resolution)
     chrom_order = get_chrom_names(hic)
     sys.stderr.write("[M::hicplot] .hic file loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
@@ -122,11 +117,10 @@ def _plot_map(hic_path, norm, output, chroms, region, resolution, maxcolor,
 def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization,
               cmap=None):
     """Each chromosome individually -- one PNG per chromosome."""
-    _ensure_hicplot_deps()
     if cmap is None:
         cmap = make_colormap(REDMAP_SPEC)
 
-    hic = _hu._HICTKPY.File(hic_path, resolution)
+    hic = hictkpy.File(hic_path, resolution)
     sys.stderr.write("[M::hicplot] .hic file loaded (genome: %s)\n"
                      % hic.attributes().get("assembly", "unknown"))
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
@@ -151,11 +145,10 @@ def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization,
 def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
                    normalization, gridlines=True, cmap=None):
     """Whole genome composited into one image."""
-    _ensure_hicplot_deps()
     if cmap is None:
         cmap = make_colormap(REDMAP_SPEC)
 
-    hic = _hu._HICTKPY.File(hic_path, resolution)
+    hic = hictkpy.File(hic_path, resolution)
     chrom_order = get_chrom_names(hic)
     sys.stderr.write("[M::hicplot] .hic file loaded (genome: %s)\n"
                      % hic.attributes().get("assembly", "unknown"))
@@ -214,12 +207,11 @@ def _diff(m1, norm1, m2, norm2, normalization):
 def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
                    resolution, maxcolor, normalization, cmap=None):
     """Difference map for a single chromosomal region."""
-    _ensure_hicplot_deps()
     if cmap is None:
         cmap = make_colormap(BWRMAP_SPEC)
 
-    hic1 = _hu._HICTKPY.File(path1, resolution)
-    hic2 = _hu._HICTKPY.File(path2, resolution)
+    hic1 = hictkpy.File(path1, resolution)
+    hic2 = hictkpy.File(path2, resolution)
     chrom_order = get_chrom_names(hic1)
     sys.stderr.write("[M::hicplot] Both .hic files loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
@@ -244,12 +236,11 @@ def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
 def _plot_diff_all(path1, norm1, path2, norm2, output, resolution, maxcolor,
                    normalization, cmap=None):
     """Per-chromosome difference maps."""
-    _ensure_hicplot_deps()
     if cmap is None:
         cmap = make_colormap(BWRMAP_SPEC)
 
-    hic1 = _hu._HICTKPY.File(path1, resolution)
-    hic2 = _hu._HICTKPY.File(path2, resolution)
+    hic1 = hictkpy.File(path1, resolution)
+    hic2 = hictkpy.File(path2, resolution)
     sys.stderr.write("[M::hicplot] Both .hic files loaded\n")
     sys.stderr.write("[M::hicplot] Normalization: %s\n" % normalization)
 
@@ -278,12 +269,11 @@ def _plot_diff_all(path1, norm1, path2, norm2, output, resolution, maxcolor,
 def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
                         maxcolor, normalization, gridlines=True, cmap=None):
     """Whole-genome difference map in one image."""
-    _ensure_hicplot_deps()
     if cmap is None:
         cmap = make_colormap(BWRMAP_SPEC)
 
-    hic1 = _hu._HICTKPY.File(path1, resolution)
-    hic2 = _hu._HICTKPY.File(path2, resolution)
+    hic1 = hictkpy.File(path1, resolution)
+    hic2 = hictkpy.File(path2, resolution)
     chrom_order = get_chrom_names(hic1)
     sys.stderr.write("[M::hicplot] Both .hic files loaded (genome: %s)\n"
                      % hic1.attributes().get("assembly", "unknown"))

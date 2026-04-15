@@ -42,10 +42,16 @@ def main():
         sys.stderr.write("  pairs2con  convert hickit .pairs.gz to .con.gz format\n")
         sys.stderr.write("\n")
         sys.stderr.write("  data-path  print path to installed data directory\n")
+        sys.stderr.write("  version    print installed version\n")
         sys.stderr.write("\n")
-        sys.stderr.write("  hicplot    plot Hi-C contact maps from .hic files (requires: pip install run-dipc[hicplot])\n")
+        sys.stderr.write("  hicplot    plot Hi-C contact maps from .hic files\n")
         sys.stderr.write("  merge      hierarchical sort-merge of .pairs.gz files\n")
         return 1
+
+    if sys.argv[1] in ("--version", "-V"):
+        from dip_c._version import __version__
+        print(__version__)
+        return 0
 
     if sys.argv[1] == "--completion":
         from dip_c.completion import generate_completion_script
@@ -141,6 +147,10 @@ def main():
         return_value = pairs2con(sys.argv[1:])
     elif command == "data-path":
         print(os.path.join(os.path.dirname(__file__), "data"))
+        return 0
+    elif command == "version":
+        from dip_c._version import __version__
+        print(__version__)
         return 0
     elif command == "hicplot":
         from dip_c.commands.hicplot import hicplot

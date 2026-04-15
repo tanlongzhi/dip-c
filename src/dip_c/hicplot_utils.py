@@ -2,8 +2,6 @@
 
 Provides matrix visualization, chromosome ordering, and genome-aware
 layout helpers used by the hicplot* commands.
-
-Requires optional dependencies: pip install run-dipc[hicplot]
 """
 
 import os
@@ -12,30 +10,10 @@ import re
 from contextlib import contextmanager
 
 import numpy as np
-
-# Lazy imports for optional deps -- checked at call sites
-_HICTKPY = None
-_PLT = None
-_LSCM = None
-
-
-def _ensure_hicplot_deps():
-    """Import hictkpy, matplotlib; raise informative error if missing."""
-    global _HICTKPY, _PLT, _LSCM
-    if _HICTKPY is None:
-        try:
-            import hictkpy
-            import matplotlib.pyplot as plt
-            from matplotlib.colors import LinearSegmentedColormap
-        except ImportError as exc:
-            sys.stderr.write(
-                "[E::hicplot] Missing dependencies. Install with:\n"
-                "    pip install run-dipc[hicplot]\n"
-            )
-            raise SystemExit(1) from exc
-        _HICTKPY = hictkpy
-        _PLT = plt
-        _LSCM = LinearSegmentedColormap
+import hictkpy
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap, to_rgba
 
 
 # Colormaps
@@ -70,8 +48,7 @@ def ordering_check(chrom_1, chrom_2, chrom_order):
 
 def make_colormap(spec):
     """Create a LinearSegmentedColormap from a ``(name, color_list)`` tuple."""
-    _ensure_hicplot_deps()
-    return _LSCM.from_list(spec[0], spec[1])
+    return LinearSegmentedColormap.from_list(spec[0], spec[1])
 
 
 def resolve_colormap(spec):
@@ -89,10 +66,6 @@ def resolve_colormap(spec):
         resolve_colormap("blue,white,red")
         resolve_colormap("#0000ff,#ffffff,#ff0000")
     """
-    _ensure_hicplot_deps()
-    import matplotlib
-    from matplotlib.colors import to_rgba
-
     try:
         return matplotlib.colormaps[spec]
     except (KeyError, ValueError):
@@ -114,7 +87,7 @@ def resolve_colormap(spec):
         )
         raise SystemExit(1) from exc
 
-    return _LSCM.from_list("custom", colors)
+    return LinearSegmentedColormap.from_list("custom", colors)
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +101,6 @@ def plot_matrix(input_matrix, output_png_path, cmap, vmin, vmax,
     Automatically switches to 1 px/bin for matrices >= 1000 bins on a side
     to avoid memory exhaustion.
     """
-    _ensure_hicplot_deps()
-
     dpi = 300
     if input_matrix.shape[0] >= 1000:
         multipl_factor = 1
@@ -140,7 +111,7 @@ def plot_matrix(input_matrix, output_png_path, cmap, vmin, vmax,
     )
     sys.stderr.write("[M::hicplot] Figure size: %s\n" % (figsize,))
 
-    fig = _PLT.figure(figsize=figsize, dpi=dpi)
+    fig = plt.figure(figsize=figsize, dpi=dpi)
     ax = fig.add_axes([0, 0, 1, 1])
     ax.imshow(input_matrix, cmap=cmap, vmin=vmin, vmax=vmax,
               aspect="equal", interpolation="nearest")
@@ -152,10 +123,10 @@ def plot_matrix(input_matrix, output_png_path, cmap, vmin, vmax,
         for x in vlines:
             ax.axvline(x=x, color="black", linewidth=0.5)
 
-    _PLT.axis("off")
-    _PLT.savefig(output_png_path, format="png", dpi=dpi,
-                 bbox_inches="tight", pad_inches=0, transparent=True)
-    _PLT.close()
+    plt.axis("off")
+    plt.savefig(output_png_path, format="png", dpi=dpi,
+                bbox_inches="tight", pad_inches=0, transparent=True)
+    plt.close()
 
 
 # ---------------------------------------------------------------------------
@@ -239,7 +210,6 @@ def validate_chroms(hic, chroms, normalization, resolution):
 
     Returns ``(valid_chroms, skipped_names)``.
     """
-    _ensure_hicplot_deps()
     norm_arg = normalization if normalization != "NONE" else None
     valid = []
     skipped = []

@@ -26,6 +26,8 @@ dependencies = [
     "rmsd>=1.5",
     "mmcif-pdbx>=2.0",
     "pysam>=0.20",
+    "hictkpy>=1.4",
+    "matplotlib>=3.5",
 ]
 
 [project.urls]
@@ -33,7 +35,6 @@ Homepage = "https://github.com/tanlongzhi/dip-c"
 Repository = "https://github.com/tanlongzhi/dip-c"
 
 [project.optional-dependencies]
-hicplot = ["hictkpy>=1.4", "matplotlib>=3.5"]
 dev = ["pytest>=7.0", "pytest-cov"]
 docs = ["mkdocs-material", "mkdocs>=1.5,<2"]
 

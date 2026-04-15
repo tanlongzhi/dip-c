@@ -126,4 +126,5 @@ htmlcov/
 
 # Claude Code
 .claude/
+CLAUDE.md
 site/

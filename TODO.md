@@ -1,6 +1,6 @@
 # TODO
 
-## v1.9.9 (planned)
+Planned work for a future release (not necessarily the next one).
 
 ### Merge command portability
 - Replace `pigz` with Python `gzip` module (or fall back gracefully)

@@ -80,7 +80,7 @@ Dip-C provides 30 subcommands covering the full single-cell 3D genome reconstruc
 
 | Command | Description |
 |---------|-------------|
-| `hicplot` | Plot Hi-C contact maps from .hic files (requires `pip install run-dipc[hicplot]`) |
+| `hicplot` | Plot Hi-C contact maps from .hic files |
 | `merge` | Hierarchical sort-merge of .pairs.gz files (requires GNU sort + pigz) |
 | `pairs2con` | Convert hickit .pairs.gz to .con.gz format |
 

@@ -1,6 +1,5 @@
 """Unit tests for dip_c.hicplot_utils."""
 
-import importlib
 import os
 import sys
 
@@ -12,7 +11,6 @@ from dip_c.hicplot_utils import (
     BWRMAP_SPEC,
     DEFAULT_SKIP_CHROMS,
     REDMAP_SPEC,
-    _ensure_hicplot_deps,
     _suppress_native_stderr,
     chroms_per_row_for_genome,
     filter_chroms,
@@ -25,45 +23,6 @@ from dip_c.hicplot_utils import (
     strip_png_ext,
     validate_chroms,
 )
-
-
-# ===================================================================
-# _ensure_hicplot_deps
-# ===================================================================
-
-class TestEnsureHicplotDeps:
-    def test_imports_successfully(self):
-        _ensure_hicplot_deps()
-        assert hu._HICTKPY is not None
-        assert hu._PLT is not None
-        assert hu._LSCM is not None
-
-    def test_noop_on_second_call(self):
-        _ensure_hicplot_deps()
-        hictkpy_ref = hu._HICTKPY
-        _ensure_hicplot_deps()
-        assert hu._HICTKPY is hictkpy_ref
-
-    def test_missing_deps_raises_system_exit(self, monkeypatch):
-        import builtins
-        real_import = builtins.__import__
-
-        # Save and reset the global so the guard triggers
-        saved = hu._HICTKPY
-        hu._HICTKPY = None
-
-        def fake_import(name, *args, **kwargs):
-            if name == "hictkpy":
-                raise ImportError("no hictkpy")
-            return real_import(name, *args, **kwargs)
-
-        monkeypatch.setattr(builtins, "__import__", fake_import)
-        try:
-            with pytest.raises(SystemExit) as exc_info:
-                _ensure_hicplot_deps()
-            assert exc_info.value.code == 1
-        finally:
-            hu._HICTKPY = saved
 
 
 # ===================================================================
