@@ -3,8 +3,7 @@
 **Recommended (works everywhere, ~1 minute):**
 
 ```bash
-conda create -n dipc -c bioconda -c conda-forge \
-    python=3.11 hictkpy matplotlib numpy scipy pysam
+conda create -n dipc -c conda-forge -c bioconda python=3.11 hictkpy matplotlib numpy scipy pysam
 conda activate dipc
 pip install run-dipc
 ```
