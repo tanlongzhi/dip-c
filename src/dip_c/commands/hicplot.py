@@ -8,6 +8,15 @@ present:
   --allinone?     => whole genome composited into one PNG
   (none of above) => per-chromosome  (one PNG per chromosome)
 
+Normalization convention
+------------------------
+Whatever matrix hictkpy returns -- raw counts for ``-n NONE`` or balanced
+values for ``-n SCALE``/``KR``/``VC``/``VC_SQRT`` -- is **always** divided
+by the per-file ``:NORM`` (total contact count) before plotting.  This
+puts every normalization into the same per-bin-pair-fraction units, so a
+single ``-s`` (colour-scale max) works across normalizations.  ``:NORM``
+is therefore required for every run, not just for ``-n NONE``.
+
 Requires:  pip install run-dipc[hicplot]
 """
 
@@ -41,9 +50,11 @@ from dip_c.hicplot_utils import (
 def _parse_file_spec(spec):
     """Parse ``path.hic:NORM`` => ``(path, norm_float)``.
 
-    *NORM* is the contact-count factor used when ``-n NONE``
-    (raw counts are divided by it).  Defaults to **1** when the colon
-    portion is omitted, which effectively means "no scaling".
+    *NORM* is the total contact count for the file. The matrix returned by
+    hictkpy (raw or balanced, depending on ``-n``) is **always** divided by
+    NORM, so the same colour scale (``-s``) works for any normalization.
+    Defaults to **1** when the colon portion is omitted; the CLI validator
+    rejects NORM == 1 so users can't accidentally skip the divide.
     """
     idx = spec.rfind(":")
     if idx > 0:
@@ -112,8 +123,7 @@ def _plot_map(hic_path, norm, output, chroms, region, resolution, maxcolor,
         mat = hic.fetch(range2, range1, normalization=norm_arg).to_numpy()
         mat = mat.transpose()
 
-    if normalization == "NONE":
-        mat = mat / norm
+    mat = mat / norm
 
     sys.stderr.write("[M::hicplot] Matrix shape: %s\n" % (mat.shape,))
     plot_matrix(mat, output, cmap, 0, maxcolor)
@@ -141,8 +151,7 @@ def _plot_all(hic_path, norm, output, resolution, maxcolor, normalization,
     norm_arg = normalization if normalization != "NONE" else None
     for name, length in chroms:
         mat = hic.fetch(name, normalization=norm_arg).to_numpy()
-        if normalization == "NONE":
-            mat = mat / norm
+        mat = mat / norm
 
         plot_matrix(mat, "%s_%s.png" % (base, name), cmap, 0, maxcolor)
         sys.stderr.write("[M::hicplot] Chromosome %s complete\n" % name)
@@ -189,8 +198,7 @@ def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
         rows, cols = mat.shape
         final[r:r + rows, c:c + cols] = mat
 
-    if normalization == "NONE":
-        final = final / norm
+    final = final / norm
 
     hlines = vlines = None
     if gridlines:
@@ -204,11 +212,14 @@ def _plot_allinone(hic_path, norm, output, resolution, maxcolor,
 # Difference-map helpers
 # ==========================================================================
 
-def _diff(m1, norm1, m2, norm2, normalization):
-    """(m1/norm1 - m2/norm2) when NONE, else (m1 - m2)."""
-    if normalization == "NONE":
-        return m1 / norm1 - m2 / norm2
-    return m1 - m2
+def _diff(m1, norm1, m2, norm2):
+    """Return ``m1 / norm1 - m2 / norm2``.
+
+    Both matrices are always normalised by their per-file ``:NORM`` total
+    contact counts before subtraction, regardless of the ``-n`` choice.
+    See module docstring for the rationale.
+    """
+    return m1 / norm1 - m2 / norm2
 
 
 def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
@@ -236,7 +247,7 @@ def _plot_diff_map(path1, norm1, path2, norm2, output, chroms, region,
         m2 = hic2.fetch(range2, range1, normalization=norm_arg).to_numpy()
         m1, m2 = m1.transpose(), m2.transpose()
 
-    result = _diff(m1, norm1, m2, norm2, normalization)
+    result = _diff(m1, norm1, m2, norm2)
     sys.stderr.write("[M::hicplot] Diff matrix shape: %s\n" % (result.shape,))
     plot_matrix(result, output, cmap, -maxcolor, maxcolor)
 
@@ -268,7 +279,7 @@ def _plot_diff_all(path1, norm1, path2, norm2, output, resolution, maxcolor,
         m1 = hic1.fetch(chroms1[i][0], normalization=norm_arg).to_numpy()
         m2 = hic2.fetch(chroms2[i][0], normalization=norm_arg).to_numpy()
 
-        result = _diff(m1, norm1, m2, norm2, normalization)
+        result = _diff(m1, norm1, m2, norm2)
         plot_matrix(result, "%s_%s.png" % (base, chroms1[i][0]),
                     cmap, -maxcolor, maxcolor)
         sys.stderr.write("[M::hicplot] Chromosome %s complete\n"
@@ -309,7 +320,7 @@ def _plot_diff_allinone(path1, norm1, path2, norm2, output, resolution,
                 m2 = hic2.fetch(cc[0], cr[0], normalization=norm_arg).to_numpy()
                 m1, m2 = m1.transpose(), m2.transpose()
 
-            matrices.append(_diff(m1, norm1, m2, norm2, normalization))
+            matrices.append(_diff(m1, norm1, m2, norm2))
 
     per_row = chroms_per_row_for_genome(len(chroms1))
     positions, final_size = get_positions_and_matrix_size(matrices, per_row)
@@ -354,13 +365,18 @@ Mode is inferred from flags:
 
 File spec format:
   FILE:NORM         e.g. abc.hic:123456789
-  The NORM factor is only used with -n NONE (default).
-  Omit the colon+number when using a normalization from the .hic file.
+  NORM is the total contact count for the file.  The matrix returned
+  by hictkpy (raw counts for -n NONE, balanced values for -n SCALE,
+  KR, VC, VC_SQRT) is ALWAYS divided by NORM before plotting, so the
+  same -s works regardless of -n.  NORM is required (must be > 1)
+  for every run.
 
 Normalization:
   Any normalization stored in the .hic file may be used (e.g. NONE, KR,
   VC, VC_SQRT, SCALE).  Available normalizations depend on the Juicer
-  Tools version that created the file.
+  Tools version that created the file.  Whichever normalization is
+  chosen, the resulting matrix is divided by :NORM (see above), so the
+  displayed values are per-bin-pair fractions in all cases.
 
 Region format:
   CHR:START-END     e.g. chr1:1-10000000
@@ -378,29 +394,36 @@ Colormap (-C):
 
 Examples:
   # Absolute map, single symmetric region (SCALE normalization)
-  dip-c hicplot -1 abc.hic -c1 chr1:1-10000000 \\
+  dip-c hicplot -1 abc.hic:123456789 -c1 chr1:1-10000000 \\
                 -o out.png -r 1000000 -s 1.5e-6 -n SCALE
 
   # Absolute map, asymmetric region (chr1 vs chr2)
-  dip-c hicplot -1 abc.hic -c1 chr1:1-10000000 \\
+  dip-c hicplot -1 abc.hic:123456789 -c1 chr1:1-10000000 \\
                 -c2 chr2:1-10000000 -o out.png -r 1000000 -s 1.5e-6 -n SCALE
 
   # Absolute map, all chromosomes (one PNG each)
-  dip-c hicplot -1 abc.hic -o out.png -r 1000000 -s 1.5e-6 -n SCALE
+  dip-c hicplot -1 abc.hic:123456789 \\
+                -o out.png -r 1000000 -s 1.5e-6 -n SCALE
 
   # Absolute map, whole genome in one image (with gridlines)
-  dip-c hicplot -1 abc.hic --allinone \\
+  dip-c hicplot -1 abc.hic:123456789 --allinone \\
                 -o out.png -r 1000000 -s 1.5e-6 -n SCALE
 
   # Same but without gridlines
-  dip-c hicplot -1 abc.hic --allinone -G \\
+  dip-c hicplot -1 abc.hic:123456789 --allinone -G \\
                 -o out.png -r 1000000 -s 1.5e-6 -n SCALE
 
+  # Same plot but with -n NONE -- identical -s works because both
+  # NONE and SCALE matrices are divided by :NORM before plotting
+  dip-c hicplot -1 abc.hic:123456789 --allinone \\
+                -o out.png -r 1000000 -s 1.5e-6 -n NONE
+
   # Difference map, single region, KR normalization
-  dip-c hicplot -1 abc.hic -2 def.hic -c1 chr1:1-10000000 \\
+  dip-c hicplot -1 abc.hic:123456789 -2 def.hic:987654321 \\
+                -c1 chr1:1-10000000 \\
                 -o diff.png -r 1000000 -s 1.5e-6 -n KR
 
-  # Difference map, all chromosomes (NONE normalization, :NORM required)
+  # Difference map, all chromosomes (NONE normalization)
   dip-c hicplot -1 abc.hic:123456789 -2 def.hic:987654321 \\
                 -o diff.png -r 1000000 -s 1.5e-6
 
@@ -409,11 +432,11 @@ Examples:
                 -o diff.png -r 1000000 -s 1.5e-6
 
   # Custom colormap (matplotlib named)
-  dip-c hicplot -1 abc.hic --allinone \\
+  dip-c hicplot -1 abc.hic:123456789 --allinone \\
                 -o out.png -r 1000000 -s 1.5e-6 -n SCALE -C YlOrRd
 
   # Custom colormap (comma-separated colour stops)
-  dip-c hicplot -1 abc.hic -c1 chr1:1-10000000 \\
+  dip-c hicplot -1 abc.hic:123456789 -c1 chr1:1-10000000 \\
                 -o out.png -r 1000000 -s 1.5e-6 -n KR -C 'white,orange,darkred'
 """,
     )
@@ -422,10 +445,12 @@ Examples:
     p.add_argument(
         "-1", dest="file1", required=True,
         metavar="HIC:NORM",
-        help="First .hic file with optional normalization factor "
-             "(e.g. abc.hic:123456789).  The NORM part is the total "
-             "contact count used to scale raw matrices when -n NONE.  "
-             "Omit the :NORM when using built-in normalizations.",
+        help="First .hic file plus total contact count, "
+             "e.g. abc.hic:123456789. The matrix returned by hictkpy "
+             "(raw counts for -n NONE, balanced values for "
+             "-n SCALE/KR/VC/VC_SQRT) is always divided by NORM "
+             "before plotting, so the same -s value can be used for "
+             "every -n. NORM is required and must be > 1.",
     )
     p.add_argument(
         "-o", "--output", required=True,
@@ -449,8 +474,11 @@ Examples:
     p.add_argument(
         "-2", dest="file2", default=None,
         metavar="HIC:NORM",
-        help="Second .hic file (with optional :NORM).  When supplied, "
-             "produces a difference map (file 1 minus file 2).",
+        help="Second .hic file plus its total contact count, "
+             "e.g. def.hic:987654321.  When supplied, produces a "
+             "difference map: (file1_matrix / NORM1) minus "
+             "(file2_matrix / NORM2).  NORM is required (must be > 1) "
+             "whenever -2 is given.",
     )
 
     # -- Optional: regions (triggers single-region mode) -----------------
@@ -492,9 +520,12 @@ Examples:
         metavar="TYPE",
         help="Normalization method (default: NONE). "
              "Common choices: NONE, KR, VC, VC_SQRT, SCALE -- but any "
-             "normalization present in the .hic file is accepted. "
-             "When not NONE, the :NORM values in -1/-2 are ignored and "
-             "the .hic file's built-in balancing is used instead.",
+             "normalization stored in the .hic file is accepted. "
+             "The matrix returned by hictkpy (raw for NONE, balanced "
+             "for SCALE/KR/VC/VC_SQRT) is then always divided by the "
+             ":NORM total contact count, putting every normalization "
+             "into the same per-bin-pair-fraction units. As a result "
+             "the same -s works regardless of -n.",
     )
 
     # -- Optional: colormap ----------------------------------------------
@@ -529,13 +560,13 @@ def hicplot(argv):
     maxcolor = args.scale
     normalization = args.normalization
 
-    # Validate: -n NONE requires :NORM on file specs
-    if normalization == "NONE":
-        if norm1 == 1:
-            parser.error(
-                "-n NONE (default) requires a contact count on -1, "
-                "e.g. -1 abc.hic:123456789. "
-                "Use -n SCALE (or KR, VC, etc.) to skip the :NORM.")
+    # Validate: every run requires :NORM on -1 (always used as divisor)
+    if norm1 == 1:
+        parser.error(
+            "Requires a total contact count on -1, "
+            "e.g. -1 abc.hic:123456789. "
+            "The matrix is always divided by this value -- regardless "
+            "of -n -- so one -s value works across normalizations.")
 
     is_diff = args.file2 is not None
     is_region = args.region1 is not None
@@ -576,11 +607,13 @@ def hicplot(argv):
     try:
         if is_diff:
             path2, norm2 = _parse_file_spec(args.file2)
-            if normalization == "NONE" and norm2 == 1:
+            if norm2 == 1:
                 parser.error(
-                    "-n NONE (default) requires a contact count on -2, "
+                    "Requires a total contact count on -2, "
                     "e.g. -2 def.hic:987654321. "
-                    "Use -n SCALE (or KR, VC, etc.) to skip the :NORM.")
+                    "The matrix is always divided by this value -- "
+                    "regardless of -n -- so one -s value works across "
+                    "normalizations.")
 
             if is_region:
                 _plot_diff_map(path1, norm1, path2, norm2, output,
