@@ -1,7 +1,8 @@
 name: Publish to PyPI
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
 permissions:
   contents: read
 jobs:
@@ -26,8 +27,15 @@ jobs:
   publish:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Verify tag matches VERSION
+        run: |
+          test "v$(cat VERSION)" = "$GITHUB_REF_NAME" \
+            || { echo "::error::tag $GITHUB_REF_NAME != v$(cat VERSION) in VERSION file"; exit 1; }
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -36,5 +44,3 @@ jobs:
       - name: Print SHA256 for conda recipe
         run: sha256sum dist/run_dipc-*.tar.gz
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.DIPC_PYPI_TOKEN }}
