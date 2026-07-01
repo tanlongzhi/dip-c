@@ -67,7 +67,7 @@ def rg(argv):
         output_prefix = args[0] + "."
         
     # read 3DG file
-    g3d_data = file_to_g3d_data(open(args[0], "rb"))
+    g3d_data = file_to_g3d_data(open(args[0], "r"))
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + str(g3d_resolution) + " bp resolution\n")
@@ -81,7 +81,7 @@ def rg(argv):
             reg.add_haplotype(haplotype)
             reg_list.append(reg)
     else:
-        reg_file = gzip.open(reg_file_name, "rb") if reg_file_name.endswith(".gz") else open(reg_file_name, "rb")
+        reg_file = gzip.open(reg_file_name, "rt") if reg_file_name.endswith(".gz") else open(reg_file_name, "r")
         reg_list.extend(file_to_reg_list(reg_file))
         reg_file.close()
         reg_list = [reg for reg in get_phased_regs(reg_list)]

@@ -43,5 +43,5 @@ for read in samfile.fetch(until_eof=True):
 
 # print
 for i in range(maxSize + 1):
-    print str(i)+'\t'+str(sizeCounts[i])
+    print(f"{i}\t{sizeCounts[i]}")
         

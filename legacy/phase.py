@@ -23,7 +23,7 @@ for inputLine in inputFile:
         inputAlignmentData = inputAlignment.split(",")
         inputAlignmentData.append("-1")
         inputData[inputLineData[0]].append(inputAlignmentData)
-print "finished loading Meta-C data"
+print("finished loading Meta-C data")
 
 # open VCF file
 bcf_in = pysam.VariantFile(inputVcfFile)
@@ -60,7 +60,7 @@ for rec in bcf_in.fetch():
                                 inputAlignmentData[-1] = currentHaplotype
                             elif inputAlignmentData[-1] != currentHaplotype:
                                 inputAlignmentData[-1] = "-2"
-print "finished phasing Meta-C data"
+print("finished phasing Meta-C data")
 
 # print output
 for inputRead in inputData:
@@ -68,4 +68,4 @@ for inputRead in inputData:
     for inputAlignmentData in inputData[inputRead]:
         outputFile.write('\t'+",".join(inputAlignmentDataField for inputAlignmentDataField in inputAlignmentData))
     outputFile.write("\n")
-print "finished writing output"
+print("finished writing output")

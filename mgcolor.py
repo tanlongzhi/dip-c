@@ -1,16 +1,17 @@
 import sys
 import getopt
+import gzip
 from classes import Haplotypes, hom_name_to_ref_name_haplotype
 
 def merge_color_data(color_data_1, color_data_2, missing_value):
     # find the number of existing files
     if color_data_1:
-        num_color_files_1 = len(color_data_1.itervalues().next())
+        num_color_files_1 = len(next(iter(color_data_1.values())))
     else:
         num_color_files_1 = 0
         
     if color_data_2:
-        num_color_files_2 = len(color_data_2.itervalues().next())
+        num_color_files_2 = len(next(iter(color_data_2.values())))
     else:
         num_color_files_2 = 0    
         
@@ -64,7 +65,7 @@ def mgcolor(argv):
     merged_color_data = {}
     num_color_files = 0
     for a in args:
-        color_file = gzip.open(a, "rb") if a.endswith(".gz") else open(a, "rb")
+        color_file = gzip.open(a, "rt") if a.endswith(".gz") else open(a, "r")
         num_colors = 0
     
         if further_merge:
@@ -83,7 +84,7 @@ def mgcolor(argv):
                     
                 hom_name = color_file_line_data[0]
                 ref_locus = int(color_file_line_data[1])
-                color_data[(hom_name, ref_locus)] = map(float, color_file_line_data[2:])
+                color_data[(hom_name, ref_locus)] = list(map(float, color_file_line_data[2:]))
             
             # merge with existing file
             merge_color_data(merged_color_data, color_data, missing_value)
@@ -131,7 +132,7 @@ def mgcolor(argv):
     sys.stderr.write("[M::" + __name__ + "] writing " + str(len(merged_color_data)) + " particles from " + str(len(args)) + " files\n")
     sys.stdout.write(header_line + "\n")
     for hom_name, ref_locus in sorted(merged_color_data.keys()):
-        sys.stdout.write("\t".join([hom_name, str(ref_locus)] + map(str, merged_color_data[(hom_name, ref_locus)])) + "\n")
+        sys.stdout.write("\t".join([hom_name, str(ref_locus)] + list(map(str, merged_color_data[(hom_name, ref_locus)]))) + "\n")
     
     return 0
     

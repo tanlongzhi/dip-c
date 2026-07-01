@@ -55,7 +55,7 @@ for i in range(numOfStructures):
         # rotate j to align with i
         sys.stderr.write('aligning '+str(j)+' to '+str(i)+'\n')
         alignedFilename = "aligned_" + str(j) + "_to_" + str(i) + ".3dg"
-        alignedFile = open(alignedFilename, "wb")
+        alignedFile = open(alignedFilename, "w")
         for inputLocus in inputData[j]:
             #sys.stderr.write("locus: "+str(inputLocus)+"\n")
             #sys.stderr.write("old: "+str(np.array(inputData[j][inputLocus]))+"\n")

@@ -1,3 +1,5 @@
+from pymol import cmd
+
 # for TAD display
 tad_chain = "X(mat)"
 tad_start = 17540000
@@ -21,11 +23,10 @@ tad_end_id = cmd.id_atom("tad_end")
 cmd.select("tad", "id " + str(tad_start_id) + "-" + str(tad_end_id))
 
 
-hide all
-as lines, chr
-color gray80, chr
-as sticks, tad
-set_bond stick_radius, 0.5, tad
-spectrum b, rainbow, tad
-
-png ~/Downloads/tad.png, 800, 600, ray=1
+cmd.do("hide all")
+cmd.do("as lines, chr")
+cmd.do("color gray80, chr")
+cmd.do("as sticks, tad")
+cmd.do("set_bond stick_radius, 0.5, tad")
+cmd.do("spectrum b, rainbow, tad")
+cmd.do("png ~/Downloads/tad.png, 800, 600, ray=1")

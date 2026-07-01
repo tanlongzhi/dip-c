@@ -25,8 +25,8 @@ def align(argv):
         return 1
     for o, a in opts:
         if o == "-o":
-            output_prefix = a            
-            
+            output_prefix = a
+
     # load 3dg files
     input_data = []
     num_structures = len(args)
@@ -37,11 +37,11 @@ def align(argv):
     for input_filename in args:
         sys.stderr.write("[M::" + __name__ + "] reading 3dg file " + str(counter) + ": " + input_filename + "\n")
         input_data.append({})
-        for input_file_line in open(input_filename, "rb"):
+        for input_file_line in open(input_filename, "r"):
             input_file_line_data = input_file_line.strip().split()
             input_data[-1][(input_file_line_data[0], int(input_file_line_data[1]))] = [float(input_file_line_data[2]),float(input_file_line_data[3]),float(input_file_line_data[4])]
         counter += 1
-    
+
     # find common particles
     common_loci = set(input_data[0])
     for input_structure in input_data[1:]:
@@ -54,7 +54,7 @@ def align(argv):
         for common_locus in common_loci:
             common_data[-1].append(input_structure[common_locus])
     sys.stderr.write("[M::" + __name__ + "] found " + str(num_loci) + " common particles\n")
-        
+
     # subtract centroid
     common_data = np.array(common_data)
     centroid_data = []
@@ -64,7 +64,7 @@ def align(argv):
         common_data[i] -= centroid_pos
         centroid_data.append(centroid_pos)
     sys.stderr.write("[M::" + __name__ + "] found centroids for " + str(num_structures) + " structures\n")
-    
+
     # calculate pairwise deviation and rotate
     deviations = np.empty((num_loci, 0), float)
     for i in range(num_structures):
@@ -81,13 +81,13 @@ def align(argv):
                 deviation = np.linalg.norm(np.dot(mirror_factor * common_data[j], rotation_matrix) - common_data[i], axis = 1).T
                 deviations = np.c_[deviations, deviation]
                 sys.stderr.write("[M::" + __name__ + "] median deviation between file " + str(i) + " and file " + str(j) + ": " + str(np.median(deviation)) + "\n")
-            
+
             # rotate
             if output_prefix is not None:
                 # rotate j to align with i
                 sys.stderr.write("[M::" + __name__ + "] aligning file " + str(j) + " to file " + str(i) + "\n")
                 aligned_filename = output_prefix + str(j) + "_to_" + str(i) + ".3dg"
-                aligned_file = open(aligned_filename, "wb")
+                aligned_file = open(aligned_filename, "w")
                 for input_locus in input_data[j]:
                     aligned_pos = np.dot((np.array(input_data[j][input_locus]) - centroid_data[j]) * mirror_factor, rotation_matrix) + centroid_data[i]
                     aligned_file.write("\t".join([input_locus[0], str(input_locus[1]), str(aligned_pos[0]), str(aligned_pos[1]), str(aligned_pos[2])]) + "\n")
@@ -101,6 +101,5 @@ def align(argv):
     sys.stderr.write("[M::" + __name__ + "] writing output\n")
     for i in range(num_loci):
         sys.stdout.write("\t".join(map(str, [common_loci[i][0], common_loci[i][1], rmsds[i]])) + "\n")
-        
+
     return 0
-    

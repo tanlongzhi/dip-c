@@ -44,15 +44,15 @@ def cv(argv):
         return 1
                        
     # read CON files
-    con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+    con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
 
-    impute_con_file = gzip.open(impute_file_name, "rb") if impute_file_name.endswith(".gz") else open(impute_file_name, "rb")
+    impute_con_file = gzip.open(impute_file_name, "rt") if impute_file_name.endswith(".gz") else open(impute_file_name, "r")
     impute_con_data = file_to_con_data(impute_con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(impute_con_data.num_cons()) + " imputed contacts (" +  str(round(100.0 * impute_con_data.num_phased_legs() / impute_con_data.num_cons() / 2, 2)) + "% legs phased)\n")
 
-    truth_con_file = gzip.open(truth_file_name, "rb") if truth_file_name.endswith(".gz") else open(truth_file_name, "rb")
+    truth_con_file = gzip.open(truth_file_name, "rt") if truth_file_name.endswith(".gz") else open(truth_file_name, "r")
     truth_con_data = file_to_con_data(truth_con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(truth_con_data.num_cons()) + " contacts (" +  str(round(100.0 * truth_con_data.num_phased_legs() / truth_con_data.num_cons() / 2, 2)) + "% legs phased)\n")
 

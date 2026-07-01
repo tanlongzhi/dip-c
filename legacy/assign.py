@@ -122,7 +122,7 @@ for inputPdbLine in inputPdbFile:
         incrementCounts[increment] += 1
     previousChr = inputChr
     previousPosValue = inputPosValue
-resolution = max(incrementCounts.iterkeys(), key=(lambda key: incrementCounts[key]))
+resolution = max(incrementCounts.keys(), key=(lambda key: incrementCounts[key]))
 sys.stderr.write("resolution: "+str(resolution)+"\n")
 minSeparation = minSeparationFactor * resolution
 

@@ -45,7 +45,7 @@ def clean(argv):
             test_mode = True     
                             
     # read CON file
-    con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+    con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
     original_num_cons = con_data.num_cons()
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")

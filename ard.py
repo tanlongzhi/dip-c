@@ -24,10 +24,10 @@ def ard(argv):
     normalize_by_num_cons = False
     leg_file_1_name = None
     leg_file_2_name = None
-        
+
     # progress display parameters
     display_num_ref_cons = 1000
-    
+
     # read arguments
     try:
         opts, args = getopt.getopt(argv[1:], "c:s:d:h:Sent1:2:")
@@ -60,21 +60,21 @@ def ard(argv):
         elif o == "-S":
             is_symmetrical = False
         elif o == "-e":
-            superellipse_mode = True     
+            superellipse_mode = True
         elif o == "-n":
-            count_mode = True  
+            count_mode = True
         elif o == "-t":
-            normalize_by_num_cons = True  
+            normalize_by_num_cons = True
         elif o == "-1":
             leg_file_1_name = a
         elif o == "-2":
             leg_file_2_name = a
 
     # read CON file
-    con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+    con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
-    
+
     if leg_file_1_name is None:
         # regular mode
         # read reference CON file
@@ -83,7 +83,7 @@ def ard(argv):
             ref_con_data = copy.deepcopy(con_data)
         else:
             # open another file
-            ref_con_file = gzip.open(reference_file_name, "rb") if reference_file_name.endswith(".gz") else open(reference_file_name, "rb")
+            ref_con_file = gzip.open(reference_file_name, "rt") if reference_file_name.endswith(".gz") else open(reference_file_name, "r")
             ref_con_data = file_to_con_data(ref_con_file)
         sys.stderr.write("[M::" + __name__ + "] read " + str(ref_con_data.num_cons()) + " reference points (" + str(round(100.0 * ref_con_data.num_intra_chr() / ref_con_data.num_cons(), 2)) + "% intra-chromosomal)\n")
 
@@ -101,7 +101,7 @@ def ard(argv):
         if not grid_size is None:
             grid_num = 2 * max_distance / grid_size
             around_hist = np.zeros((grid_num, grid_num), dtype = np.int)
-    
+
         # find relation positions
         con_data.sort_cons()
         num_ref_cons = 0
@@ -146,18 +146,18 @@ def ard(argv):
     else:
         # pairwise leg mode
         # read legs
-        legs_1 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_1_name, "rb")]
+        legs_1 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_1_name, "r")]
         if leg_file_2_name is None:
             legs_2 = legs_1
         else:
-            legs_2 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_2_name, "rb")]
-    
+            legs_2 = [string_to_leg(leg_file_line.strip()) for leg_file_line in open(leg_file_2_name, "r")]
+
         # initilize pariwise count matrix
         num_legs_1 = len(legs_1)
         num_legs_2 = len(legs_2)
         count_matrix = np.empty([num_legs_1, num_legs_2], dtype=int)
         count_matrix[:] = -1
-    
+
         # for each pair of legs
         num_ref_cons = 0
         for i in range(num_legs_1):
@@ -174,7 +174,7 @@ def ard(argv):
                 num_ref_cons += 1
                 if num_ref_cons % display_num_ref_cons == 0:
                     sys.stderr.write("[M::" + __name__ + "] analyzed " + str(num_ref_cons) + " reference points\n")
-                
+
                 # count
                 num_nearby_cons = 0
                 for con in (con_data.get_cons_near(ref_con, max_distance) if superellipse_mode else con_data.get_cons_near_inf(ref_con, max_distance)):
@@ -182,10 +182,9 @@ def ard(argv):
                 count_matrix[i, j] = num_nearby_cons
                 if leg_file_2_name is None:
                     count_matrix[j, i] = num_nearby_cons
-                
+
         # write pariwise count matrix
         sys.stderr.write("[M::" + __name__ + "] writing output for pairwise count matrix\n")
         np.savetxt(sys.stdout, count_matrix, fmt='%i', delimiter='\t')         
-    
+
     return 0
-    

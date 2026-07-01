@@ -24,7 +24,7 @@ def is_known_haplotype(haplotype):
 def haplotype_to_string(haplotype):
     return str(haplotype) if is_known_haplotype(haplotype) else "."
 def string_to_haplotype(haplotype_string):
-    return Haplotypes.unknown if haplotype_string == "." else int(haplotype_string) 
+    return Haplotypes.unknown if haplotype_string == "." else int(haplotype_string)
 def known_haplotypes():
     yield Haplotypes.paternal
     yield Haplotypes.maternal
@@ -44,7 +44,7 @@ def hom_name_to_ref_name_haplotype(hom_name):
 def homologous_ref_name_haplotype(ref_name_haplotype):
     ref_name = ref_name_haplotype[0]
     haplotype = homologous_haplotype(ref_name_haplotype[1])
-    return (ref_name, haplotype)   
+    return (ref_name, haplotype)
 def homologous_hom_name(hom_name):
     return ref_name_haplotype_to_hom_name(homologous_ref_name_haplotype(hom_name_to_ref_name_haplotype(hom_name)))
 
@@ -61,7 +61,7 @@ def update_haplotype(haplotype_1, haplotype_2):
 # a read segment (alignment)
 @total_ordering
 class Seg:
-    
+
     def __init__(self, is_read2, query_start, query_end, ref_name, ref_start, ref_end, is_reverse, haplotype = Haplotypes.unknown):
         self.is_read2 = is_read2
         self.query_start = query_start
@@ -71,7 +71,7 @@ class Seg:
         self.ref_end = ref_end
         self.is_reverse = is_reverse
         self.haplotype = haplotype # if not given, default is unknown
-    
+
     # order: from left to right on the fragment
     # namely, read 1 before read 2
     # on read 1, order by left side
@@ -81,14 +81,14 @@ class Seg:
     def __eq__(self, other):
         return (self.is_read2, (-self.query_end if self.is_read2 else self.query_start)) == (other.is_read2, (-other.query_end if other.is_read2 else other.query_start))
 
-                
+
     def update_haplotype(self, is_read2, ref_name, ref_locus, haplotype):
         if self.is_read2 == is_read2 and self.ref_name == ref_name and ref_locus - 1 >= self.ref_start and ref_locus <= self.ref_end:
             self.haplotype = update_haplotype(self.haplotype, haplotype)
-    
+
     def is_phased(self):
         return is_known_haplotype(self.haplotype)
-    
+
     # output mapped loci of the left and right ends (ordered based on fragment)
     def ref_left(self):
         if self.is_read2 == self.is_reverse:
@@ -98,8 +98,8 @@ class Seg:
     def ref_right(self):
         if self.is_read2 == self.is_reverse:
             return self.ref_end
-        return self.ref_start 
-        
+        return self.ref_start
+
     def set_ref_left(self, ref_left):
         if self.is_read2 == self.is_reverse:
             self.ref_start = ref_left
@@ -111,10 +111,10 @@ class Seg:
             self.ref_end = ref_right
         else:
             self.ref_start = ref_right
-            
+
     def to_con_with(self, other):
         return Con(Leg(self.ref_name, self.ref_right(), self.haplotype), Leg(other.ref_name, other.ref_left(), other.haplotype))
-    
+
     def to_string(self): # "m" is for mate
         return ",".join(["m" if self.is_read2 else ".", str(self.query_start), str(self.query_end), self.ref_name, str(self.ref_start), str(self.ref_end), "-" if self.is_reverse else "+", haplotype_to_string(self.haplotype)])
 
@@ -132,17 +132,17 @@ def string_to_seg(seg_string):
 
 # a read, containing all its segments
 class Read:
-    
+
     def __init__(self, name):
         self.name = name
         self.segs = []
 
     def add_seg(self, seg):
         self.segs.append(seg)
-    
+
     def add_segs_from_read(self, read):
         self.segs += read.segs
-    
+
     def num_segs(self):
         return len(self.segs)
 
@@ -152,14 +152,14 @@ class Read:
             if seg.is_phased():
                 num_phased_segs += 1
         return num_phased_segs
-            
+
     def update_haplotype(self, is_read2, ref_name, ref_locus, haplotype):
         for seg in self.segs:
             seg.update_haplotype(is_read2, ref_name, ref_locus, haplotype)
-            
+
     def sort_segs(self):
         self.segs.sort()
-        
+
     def to_con_data(self, adjacent_only):
         self.sort_segs()
         con_data = ConData()
@@ -169,10 +169,10 @@ class Read:
                     break
                 con_data.add_con(self.segs[i].to_con_with(self.segs[j]))
         return con_data
-    
+
     def to_string(self):
         return self.name + "\t" + "\t".join([seg.to_string() for seg in self.segs])
-        
+
 # create a read from a string
 def string_to_read(read_string):
     read_string_data = read_string.split("\t")
@@ -183,7 +183,7 @@ def string_to_read(read_string):
 
 # a hash map of reads (a SEG file)
 class SegData:
-    
+
     def __init__(self):
         self.reads = {}
 
@@ -198,40 +198,40 @@ class SegData:
             self.reads[read.name] = read
         else: # add segments to an existing read
             self.reads[read.name].add_segs_from_read(read)
-            
+
     # discard reads with a single segments
     def clean(self):
-        for name in self.reads.keys():
+        for name in list(self.reads):
             if self.reads[name].num_segs() < 2:
                 del self.reads[name]
-                
+
     # update haplotype for a specific read, if exists
     def update_haplotype(self, name, is_read2, ref_name, ref_locus, haplotype):
         if name in self.reads:
             self.reads[name].update_haplotype(is_read2, ref_name, ref_locus, haplotype)
-            
+
     def num_reads(self):
         return len(self.reads)
-        
+
     def num_segs(self):
         num_segs = 0
         for read in self.reads.values():
             num_segs += read.num_segs()
         return num_segs
-    
+
     def num_phased_segs(self):
         num_phased_segs = 0
         for read in self.reads.values():
             num_phased_segs += read.num_phased_segs()
         return num_phased_segs
-          
+
     def to_string(self): # no tailing new line
         return "\n".join(read.to_string() for read in self.reads.values())
 
 # a leg
 @total_ordering
 class Leg:
-    
+
     def __init__(self, ref_name, ref_locus, haplotype):
         self.ref_name = ref_name
         self.ref_locus = ref_locus
@@ -1169,7 +1169,7 @@ class G3dParticle:
     def __repr__(self):
         return self.to_string()
     def to_string(self):
-        return "\t".join([self.hom_name, str(self.ref_locus)] + map(str, self.position))
+        return "\t".join([self.hom_name, str(self.ref_locus)] + list(map(str, self.position)))
     def to_leg(self):
         ref_name, haplotype = hom_name_to_ref_name_haplotype(self.hom_name)
         return Leg(ref_name, self.ref_locus, haplotype)

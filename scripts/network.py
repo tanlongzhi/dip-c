@@ -11,7 +11,7 @@ pairwise_distances = np.loadtxt(sys.argv[1], dtype = float, delimiter='\t')
 # read node info from a LEG file
 node_hom_names = []
 node_ref_loci = []
-for input_leg_file_line in open(sys.argv[2], "rb"):
+for input_leg_file_line in open(sys.argv[2], "r"):
     ref_name, ref_locus, haplotype = input_leg_file_line.strip().split(",")
     ref_locus = int(ref_locus)
     hom_name = ref_name + ("(pat)" if haplotype == "0" else "(mat)")
@@ -20,7 +20,7 @@ for input_leg_file_line in open(sys.argv[2], "rb"):
     
 # read node names
 node_names = []
-for node_name_line in open(sys.argv[3], "rb"):
+for node_name_line in open(sys.argv[3], "r"):
     node_names.append(node_name_line.strip())
 
 # form edges: 0=no, 1=short-range intra, 2=long-range intra, 3=inter

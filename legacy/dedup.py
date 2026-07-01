@@ -36,7 +36,7 @@ for inputLine in inputFile:
 # sort and merge contacts within maxDistance
 for chr1 in contactData:
     for chr2 in contactData[chr1]:
-        print chr1+', '+chr2
+        print(f"{chr1}, {chr2}")
         while True:
             merged = False
             contactData[chr1][chr2] = sorted(contactData[chr1][chr2])

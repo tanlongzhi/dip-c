@@ -34,7 +34,7 @@ for inputLine in inputFile:
 imputeData = []
 for leftChr in contactData:
     for rightChr in contactData[leftChr]:
-        print leftChr+", "+rightChr
+        print(f"{leftChr}, {rightChr}")
         for contact in contactData[leftChr][rightChr]:
             if contact[2] >= 0 and contact[5] >= 0: # fully phased
                 imputeData.append([contact[0],contact[1],contact[2],contact[3],contact[4],contact[5]])

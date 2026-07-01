@@ -21,7 +21,7 @@ def con_to_matrix_index(con, hom_offsets, matrix_bin_size, merge_haplotypes):
     matrix_index_1 = leg_to_matrix_index(con.leg_1(), hom_offsets, matrix_bin_size, merge_haplotypes)
     matrix_index_2 = leg_to_matrix_index(con.leg_2(), hom_offsets, matrix_bin_size, merge_haplotypes)
     return matrix_index_1, matrix_index_2
-    
+
 def con_data_to_matrix(con_data, hom_offsets, matrix_bin_size, matrix_size, merge_haplotypes, display_num_cons):
     # convert to matrix
     sys.stderr.write("[M::" + __name__ + "] generating a " + str(matrix_size) + " x " + str(matrix_size) + " matrix\n")
@@ -46,10 +46,10 @@ def bincon(argv):
     info_mode = False
     leg_mode = False
     min_separation = 0
-    
+
     # progress display parameters
     display_num_cons = 1e4
-    
+
     # read arguments
     try:
         opts, args = getopt.getopt(argv[1:], "l:b:HiLs:")
@@ -66,7 +66,7 @@ def bincon(argv):
         sys.stderr.write("  -s INT         min separation (bp) for intra-chromosomal contacts [" + str(min_separation) + "]\n")
         sys.stderr.write("  -i             output bin info (tab-delimited: homolog or chr if \"-H\", bin center) instead\n")
         return 1
-        
+
     num_color_schemes = 0
     for o, a in opts:
         if o == "-l":
@@ -91,7 +91,7 @@ def bincon(argv):
     hom_bin_lens = {}
     hom_offsets = {}
     matrix_size = 0
-    chr_len_file = open(chr_len_file_name, "rb")
+    chr_len_file = open(chr_len_file_name, "r")
     for chr_len_file_line in chr_len_file:
         ref_name, ref_len = chr_len_file_line.strip().split("\t")
         ref_len = int(ref_len)
@@ -102,25 +102,24 @@ def bincon(argv):
             hom_bin_lens[hom_name] = hom_bin_len
             hom_offsets[hom_name] = matrix_size
             matrix_size += hom_bin_len
-            
+
             if info_mode:
                 for bin_id in range(hom_bin_len):
                     sys.stdout.write("\t".join([(ref_name if merge_haplotypes else hom_name), str(bin_id * matrix_bin_size)]) + "\n")
-    
+
     # generate matrix
     if not info_mode:
         if leg_mode:
             matrix_data = np.zeros((matrix_size, 1), dtype = int)
-            for leg_file_line in open(args[0], "rb"):
+            for leg_file_line in open(args[0], "r"):
                 leg = string_to_leg(leg_file_line.strip())
                 matrix_data[leg_to_matrix_index(leg, hom_offsets, matrix_bin_size, merge_haplotypes)] += 1
         else:
-            con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+            con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
             con_data = file_to_con_data(con_file)
             con_data.clean_separation(min_separation)
             sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " putative contacts (" + str(round(100.0 * con_data.num_intra_chr() / con_data.num_cons(), 2)) + "% intra-chromosomal, " + str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
             matrix_data = con_data_to_matrix(con_data, hom_offsets, matrix_bin_size, matrix_size, merge_haplotypes, display_num_cons)
         np.savetxt(sys.stdout, matrix_data, fmt='%i', delimiter='\t')
-    
+
     return 0
-    

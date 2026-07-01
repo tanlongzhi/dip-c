@@ -91,4 +91,4 @@ for leftChr in contactData:
                 if not changedPhase:
                     break
 
-            print imputeData[leftChr][rightChr]
+            print(imputeData[leftChr][rightChr])

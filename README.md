@@ -1,6 +1,16 @@
 # Dip-C
 ![logo](images/logo_small.png)
 
+![Coverage](images/coverage-badge.svg)
+
+## Getting Started
+```sh
+git clone https://github.com/tanlongzhi/dip-c
+cd dip-c
+make  # installs numpy, scipy, and rmsd dependencies
+# hickit is also required (https://github.com/lh3/hickit)
+```
+
 ## Table of Contents
 
 * [Introduction](#intro)
@@ -195,7 +205,7 @@ An example `.reg` file is:
 
 ## <a name="require"></a>Requirements
 ### <a name="basic_require"></a>Basic Requirements
-Dip-C was tested on Python v2.7.13 (macOS and CentOS), with the following basic requirements:
+Dip-C was tested on Python 3 (macOS and CentOS), with the following basic requirements:
 
 * NumPy (tested on v1.12.1)
 * SciPy (tested on v0.13.3)
@@ -209,6 +219,18 @@ Some Dip-C commands have additional requirements:
 * `vis` and other mmCIF scripts: [PDBx Python Parser](http://mmcif.wwpdb.org/docs/sw-examples/python/html/index.html)
 * mmCIF viewing: [PyMol](https://pymol.org/2/)
 * `align`: [rmsd](https://pypi.org/project/rmsd/)
+
+To install `rmsd` and the PDBx parser locally under this repo (no global Python changes), run:
+```
+make deps
+```
+This installs into `vendor/`, and `dip-c` will automatically use those local copies when run from this repo.
+
+If you need to reset the local dependencies:
+```
+make clean-deps
+make
+```
 
 ## <a name="workflow"></a>Typical Workflow
 In our latest work, both the main Dip-C algorithm and 3D modeling are now carried out with [hickit](https://github.com/lh3/hickit), a much faster and more careful implementation. Below is a typical workflow of such combined use of [hickit](https://github.com/lh3/hickit) and this repo (with mm10 as an example genome):

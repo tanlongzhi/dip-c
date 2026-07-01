@@ -5,7 +5,7 @@ from scipy.stats import rankdata
 hom_names = []
 ref_locus_strings = []
 color_values = []
-for file_line in open(sys.argv[1], "rb"):
+for file_line in open(sys.argv[1], "r"):
     file_line_data = file_line.strip().split("\t")
     hom_names.append(file_line_data[0])
     ref_locus_strings.append(file_line_data[1])

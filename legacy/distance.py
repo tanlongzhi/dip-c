@@ -46,4 +46,7 @@ for inputPdbLine in inputPdbFile:
 
 # print
 for inputPdbChr in radiusOfGyration:
-    print str(inputPdbChr)+'\t'+str(math.sqrt(radiusOfGyration[inputPdbChr]/len(inputPdbData[inputPdbChr])))
+    rg_sum = radiusOfGyration[inputPdbChr]
+    rg_count = len(inputPdbData[inputPdbChr])
+    rg_value = math.sqrt(rg_sum / rg_count)
+    print(f"{inputPdbChr}\t{rg_value}")

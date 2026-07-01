@@ -68,15 +68,15 @@ def reg(argv):
                 
     # load regions from file
     if not inc_file_name is None:
-        inc_file = gzip.open(inc_file_name, "rb") if inc_file_name.endswith(".gz") else open(inc_file_name, "rb")
+        inc_file = gzip.open(inc_file_name, "rt") if inc_file_name.endswith(".gz") else open(inc_file_name, "r")
         inc_regs.extend(file_to_reg_list(inc_file))
         inc_file.close()
     if not exc_file_name is None:
-        exc_file = gzip.open(exc_file_name, "rb") if exc_file_name.endswith(".gz") else open(exc_file_name, "rb")
+        exc_file = gzip.open(exc_file_name, "rt") if exc_file_name.endswith(".gz") else open(exc_file_name, "r")
         exc_regs.extend(file_to_reg_list(exc_file))
         exc_file.close()        
     if not hap_file_name is None:
-        hap_file = gzip.open(hap_file_name, "rb") if hap_file_name.endswith(".gz") else open(hap_file_name, "rb")
+        hap_file = gzip.open(hap_file_name, "rt") if hap_file_name.endswith(".gz") else open(hap_file_name, "r")
         hap_regs.extend(file_to_reg_list(hap_file))
         hap_file.close() 
         
@@ -99,7 +99,7 @@ def reg(argv):
         sys.stderr.write(reg.to_string() + "\n")
             
     # read CON file
-    con_file = gzip.open(args[0], "rb") if args[0].endswith(".gz") else open(args[0], "rb")
+    con_file = gzip.open(args[0], "rt") if args[0].endswith(".gz") else open(args[0], "r")
     con_data = file_to_con_data(con_file)
     sys.stderr.write("[M::" + __name__ + "] read " + str(con_data.num_cons()) + " putative contacts (" +  str(round(100.0 * con_data.num_phased_legs() / con_data.num_cons() / 2, 2)) + "% legs phased)\n")
     

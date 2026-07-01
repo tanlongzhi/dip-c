@@ -55,7 +55,7 @@ for leftChr in contactData:
     tempContactData[leftChr] = {}
     for rightChr in contactData[leftChr]:
         tempContactData[leftChr][rightChr] = []
-        print 'removing '+leftChr+', '+rightChr
+        print(f"removing {leftChr}, {rightChr}")
         
         for contact in contactData[leftChr][rightChr]:
             numOfLeftLegs = bisect.bisect_right(legData[leftChr][bisect.bisect_left(legData[leftChr],contact[1] - legDistance):],contact[1] + legDistance)
@@ -67,7 +67,7 @@ contactData = tempContactData
 # clean data
 for leftChr in contactData:
     for rightChr in contactData[leftChr]:
-        print 'cleaning '+leftChr+', '+rightChr
+        print(f"cleaning {leftChr}, {rightChr}")
         
         numOfContacts = len(contactData[leftChr][rightChr])
         for i in range(numOfContacts):

@@ -1,9 +1,7 @@
+import os
 import sys
 import getopt
 from classes import Haplotypes, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data
-from pdbx.reader.PdbxReader  import PdbxReader
-from pdbx.writer.PdbxWriter  import PdbxWriter
-from pdbx.reader.PdbxContainers import *
 
 def g3d_particle_to_atom_data(g3d_particle, atom_id, color):
     locus_string = str(g3d_particle.get_ref_locus()).rjust(9,'0')
@@ -42,6 +40,15 @@ def vis(argv):
         sys.stderr.write("  B_iso_or_equiv    scalar color\n")
         sys.stderr.write("  covale            backbone bond\n")
         return 1
+
+    repo_dir = os.path.dirname(os.path.realpath(__file__))
+    vendor_dir = os.path.join(repo_dir, "vendor")
+    if os.path.isdir(vendor_dir):
+        sys.path.insert(0, vendor_dir)
+
+    from pdbx.reader.PdbxReader  import PdbxReader
+    from pdbx.writer.PdbxWriter  import PdbxWriter
+    from pdbx.reader.PdbxContainers import DataCategory, DataContainer
         
     num_color_schemes = 0
     for o, a in opts:
@@ -55,7 +62,7 @@ def vis(argv):
             connect_adjacent = True
                                             
     # read 3DG file
-    g3d_data = file_to_g3d_data(open(args[0], "rb"))
+    g3d_data = file_to_g3d_data(open(args[0], "r"))
     g3d_data.sort_g3d_particles()
     g3d_resolution = g3d_data.resolution()
     sys.stderr.write("[M::" + __name__ + "] read a 3D structure with " + str(g3d_data.num_g3d_particles()) + " particles at " + ("N.A." if g3d_resolution is None else str(g3d_resolution)) + " bp resolution\n")
@@ -63,7 +70,7 @@ def vis(argv):
     # read color file
     color_data = {}
     if not color_file_name is None:
-        color_file = open(color_file_name, "rb")
+        color_file = open(color_file_name, "r")
         for color_file_line in color_file:
             hom_name, ref_locus, color = color_file_line.strip().split("\t")
             ref_locus = int(ref_locus)
