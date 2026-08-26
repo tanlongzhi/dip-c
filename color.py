@@ -3,7 +3,7 @@ import getopt
 from classes import Haplotypes, homologous_hom_name, LegData, ConData, file_to_con_data, Leg, Par, ParData, G3dData, file_to_g3d_data, string_to_leg
 import math
 import numpy as np
-
+from scipy.stats import rankdata
 
 def intra_hom_fraction(g3d_particle, nearby_g3d_particles, max_separation):
     hom_name = g3d_particle.get_hom_name()
@@ -135,13 +135,18 @@ def color(argv):
     radial_missing_value = -1.0
     radial_max_r = 3.0
     radial_bin_r = 0.05
+    mark_gene_mode_dist = None
+    mark_gene_mode = False
+    mark_gene_chr = None
+    mark_gene_locus = None
+    mark_gene_parent = None 
     
     # display parameters
     disp_num_particles = 1000
     
     # read arguments
     try:
-        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:p:P:CD:R", ["min-num=", "missing=", "max-r=", "bin-size=", "c-hom=", "s-exc="])
+        opts, args = getopt.getopt(argv[1:], "c:n:l:m:L:i:s:S:hd:r:I:p:GP:CD:R", ["min-num=", "missing=", "max-r=", "bin-size=", "c-hom=", "s-exc=", "G-chr=", "G-locus=", "G-parent="]) 
     except getopt.GetoptError as err:
         sys.stderr.write("[E::" + __name__ + "] unknown command\n")
         return 1
@@ -170,6 +175,9 @@ def color(argv):
         sys.stderr.write("  --missing=FLOAT   (with \"-R\") output value when \"--min-num\" is not met [" + str(radial_missing_value) + "]\n")
         sys.stderr.write("  --max-r=FLOAT     (with \"-R\") max radial distance [" + str(radial_max_r) + "]\n")
         sys.stderr.write("  --bin-size=FLOAT  (with \"-R\") bin size of radial distances [" + str(radial_bin_r) + "]\n\n")
+        sys.stderr.write("  --G-chr=INT       (with \"-s\" or \"--s-exc\") mark the ranked(0-to-1) average colors around a locus of a gene on a given AUTOSOME\n")
+        sys.stderr.write("  --G-locus=INT     (with \"-s\" or \"--s-exc\") mark the ranked(0-to-1) average colors around a locus of a gene\n")
+        sys.stderr.write("  --G-parent=STR    (with \"-s\" or \"--s-exc\") mark the ranked(0-to-1) average colors around a locus of a gene for mat(m)/pat(p)/both(b)\n")
         sys.stderr.write("Output:\n")
         sys.stderr.write("  tab-delimited: homolog, locus, color\n")
         sys.stderr.write("  (with \"-R\") tab-delimited: radial distance, average color, #particles\n")
@@ -197,6 +205,15 @@ def color(argv):
             radial_bin_r = float(a)
         elif o == "-R":
             radial_mode = True
+        elif o == "--G-chr":
+            mark_gene_mode = True
+            mark_gene_chr = int(a)
+        elif o =="--G-locus":
+            mark_gene_mode = True
+            mark_gene_locus = int(a)
+        elif o =="--G-parent":
+            mark_gene_mode = True
+            mark_gene_parent = str(a)
         elif o == "--c-hom":
             num_color_schemes += 1
             color_mode = o[2:]
@@ -369,7 +386,61 @@ def color(argv):
             if not color is None:
                 smooth_color_data[g3d_particle.get_hom_name(), g3d_particle.get_ref_locus()] = color
         color_data = smooth_color_data
+   
+    # mark gene mode
+    if mark_gene_mode:
+        if smooth_distance_exc:
+            mark_gene_mode_dist = smooth_distance_exc
+        elif smooth_distance:
+            mark_gene_mode_dist = smooth_distance
         
+        color_data_values = color_data.values()
+        color_data_keys = color_data.keys()
+        # rank
+        rank_color_values = rankdata(np.asarray(color_data_values))
+        rank_color_values = (rank_color_values - 1) / (float(len(color_data_values) - 1)) # convert to 0-1
+
+        rank_color_data = dict(zip(color_data_keys, rank_color_values))
+
+        color_select_particles = []
+        g3d_data.prepare_nearby()
+        if mark_gene_parent == str('b'):
+            for g3d_particle in g3d_data.get_g3d_particles():
+                if (g3d_particle.get_hom_name() == str('chr' + str(mark_gene_chr) + '(mat)')) or (g3d_particle.get_hom_name() == str('chr' + str(mark_gene_chr) + '(pat)')):
+                    if (g3d_particle.get_ref_locus() == int(str(mark_gene_locus))):
+                        color_select_particles.append(g3d_particle)
+                        for neighbors in g3d_data.get_g3d_particles_near(g3d_particle.get_position(), mark_gene_mode_dist):
+                            color_select_particles.append(neighbors)
+        elif mark_gene_parent == str('m'):
+            for g3d_particle in g3d_data.get_g3d_particles():
+                if (g3d_particle.get_hom_name() == str('chr' + str(mark_gene_chr) + '(mat)')):
+                    if (g3d_particle.get_ref_locus() == int(str(mark_gene_locus))):
+                        color_select_particles.append(g3d_particle)
+                        for neighbors in g3d_data.get_g3d_particles_near(g3d_particle.get_position(), mark_gene_mode_dist):
+                            color_select_particles.append(neighbors)
+        elif mark_gene_parent == str('p'):
+            for g3d_particle in g3d_data.get_g3d_particles():
+                if (g3d_particle.get_hom_name() == str('chr' + str(mark_gene_chr) + '(pat)')):
+                    if (g3d_particle.get_ref_locus() == int(str(mark_gene_locus))):
+                        color_select_particles.append(g3d_particle)
+                        for neighbors in g3d_data.get_g3d_particles_near(g3d_particle.get_position(), mark_gene_mode_dist):
+                            color_select_particles.append(neighbors)
+
+        # output
+        sys.stderr.write("[M::" + __name__ + "] writing mark gene mode output\n")
+
+        nearby_particle_name_locus = []
+        for nearby_particle in color_select_particles:
+            nearby_hom_name = nearby_particle.get_hom_name()
+            nearby_ref_locus = nearby_particle.get_ref_locus()
+            nearby_particle_name_locus.append((nearby_hom_name,nearby_ref_locus))
+
+        for hom_name, ref_locus in sorted(rank_color_data.keys()):
+            if (hom_name, ref_locus) in sorted(nearby_particle_name_locus):
+                sys.stdout.write("\t".join([hom_name, str(ref_locus), str(rank_color_data[(hom_name, ref_locus)])]) + "\n")
+    
+        return 0
+    
     # radial
     if radial_mode:
         num_radial_bins = int(radial_max_r / radial_bin_r) + 1
